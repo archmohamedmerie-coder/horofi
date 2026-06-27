@@ -3855,7 +3855,9 @@ const ELEVENLABS_MODEL = 'eleven_multilingual_v2';
 const _audioCache = new Map();
 
 /* هل ElevenLabs مفعّل؟ */
-return ELEVENLABS_KEY && ELEVENLABS_KEY.length > 10;
+function elIsReady() {
+  return ELEVENLABS_KEY && ELEVENLABS_KEY.length > 10;
+}
 
 /* توليد صوت من ElevenLabs وإرجاع AudioBuffer */
 async function elFetch(text) {
