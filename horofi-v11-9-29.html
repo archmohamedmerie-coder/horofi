@@ -2493,41 +2493,92 @@ async function playIntroAudio() {
 }
 
 /* ── تشغيل اسم الطفل: MP3 محلي → ElevenLabs → Web Speech ── */
+/* ── تشغيل اسم الطفل: localStorage → RAM cache → ElevenLabs → Web Speech ── */
 async function playNameAudio(nameKey, mood) {
   if (!nameKey) return;
-  const namePath = 'audio/names/' + nameKey + '.mp3';
-  return new Promise(resolve => {
-    const audio = new Audio(namePath);
-    audio.onended = resolve;
-    audio.onerror = async () => {
-      if (elIsReady()) {
-        const url = await elFetch(nameKey).catch(()=>null);
-        if (url) { await elPlay(url, mood).catch(()=>{}); resolve(); return; }
-      }
-      await speakWebSpeech(nameKey, mood);
-      resolve();
-    };
-    audio.play().catch(async () => {
-      if (elIsReady()) {
-        const url = await elFetch(nameKey).catch(()=>null);
-        if (url) { await elPlay(url, mood).catch(()=>{}); resolve(); return; }
-      }
-      await speakWebSpeech(nameKey, mood);
-      resolve();
-    });
-  });
+
+  // 1. من RAM cache (أسرع)
+  const cacheKey = 'name:' + nameKey;
+  if (_audioCache.has(cacheKey)) {
+    await elPlay(_audioCache.get(cacheKey), mood).catch(()=>{});
+    return;
+  }
+
+  // 2. من localStorage (base64)
+  const stored = localStorage.getItem('horofi_name_' + nameKey);
+  if (stored) {
+    try {
+      const blob = await fetch('data:audio/mpeg;base64,' + stored).then(r=>r.blob());
+      const url = URL.createObjectURL(blob);
+      _audioCache.set(cacheKey, url);
+      await elPlay(url, mood).catch(()=>{});
+      return;
+    } catch(e) {}
+  }
+
+  // 3. توليد من ElevenLabs الآن
+  if (elIsReady()) {
+    const url = await elFetchAndStore(nameKey).catch(()=>null);
+    if (url) {
+      _audioCache.set(cacheKey, url);
+      await elPlay(url, mood).catch(()=>{});
+      return;
+    }
+  }
+
+  // 4. Web Speech كـ fallback أخير
+  await speakWebSpeech(nameKey, mood);
 }
 
-/* ── توليد وتخزين صوت الاسم عند التسجيل (خلفية) ── */
-async function generateAndCacheName(nameKey) {
-  if (!nameKey || !elIsReady()) return;
-  const namePath = 'audio/names/' + nameKey + '.mp3';
+/* ── توليد الاسم من ElevenLabs وحفظه في localStorage ── */
+async function elFetchAndStore(nameKey) {
+  if (!elIsReady()) return null;
   try {
-    const r = await fetch(namePath, {method:'HEAD'});
-    if (r.ok) return;
-  } catch(e) {}
-  console.log('توليد صوت الاسم:', nameKey);
-  await elFetch(nameKey).catch(()=>null);
+    const cleaned = stripForSpeech(nameKey) || nameKey;
+    const resp = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE}`,
+      {
+        method: 'POST',
+        headers: {
+          'xi-api-key': ELEVENLABS_KEY,
+          'Content-Type': 'application/json',
+          'Accept': 'audio/mpeg'
+        },
+        body: JSON.stringify({
+          text: cleaned,
+          model_id: ELEVENLABS_MODEL,
+          voice_settings: { stability:0.85, similarity_boost:0.75, style:0.0, use_speaker_boost:false }
+        })
+      }
+    );
+    if (!resp.ok) return null;
+    const arrayBuf = await resp.arrayBuffer();
+    // حفظ في localStorage كـ base64
+    const bytes = new Uint8Array(arrayBuf);
+    let binary = '';
+    bytes.forEach(b => binary += String.fromCharCode(b));
+    const b64 = btoa(binary);
+    try { localStorage.setItem('horofi_name_' + nameKey, b64); } catch(e) {}
+    // إرجاع URL مؤقت
+    const blob = new Blob([arrayBuf], {type:'audio/mpeg'});
+    return URL.createObjectURL(blob);
+  } catch(e) { return null; }
+}
+
+/* ── توليد وتخزين صوت الاسم عند التسجيل (يعمل في الخلفية) ── */
+async function generateAndCacheName(nameKey) {
+  if (!nameKey) return;
+  const cacheKey = 'name:' + nameKey;
+
+  // إذا موجود في RAM أو localStorage → لا حاجة للتوليد
+  if (_audioCache.has(cacheKey)) return;
+  if (localStorage.getItem('horofi_name_' + nameKey)) return;
+
+  // ولّد من ElevenLabs وخزّن
+  if (elIsReady()) {
+    const url = await elFetchAndStore(nameKey).catch(()=>null);
+    if (url) _audioCache.set(cacheKey, url);
+  }
 }
 
 /* ── تشغيل جملة الترحيب: أهلاً يا + اسم + نسبة + لقب ── */
