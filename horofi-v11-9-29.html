@@ -2399,8 +2399,9 @@ function completeOnboarding(){
   buildHome();
   nav('home');
   const nisba = PROFILE.gender==='female' ? PROFILE.nisba_f : PROFILE.nisba_m;
-  const welcomeMsg = `أَهْلاً يَا ${PROFILE.name} ${nisba} ${PROFILE.gender==='female'?'الْمُجْتَهِدَةُ':'الْمُجْتَهِدُ'}!`;
-  speak(welcomeMsg, 'excited');
+  const _nameKey = (PROFILE.nameForSpeech || PROFILE.name || '').trim();
+  if (_nameKey) generateAndCacheName(_nameKey);
+  playWelcomeAudio(nisba);
 }
 
 /* ── GENDER-AWARE TEXT HELPERS ── */
@@ -2449,7 +2450,6 @@ const PRAISE_MP3 = [
 async function playPraiseAudio(praiseText) {
   if (!soundEnabled) return;
   const isF = PROFILE.gender === 'female';
-  // حدّد الـ tier من النص
   let tier = 0;
   const tiers_m = ['أَحْسَنْتَ','رَائِع','مَا شَاءَ','مُذْهِل','يَالَكَ'];
   for (let i = 0; i < tiers_m.length; i++) {
@@ -2459,25 +2459,12 @@ async function playPraiseAudio(praiseText) {
   const prePath = isF ? mp3.pre_f : mp3.pre_m;
   const postPath = isF ? mp3.post_f : mp3.post_m;
   const nameKey = (PROFILE.nameForSpeech || PROFILE.name || '').trim();
-
-  // 1. الجزء الثابت قبل الاسم
   await playStaticMP3(prePath).catch(()=>{});
-  // 2. اسم الطفل
-  if (nameKey) {
-    const namePath = 'audio/names/' + nameKey + '.mp3';
-    await playStaticMP3(namePath).catch(async () => {
-      // Fallback: ElevenLabs للاسم فقط
-      if (elIsReady()) {
-        const url = await elFetch(nameKey).catch(()=>null);
-        if (url) await elPlay(url, 'excited').catch(()=>{});
-      }
-    });
-  }
-  // 3. الجزء الثابت بعد الاسم
+  if (nameKey) await playNameAudio(nameKey, 'excited');
   if (postPath) await playStaticMP3(postPath).catch(()=>{});
 }
 
-/* ── تشغيل صوت التشجيع (خطأ): ثابت_قبل + اسم + ثابت_بعد ── */
+/* ── تشغيل صوت التشجيع (خطأ) ── */
 async function playEncourageAudio(msg) {
   if (!soundEnabled) return;
   const isF = PROFILE.gender === 'female';
@@ -2485,43 +2472,101 @@ async function playEncourageAudio(msg) {
   const prePath = isFoul
     ? (isF ? 'audio/wrong/wrong_f_2.mp3' : 'audio/wrong/wrong_m_2.mp3')
     : (isF ? 'audio/wrong/wrong_f_1.mp3' : 'audio/wrong/wrong_m_1.mp3');
-  const postPath = isFoul
-    ? null
+  const postPath = isFoul ? null
     : (isF ? 'audio/wrong/wrong_f_1b.mp3' : 'audio/wrong/wrong_m_1b.mp3');
   const nameKey = (PROFILE.nameForSpeech || PROFILE.name || '').trim();
-
   await playStaticMP3(prePath).catch(()=>{});
-  if (nameKey) {
-    const namePath = 'audio/names/' + nameKey + '.mp3';
-    await playStaticMP3(namePath).catch(async () => {
-      if (elIsReady()) {
-        const url = await elFetch(nameKey).catch(()=>null);
-        if (url) await elPlay(url, 'calm').catch(()=>{});
-      }
-    });
-  }
+  if (nameKey) await playNameAudio(nameKey, 'calm');
   if (postPath) await playStaticMP3(postPath).catch(()=>{});
 }
 
-/* ── تشغيل صوت المقدمة: ثابت + اسم + لقب ── */
+/* ── تشغيل صوت المقدمة ── */
 async function playIntroAudio() {
   if (!soundEnabled) return;
   const isF = PROFILE.gender === 'female';
   const nameKey = (PROFILE.nameForSpeech || PROFILE.name || '').trim();
   const prePath = isF ? 'audio/intro/intro_f.mp3' : 'audio/intro/intro_m.mp3';
   const suffixPath = isF ? 'audio/intro/intro_suffix_f.mp3' : 'audio/intro/intro_suffix_m.mp3';
-
   await playStaticMP3(prePath).catch(()=>{});
-  if (nameKey) {
-    const namePath = 'audio/names/' + nameKey + '.mp3';
-    await playStaticMP3(namePath).catch(async () => {
+  if (nameKey) await playNameAudio(nameKey, 'calm');
+  await playStaticMP3(suffixPath).catch(()=>{});
+}
+
+/* ── تشغيل اسم الطفل: MP3 محلي → ElevenLabs → Web Speech ── */
+async function playNameAudio(nameKey, mood) {
+  if (!nameKey) return;
+  const namePath = 'audio/names/' + nameKey + '.mp3';
+  return new Promise(resolve => {
+    const audio = new Audio(namePath);
+    audio.onended = resolve;
+    audio.onerror = async () => {
       if (elIsReady()) {
         const url = await elFetch(nameKey).catch(()=>null);
-        if (url) await elPlay(url, 'calm').catch(()=>{});
+        if (url) { await elPlay(url, mood).catch(()=>{}); resolve(); return; }
       }
+      await speakWebSpeech(nameKey, mood);
+      resolve();
+    };
+    audio.play().catch(async () => {
+      if (elIsReady()) {
+        const url = await elFetch(nameKey).catch(()=>null);
+        if (url) { await elPlay(url, mood).catch(()=>{}); resolve(); return; }
+      }
+      await speakWebSpeech(nameKey, mood);
+      resolve();
     });
+  });
+}
+
+/* ── توليد وتخزين صوت الاسم عند التسجيل (خلفية) ── */
+async function generateAndCacheName(nameKey) {
+  if (!nameKey || !elIsReady()) return;
+  const namePath = 'audio/names/' + nameKey + '.mp3';
+  try {
+    const r = await fetch(namePath, {method:'HEAD'});
+    if (r.ok) return;
+  } catch(e) {}
+  console.log('توليد صوت الاسم:', nameKey);
+  await elFetch(nameKey).catch(()=>null);
+}
+
+/* ── تشغيل جملة الترحيب: أهلاً يا + اسم + نسبة + لقب ── */
+async function playWelcomeAudio(nisba) {
+  if (!soundEnabled) return;
+  const isF = PROFILE.gender === 'female';
+  const nameKey = (PROFILE.nameForSpeech || PROFILE.name || '').trim();
+  await playStaticMP3('audio/welcome/welcome_pre.mp3').catch(()=>{});
+  if (nameKey) await playNameAudio(nameKey, 'excited');
+  if (nisba) {
+    const nisbaUrl = await elFetch(nisba).catch(()=>null);
+    if (nisbaUrl) await elPlay(nisbaUrl, 'excited').catch(()=>{});
+    else await speakWebSpeech(nisba, 'excited');
   }
+  const suffixPath = isF
+    ? 'audio/welcome/welcome_suffix_f.mp3'
+    : 'audio/welcome/welcome_suffix_m.mp3';
   await playStaticMP3(suffixPath).catch(()=>{});
+}
+
+/* ── Web Speech Fallback ── */
+function speakWebSpeech(text, mood) {
+  return new Promise(resolve => {
+    if (!window.speechSynthesis) { resolve(); return; }
+    const cleaned = stripForSpeech ? stripForSpeech(text) : text;
+    if (!cleaned) { resolve(); return; }
+    try {
+      const u = new SpeechSynthesisUtterance(cleaned);
+      u.lang = arabicVoice ? arabicVoice.lang : 'ar';
+      u.volume = 1;
+      if (mood==='excited') { u.rate=1.08; u.pitch=1.25; }
+      else if (mood==='calm') { u.rate=0.88; u.pitch=0.95; }
+      else { u.rate=0.92; u.pitch=1; }
+      if (arabicVoice) u.voice = arabicVoice;
+      u.onend = resolve;
+      u.onerror = resolve;
+      speechSynthesis.speak(u);
+    } catch(e) { resolve(); }
+  });
 }
 
 /* ── TEXT-TO-SPEECH ── */
@@ -3810,9 +3855,7 @@ const ELEVENLABS_MODEL = 'eleven_multilingual_v2';
 const _audioCache = new Map();
 
 /* هل ElevenLabs مفعّل؟ */
-function elIsReady() {
-  return ELEVENLABS_KEY && ELEVENLABS_KEY.length > 10 && !ELEVENLABS_KEY.startsWith('sk_3b058a7ccab295dcf2d2ddf2352dfc36a927aed21e5a4d12');
-}
+return ELEVENLABS_KEY && ELEVENLABS_KEY.length > 10;
 
 /* توليد صوت من ElevenLabs وإرجاع AudioBuffer */
 async function elFetch(text) {
