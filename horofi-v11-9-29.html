@@ -2622,6 +2622,40 @@ function speakWebSpeech(text, mood) {
   });
 }
 
+/* ── تشغيل صوت السؤال من MP3 ── */
+async function playQuestionAudio(R) {
+  if (!soundEnabled) return;
+  const char = CL.char;
+  const isNonConn = ['د','ذ','ر','ز','و','ا'].includes(char);
+
+  let mp3Key = null;
+
+  if (R.kind === 'joincheck' || R.kind === 'detachcheck') {
+    mp3Key = `audio/questions/${char}_ini`;
+  } else if (R.pos) {
+    const posMap = {
+      'بِدَايَة الْكَلِمَة': 'ini',
+      'وَسَط الْكَلِمَة':   'med',
+      'نِهَايَة الْكَلِمَة': 'fin',
+      'مُنْفَرِدَة':         'iso',
+    };
+    const posKey = posMap[R.pos] || 'ini';
+    if (!isNonConn && posKey !== 'iso') {
+      // متصل أو منفصل
+      const suffix = R.kind === 'identify_mid_n' || R.kind === 'identify_end_n' ? '_n' : '_c';
+      mp3Key = `audio/questions/${char}_${posKey}${suffix}`;
+    } else {
+      mp3Key = `audio/questions/${char}_${posKey}`;
+    }
+  } else {
+    mp3Key = `audio/questions/${char}_ini`;
+  }
+
+  if (mp3Key) {
+    await playStaticMP3(mp3Key + '.mp3').catch(()=>{});
+  }
+}
+
 /* ── TEXT-TO-SPEECH ── */
 let arabicVoice = null;
 let speechUnlocked = false;
@@ -3328,13 +3362,10 @@ function buildRound(){
 
   const lbl = body.querySelector('.tlabel');
   if (lbl){
-    const qtext = lbl.textContent;
-    if (soundEnabled && window.speechSynthesis){
-      // اقفل أزرار الإجابة حتى ينتهي نطق السؤال
+    if (soundEnabled) {
       lockAnswers(true);
-      speakAsync(qtext, 'normal').then(()=> lockAnswers(false));
+      playQuestionAudio(R).then(()=> lockAnswers(false));
     } else {
-      // الصوت مغلق → الأزرار مفعّلة فورًا
       lockAnswers(false);
     }
   }
@@ -3823,6 +3854,10 @@ function showBadgePopup(badge) {
     pop.querySelector('.bb-desc').textContent += ` +${badge.points} نقطة!`;
   }
   pop.classList.add('show');
+  // صوت الشارة
+  if (soundEnabled) {
+    playStaticMP3(`audio/badges/${badge.id}.mp3`).catch(()=>{});
+  }
   confetti(50);
 }
 function closeBadgePopup() {
