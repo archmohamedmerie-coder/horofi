@@ -445,15 +445,55 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 <button id="globalMuteBtn" class="global-mute-btn" onclick="toggleSound()" title="كتم/تشغيل الصوت">🔊</button>
 
 <div id="login" class="screen active">
-  <div id="header" style="text-align:center;margin-top:40px">
-    <img src="Logo.jpeg" id="mainLogo" style="width:150px;height:auto">
-    <h2 style="color:#9B5DE5;margin-top:10px;font-family:'Tajawal',sans-serif;font-weight:bold">صحّح حروفك</h2>
+  <div style="text-align:center;padding:32px 20px 0">
+    <img src="Logo.jpeg" style="width:140px;height:auto;display:block;margin:0 auto 10px">
+    <h2 style="font-family:'Tajawal',sans-serif;font-size:1.55rem;font-weight:900;color:#9B5DE5;margin:0">صحّح حروفك</h2>
   </div>
-  <div id="login-box" style="width:300px;margin:40px auto;padding:20px;background:white;border-radius:12px;box-shadow:0 0 15px rgba(0,0,0,0.1);text-align:center">
-    <input id="loginEmail" type="email" placeholder="الإيميل" autocomplete="email" style="width:100%;padding:10px;margin-bottom:10px;box-sizing:border-box;border:1px solid #ddd;border-radius:6px;font-family:'Tajawal',sans-serif;font-size:1rem" dir="ltr">
-    <input id="loginPass" type="password" placeholder="كلمة السر" autocomplete="current-password" style="width:100%;padding:10px;margin-bottom:10px;box-sizing:border-box;border:1px solid #ddd;border-radius:6px;font-family:'Tajawal',sans-serif;font-size:1rem">
-    <div id="loginErr" style="font-size:.83rem;font-weight:700;color:#FF6B6B;text-align:center;min-height:1em;margin-bottom:8px"></div>
-    <button onclick="doLogin()" style="width:100%;padding:12px;background:#9B5DE5;color:white;border:none;border-radius:8px;font-size:18px;font-family:'Tajawal',sans-serif;font-weight:700;cursor:pointer">دخول</button>
+
+  <div style="width:90%;max-width:320px;margin:20px auto 0;background:#fff;border-radius:16px;padding:22px 18px;box-shadow:0 4px 20px rgba(0,0,0,.13)">
+
+    <!-- نموذج الدخول -->
+    <div id="loginForm">
+      <input id="loginEmail" type="email" placeholder="البريد الإلكتروني"
+        style="display:block;width:100%;padding:12px;margin-bottom:11px;border:2px solid #e0d0f5;border-radius:10px;font-size:1rem;font-family:'Tajawal',sans-serif;box-sizing:border-box;direction:ltr;text-align:left;outline:none"
+        autocomplete="email">
+      <input id="loginPass" type="password" placeholder="كلمة السر"
+        style="display:block;width:100%;padding:12px;margin-bottom:8px;border:2px solid #e0d0f5;border-radius:10px;font-size:1rem;font-family:'Tajawal',sans-serif;box-sizing:border-box;outline:none"
+        autocomplete="current-password">
+      <div id="loginErr" style="color:#e53935;font-size:.85rem;font-weight:700;text-align:center;margin-bottom:10px;min-height:18px"></div>
+      <button onclick="doLogin()"
+        style="display:block;width:100%;padding:13px;background:#9B5DE5;color:#fff;border:none;border-radius:10px;font-size:1.1rem;font-weight:700;font-family:'Tajawal',sans-serif;cursor:pointer;margin-bottom:10px">
+        دخول
+      </button>
+      <button onclick="showResetForm()"
+        style="display:block;width:100%;padding:10px;background:transparent;color:#9B5DE5;border:2px solid #9B5DE5;border-radius:10px;font-size:.92rem;font-weight:700;font-family:'Tajawal',sans-serif;cursor:pointer">
+        نسيت كلمة السر؟ إعادة الضبط
+      </button>
+    </div>
+
+    <!-- نموذج إعادة كلمة السر -->
+    <div id="resetForm" style="display:none">
+      <p style="font-family:'Tajawal',sans-serif;font-size:.88rem;color:#666;text-align:center;margin:0 0 14px">
+        أدخل بريدك وكلمة سر جديدة
+      </p>
+      <input id="resetEmail" type="email" placeholder="البريد الإلكتروني"
+        style="display:block;width:100%;padding:12px;margin-bottom:10px;border:2px solid #e0d0f5;border-radius:10px;font-size:1rem;font-family:'Tajawal',sans-serif;box-sizing:border-box;direction:ltr;text-align:left;outline:none"
+        autocomplete="email">
+      <input id="resetNewPass" type="password" placeholder="كلمة السر الجديدة"
+        style="display:block;width:100%;padding:12px;margin-bottom:10px;border:2px solid #e0d0f5;border-radius:10px;font-size:1rem;font-family:'Tajawal',sans-serif;box-sizing:border-box;outline:none">
+      <input id="resetConfirm" type="password" placeholder="تأكيد كلمة السر"
+        style="display:block;width:100%;padding:12px;margin-bottom:8px;border:2px solid #e0d0f5;border-radius:10px;font-size:1rem;font-family:'Tajawal',sans-serif;box-sizing:border-box;outline:none">
+      <div id="resetMsg" style="font-size:.85rem;font-weight:700;text-align:center;margin-bottom:10px;min-height:18px"></div>
+      <button onclick="doReset()"
+        style="display:block;width:100%;padding:13px;background:#52C97A;color:#fff;border:none;border-radius:10px;font-size:1.05rem;font-weight:700;font-family:'Tajawal',sans-serif;cursor:pointer;margin-bottom:10px">
+        حفظ كلمة السر الجديدة
+      </button>
+      <button onclick="hideResetForm()"
+        style="display:block;width:100%;padding:10px;background:transparent;color:#888;border:2px solid #ddd;border-radius:10px;font-size:.9rem;font-weight:700;font-family:'Tajawal',sans-serif;cursor:pointer">
+        رجوع
+      </button>
+    </div>
+
   </div>
 </div>
 
@@ -2412,47 +2452,64 @@ function testVoice(){
   }
 }
 function doLogin(){
-  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
-  const pass  = document.getElementById('loginPass').value.trim();
-  const errEl = document.getElementById('loginErr');
+  var email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  var pass  = document.getElementById('loginPass').value.trim();
+  var errEl = document.getElementById('loginErr');
   errEl.textContent = '';
   if (!email || !pass){ errEl.textContent = 'يرجى إدخال البريد الإلكتروني وكلمة السر'; return; }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ errEl.textContent = 'صيغة البريد الإلكتروني غير صحيحة'; return; }
-  let creds;
+  var creds = null;
   try { creds = JSON.parse(localStorage.getItem('horofiCreds') || 'null'); } catch(e){}
   if (!creds){
-    // أول استخدام — إنشاء حساب الأهل تلقائياً
-    try { localStorage.setItem('horofiCreds', JSON.stringify({email, pass})); } catch(e){}
+    try { localStorage.setItem('horofiCreds', JSON.stringify({email:email, pass:pass})); } catch(e){}
     document.getElementById('loginPass').value = '';
-    stopAllAudio();
-    nav('onboarding');
-    return;
+    stopAllAudio(); nav('onboarding'); return;
   }
   if (creds.email !== email || creds.pass !== pass){
-    errEl.innerHTML = '❌ البريد الإلكتروني أو كلمة السر غير صحيحة<br><span style="font-size:.78rem;cursor:pointer;text-decoration:underline;color:var(--purple)" onclick="resetCredentials()">إعادة ضبط بيانات الدخول</span>';
+    errEl.textContent = 'البريد الإلكتروني أو كلمة السر غير صحيحة';
     return;
   }
-  // دخول ناجح — تحقق من وجود بيانات الطفل
   document.getElementById('loginPass').value = '';
   stopAllAudio();
-  const __hasProfile = loadProfile();
-  if (__hasProfile && PROFILE.name){
-    loadProgress();
-    buildHome();
-    nav('home');
+  var hasProfile = loadProfile();
+  if (hasProfile && PROFILE.name){ loadProgress(); buildHome(); nav('home'); }
+  else { nav('onboarding'); }
+}
+function showResetForm(){
+  document.getElementById('loginForm').style.display = 'none';
+  document.getElementById('resetForm').style.display = 'block';
+  document.getElementById('resetMsg').textContent = '';
+  document.getElementById('resetMsg').style.color = '#e53935';
+}
+function hideResetForm(){
+  document.getElementById('resetForm').style.display = 'none';
+  document.getElementById('loginForm').style.display = 'block';
+  document.getElementById('loginErr').textContent = '';
+}
+function doReset(){
+  var email   = document.getElementById('resetEmail').value.trim().toLowerCase();
+  var newPass = document.getElementById('resetNewPass').value.trim();
+  var confirm = document.getElementById('resetConfirm').value.trim();
+  var msg = document.getElementById('resetMsg');
+  msg.style.color = '#e53935'; msg.textContent = '';
+  if (!email || !newPass || !confirm){ msg.textContent = 'يرجى ملء جميع الحقول'; return; }
+  if (newPass.length < 4){ msg.textContent = 'كلمة السر يجب أن تكون 4 أحرف على الأقل'; return; }
+  if (newPass !== confirm){ msg.textContent = 'كلمتا السر غير متطابقتين'; return; }
+  var creds = null;
+  try { creds = JSON.parse(localStorage.getItem('horofiCreds') || 'null'); } catch(e){}
+  if (!creds){
+    try { localStorage.setItem('horofiCreds', JSON.stringify({email:email, pass:newPass})); } catch(e){}
+    msg.style.color = '#2d8653'; msg.textContent = 'تم إنشاء الحساب. يمكنك الدخول الآن.';
+    setTimeout(hideResetForm, 1800);
+  } else if (creds.email !== email){
+    msg.textContent = 'البريد غير مطابق للحساب المسجل';
   } else {
-    nav('onboarding');
+    creds.pass = newPass;
+    try { localStorage.setItem('horofiCreds', JSON.stringify(creds)); } catch(e){}
+    msg.style.color = '#2d8653'; msg.textContent = 'تم تغيير كلمة السر. يمكنك الدخول الآن.';
+    setTimeout(hideResetForm, 1800);
   }
 }
-function resetCredentials(){
-  if (!confirm('سيتم حذف بيانات الدخول الحالية. هل أنت متأكد؟')) return;
-  try {
-    localStorage.removeItem('horofiCreds');
-  } catch(e){}
-  document.getElementById('loginErr').textContent = 'تم الحذف — أدخل بريدك وكلمة سر جديدة للتسجيل.';
-  document.getElementById('loginEmail').value = '';
-  document.getElementById('loginPass').value = '';
-}
+
 function completeOnboarding(){
   unlockSpeech();
   const nameVal = document.getElementById('obName').value.trim();
