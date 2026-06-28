@@ -2431,9 +2431,10 @@ function encourageText(){
 function playStaticMP3(path) {
   return new Promise(resolve => {
     const audio = new Audio(path);
-    audio.onended = resolve;
-    audio.onerror = resolve;
-    audio.play().catch(resolve);
+    window._currentAudio = audio;
+    audio.onended = () => { window._currentAudio = null; resolve(); };
+    audio.onerror = () => { window._currentAudio = null; resolve(); };
+    audio.play().catch(() => { window._currentAudio = null; resolve(); });
   });
 }
 
@@ -3009,11 +3010,11 @@ function buildRoundsForConnecting(L){
     ? L.levels[CURRENT_LEVEL]
     : L;
 
-  (src.start||[]).forEach((w,i) => rounds.push(makeRound(w, 'أَوَّلِ الْكَلِمَة', src.startD[i], true)));
-  (src.mid_c||[]).forEach((w,i) => rounds.push(makeRound(w, 'وَسَطِ الْكَلِمَة، بَعْدَ حَرْفٍ مُتَّصِل', src.mid_cD[i])));
-  (src.mid_n||[]).forEach((w,i) => rounds.push(makeRound(w, 'وَسَطِ الْكَلِمَة، بَعْدَ حَرْفٍ غَيْرِ مُتَّصِل', src.mid_nD[i])));
-  (src.end_c||[]).forEach((w,i) => rounds.push(makeRound(w, 'آخِرِ الْكَلِمَة، بَعْدَ حَرْفٍ مُتَّصِل', src.end_cD[i])));
-  (src.end_n||[]).forEach((w,i) => rounds.push(makeRound(w, 'آخِرِ الْكَلِمَة، بَعْدَ حَرْفٍ غَيْرِ مُتَّصِل', src.end_nD[i])));
+  (src.start||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي بِدَايَة الْكَلِمَة', src.startD[i], true)));
+  (src.mid_c||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي وَسَط الْكَلِمَة، بَعْدَ حَرْفٍ مُتَّصِل', src.mid_cD[i])));
+  (src.mid_n||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي وَسَط الْكَلِمَة، بَعْدَ حَرْفٍ مُنْفَصِل', src.mid_nD[i])));
+  (src.end_c||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي آخِر الْكَلِمَة، بَعْدَ حَرْفٍ مُتَّصِل', src.end_cD[i])));
+  (src.end_n||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي آخِر الْكَلِمَة، بَعْدَ حَرْفٍ مُنْفَصِل', src.end_nD[i])));
 
   return rounds; // ترتيب تعليمي ثابت: بداية→وسط→نهاية
 }
@@ -3024,13 +3025,13 @@ function buildRoundsForNonConnecting(L){
   L.words.forEach(w=>{
     if (w.test === 'join'){
       rounds.push({
-        kind:'joincheck', pos:'الاتصال بما بعدها',
+        kind:'joincheck', pos:'فِي بِدَايَة الْكَلِمَة — تَذَكَّرْ أَنَّهَا لَا تَتَّصِلُ بِمَا بَعْدَهَا',
         tip:`${L.name} لَا تَتَّصِلُ أَبَداً بِالْحَرْفِ الَّذِي يَأْتِي بَعْدَهَا`,
         letters: w.letters, targetIdx: w.idx, diac: w.diac,
       });
     } else if (w.test === 'detach'){
       rounds.push({
-        kind:'detachcheck', pos:'الاتصال بما قبلها',
+        kind:'detachcheck', pos:'فِي وَسَط الْكَلِمَة — تَتَّصِلُ بِالْحَرْفِ الَّذِي قَبْلَهَا',
         tip:`${L.name} تَتَّصِلُ بِالْحَرْفِ الَّذِي قَبْلَهَا بِشَكْلٍ طَبِيعِيّ`,
         letters: w.letters, targetIdx: w.idx, diac: w.diac,
       });
@@ -3062,6 +3063,9 @@ function chooseLevel(level){
   startConnectingLetter(PENDING_LETTER);
 }
 function gameBack(){
+  // إيقاف كل الأصوات فوراً
+  try { speechSynthesis.cancel(); } catch(e) {}
+  if (window._currentAudio) { try { window._currentAudio.pause(); window._currentAudio = null; } catch(e) {} }
   if (CL && CL.kind === 'connecting' && PENDING_LETTER){
     nav('levelSelect');
   } else {
@@ -3555,7 +3559,11 @@ function showDone(){
   if(pct>=50){ completedLetters.add(CL.char); saveProgress(); }
   nav('done');
   if(pct>=80) confetti(80);
-  speak(titleTxt + '. ' + (pct>=50 ? g(`أَتْقَنْتَ حَرْف ${CL.name}`, `أَتْقَنْتِ حَرْف ${CL.name}`) : ''), pct>=50?'excited':'calm');
+  // صوت إتقان الحرف
+  if (pct>=50 && soundEnabled) {
+    const isF = PROFILE.gender === 'female';
+    playStaticMP3(isF ? 'audio/mastery/mastery_f.mp3' : 'audio/mastery/mastery_m.mp3').catch(()=>{});
+  }
 }
 function playAgain(){
   if(CL.kind==='connecting') startConnectingLetter(CL);
