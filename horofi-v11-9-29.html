@@ -2724,9 +2724,11 @@ function runSentenceFlow(R){
       if (nb) nb.classList.remove('show');
       (async ()=>{
         if (praise) await playPraiseAudio(praise);
+        checkBadges();
         if (nb) nb.classList.add('show');
       })();
     } else {
+      checkBadges();
       if (nb) nb.classList.add('show');
     }
     return;
@@ -2760,9 +2762,12 @@ function runSentenceFlow(R){
       if (soundEnabled) await playIntroAudio();
       // 3. الجملة التعليمية
       if (soundEnabled) await playSentenceAudio(key, sentence);
+      // 4. بعد انتهاء كل الأصوات — تحقق من الشارات
+      checkBadges();
       if (nb) nb.classList.add('show');
     })();
   } else {
+    checkBadges();
     if (nb) nb.classList.add('show');
   }
 }
@@ -3855,17 +3860,7 @@ function checkBadges() {
   saveChildren();
 
   if (newBadge) {
-    // انتظر انتهاء أي صوت جارٍ ثم أظهر الشارة
-    const waitForAudio = async () => {
-      let waited = 0;
-      while (window._currentAudio && waited < 15000) {
-        await new Promise(r => setTimeout(r, 200));
-        waited += 200;
-      }
-      await new Promise(r => setTimeout(r, 300));
-      showBadgePopup(newBadge);
-    };
-    waitForAudio();
+    setTimeout(() => showBadgePopup(newBadge), 300);
   }
 
   // بطل حروفي — شاشة خاصة
@@ -3912,18 +3907,14 @@ function updateRewardStats(correct) {
   const s = ch.stats;
 
   if (correct) {
-    // تتبع أفضل سلسلة
-    const curStreak = streak; // streak محدَّث قبل استدعاء هذه الدالة
+    const curStreak = streak;
     if (curStreak > (s.bestStreak||0)) s.bestStreak = curStreak;
-    // نقطة لكل إجابة صحيحة
     addPoints(ch, 1);
   }
 
-  // تتبع الحروف المُتقنة
   s.masteredLetters = completedLetters.size;
-
   saveChildren();
-  checkBadges();
+  // checkBadges تُستدعى بعد انتهاء الصوت في runSentenceFlow
 }
 
 /* ── عدد الجلسات ── */
