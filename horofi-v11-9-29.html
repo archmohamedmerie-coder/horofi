@@ -2413,7 +2413,7 @@ function testVoice(){
 }
 function doLogin(){
   const email = document.getElementById('loginEmail').value.trim().toLowerCase();
-  const pass  = document.getElementById('loginPass').value;
+  const pass  = document.getElementById('loginPass').value.trim();
   const errEl = document.getElementById('loginErr');
   errEl.textContent = '';
   if (!email || !pass){ errEl.textContent = 'يرجى إدخال البريد الإلكتروني وكلمة السر'; return; }
@@ -2429,7 +2429,7 @@ function doLogin(){
     return;
   }
   if (creds.email !== email || creds.pass !== pass){
-    errEl.textContent = '❌ البريد الإلكتروني أو كلمة السر غير صحيحة';
+    errEl.innerHTML = '❌ البريد الإلكتروني أو كلمة السر غير صحيحة<br><span style="font-size:.78rem;cursor:pointer;text-decoration:underline;color:var(--purple)" onclick="resetCredentials()">إعادة ضبط بيانات الدخول</span>';
     return;
   }
   // دخول ناجح — تحقق من وجود بيانات الطفل
@@ -2443,6 +2443,15 @@ function doLogin(){
   } else {
     nav('onboarding');
   }
+}
+function resetCredentials(){
+  if (!confirm('سيتم حذف بيانات الدخول الحالية. هل أنت متأكد؟')) return;
+  try {
+    localStorage.removeItem('horofiCreds');
+  } catch(e){}
+  document.getElementById('loginErr').textContent = 'تم الحذف — أدخل بريدك وكلمة سر جديدة للتسجيل.';
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginPass').value = '';
 }
 function completeOnboarding(){
   unlockSpeech();
