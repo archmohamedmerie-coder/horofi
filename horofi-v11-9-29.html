@@ -426,6 +426,19 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
   margin-top:6px;min-height:18px;
 }
 
+/* ── FREEMIUM ── */
+.ltile-lock{position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:1.5rem;pointer-events:none}
+.ltile.locked{filter:grayscale(.65);opacity:.72;cursor:pointer}
+#subscription{background:linear-gradient(180deg,#FFFFFF 0%,#e8f4ff 50%,#fff4e0 100%);justify-content:flex-start;padding:0;gap:0}
+.sub-body{display:flex;flex-direction:column;align-items:center;padding:28px 20px;gap:18px;width:100%;max-width:400px;margin:0 auto}
+.sub-card{background:#fff;border-radius:24px;padding:28px 22px;width:100%;box-shadow:var(--shm);display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
+.sub-icon{font-size:3rem;margin-bottom:4px}
+.sub-title{font-size:1.45rem;font-weight:900;color:var(--purple)}
+.sub-desc{font-size:.92rem;color:var(--muted);font-weight:600;line-height:1.7}
+.sub-price{background:linear-gradient(135deg,var(--purple),#5BC8F5);color:#fff;border-radius:16px;padding:14px 36px;font-size:1.5rem;font-weight:900;font-family:'Tajawal',sans-serif;box-shadow:0 6px 0 var(--purple-d)}
+.sub-features{list-style:none;padding:0;margin:0;text-align:right;width:100%}
+.sub-features li{font-size:.9rem;font-weight:700;color:var(--ink);padding:5px 0;border-bottom:1px solid var(--border)}
+.sub-features li:last-child{border-bottom:none}
 </style>
 </head>
 <body>
@@ -2995,24 +3008,32 @@ function buildLetterGrid(){
     const entry = allByChar[ch];
     if (!entry) return;
     const L = entry.L;
+    const free = isLetterFree(L.char);
     const t=mk('div','ltile');
+    if (!free) t.classList.add('locked');
     t.style.background=L.color;
     t.style.boxShadow=`0 5px 0 ${L.shadow}`;
     let badge = completedLetters.has(L.char) ? `<div class="ldone">✅</div>` : '';
-    t.innerHTML=`${badge}<div class="lchar">${L.char}</div><div class="lname">${L.name}</div>`;
-    t.onclick = entry.kind==='connecting'
-      ? (()=> (L.levels ? openLevelSelect(L) : startConnectingLetter(L)))
-      : (()=>startSpecialIdentifyLetter(L));
+    let lockEl = free ? '' : `<div class="ltile-lock">🔒</div>`;
+    t.innerHTML=`${badge}${lockEl}<div class="lchar">${L.char}</div><div class="lname">${L.name}</div>`;
+    t.onclick = free
+      ? (entry.kind==='connecting'
+          ? (()=> (L.levels ? openLevelSelect(L) : startConnectingLetter(L)))
+          : (()=>startSpecialIdentifyLetter(L)))
+      : (()=>showSubscriptionPage());
     gc.appendChild(t);
   });
 
   NONCONNECTING_LETTERS.forEach(L=>{
+    const free = isLetterFree(L.char);
     const t=mk('div','ltile');
+    if (!free) t.classList.add('locked');
     t.style.background=L.color;
     t.style.boxShadow=`0 5px 0 ${L.shadow}`;
     let badge = completedLetters.has(L.char) ? `<div class="ldone">✅</div>` : '';
-    t.innerHTML=`${badge}<div class="lchar">${L.char}</div><div class="lname">${L.name}</div>`;
-    t.onclick=()=>startNonConnectingLetter(L);
+    let lockEl = free ? '' : `<div class="ltile-lock">🔒</div>`;
+    t.innerHTML=`${badge}${lockEl}<div class="lchar">${L.char}</div><div class="lname">${L.name}</div>`;
+    t.onclick = free ? (()=>startNonConnectingLetter(L)) : (()=>showSubscriptionPage());
     gs.appendChild(t);
   });
 }
@@ -3661,6 +3682,7 @@ function confetti(n=35){
 buildLogo();
 loadSound();
 updateSoundBtn();
+loadSubscription();  // تحميل حالة الاشتراك
 loadProfile();       // تحميل مسبق للبيانات في الخلفية
 loadProgress();
 buildHome();
@@ -4187,6 +4209,63 @@ async function pmSendAndClose(){
     status.style.color = '#e67e22';
     setTimeout(pmClose, 1500);
   }
+}
+
+
+<!-- شاشة الاشتراك Freemium -->
+<div id="subscription" class="screen">
+  <div class="topbar">
+    <button class="btn-back" onclick="stopAllAudio();nav('letters')">← رجوع</button>
+    <span class="topbar-title">الاشتراك</span>
+  </div>
+  <div class="sub-body">
+    <div class="sub-card">
+      <div class="sub-icon">🔓</div>
+      <div class="sub-title">افتح جميع الحروف</div>
+      <div class="sub-desc">لقد استكملت الحروف المجانية (ا، ب، ت، ث، ج).<br>اشترك للوصول إلى جميع الحروف الـ 28.</div>
+      <ul class="sub-features">
+        <li>✅ جميع الحروف الـ 28 بلا حدود</li>
+        <li>✅ جميع المستويات (مبتدئ، متوسط، متقدم)</li>
+        <li>✅ تقارير تقدم الأطفال</li>
+        <li>✅ دعم صوتي كامل</li>
+      </ul>
+      <div class="sub-price">2 يورو / شهر</div>
+      <button class="btn" style="width:100%;margin-top:4px" onclick="activateSubscription()">اشترك الآن 🚀</button>
+      <button class="btn2" style="width:100%;margin-top:6px;font-size:.88rem" onclick="checkSubscriptionReturn()">لقد دفعتُ، فعّل اشتراكي ✅</button>
+      <button class="login-link" onclick="stopAllAudio();nav('letters')">العودة للحروف المجانية</button>
+    </div>
+  </div>
+</div>
+
+
+/* ══════════════════════════════════
+   FREEMIUM LOGIC
+   ══════════════════════════════════ */
+const FREE_LETTER_COUNT = 5;
+let isSubscribed = false;
+
+function loadSubscription(){
+  try { isSubscribed = localStorage.getItem('horofiSubscribed') === '1'; } catch(e){}
+}
+function isLetterFree(char){
+  if (isSubscribed) return true;
+  const idx = ALPHABET_ORDER.indexOf(char);
+  return idx !== -1 && idx < FREE_LETTER_COUNT;
+}
+function showSubscriptionPage(){
+  stopAllAudio();
+  nav('subscription');
+}
+const STRIPE_URL = 'https://buy.stripe.com/test_cNIaEX4Uu7AqgAv1gMbo400';
+function activateSubscription(){
+  window.open(STRIPE_URL, '_blank', 'noopener,noreferrer');
+}
+function checkSubscriptionReturn(){
+  /* يُستدعى بعد عودة المستخدم من صفحة الدفع */
+  isSubscribed = true;
+  try { localStorage.setItem('horofiSubscribed', '1'); } catch(e){}
+  buildLetterGrid();
+  nav('letters');
 }
 
 </script>
