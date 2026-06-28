@@ -194,6 +194,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 .lvl-name{font-size:1.3rem;font-weight:800;color:var(--ink)}
 .lvl-desc{font-size:.82rem;color:var(--muted);font-weight:600}
 .sound-btn{background:var(--border);border:none;border-radius:10px;font-size:1.1rem;padding:5px 9px;cursor:pointer;flex-shrink:0;line-height:1}
+.global-mute-btn{position:fixed;top:12px;left:12px;z-index:9999;background:rgba(255,255,255,.92);border:2px solid var(--border);border-radius:12px;font-size:1.2rem;padding:6px 12px;cursor:pointer;box-shadow:var(--sh);backdrop-filter:blur(4px);line-height:1}
 .sentence-flow{text-align:center;line-height:1.5;margin-top:6px;padding-top:6px;border-top:1px dashed #C9B8F0}
 .sf-intro{font-size:.78rem;font-weight:700;color:#7E57C2;margin-bottom:3px}
 .sf-main{font-family:'Scheherazade New','Noto Naskh Arabic','Traditional Arabic',serif;font-size:1.2rem;font-weight:700;color:var(--ink);background:#fff;border:2px solid #E8DCFF;border-radius:14px;padding:8px 10px;margin:4px 0;line-height:1.8}
@@ -419,6 +420,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 </style>
 </head>
 <body>
+<button id="globalMuteBtn" class="global-mute-btn" onclick="toggleSound()" title="كتم/تشغيل الصوت">🔊</button>
 
 <div id="onboarding" class="screen active">
   <div class="mascot-wrap">
@@ -508,8 +510,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
   <div class="word-swarm" id="wordSwarm"></div>
   <div class="progress-summary" id="progressSummary"></div>
   <button class="btn" onclick="showParentMsg()">نبدأ التعلم! ✏️</button>
-  <button class="btn2" style="margin-top:14px;max-width:220px" onclick="nav('onboarding')">✏️ تغيير الاسم</button>
-  <button class="btn2" style="margin-top:10px;max-width:220px" onclick="testVoice()">🔊 اختبار الصوت</button>
+  <button class="btn2" style="margin-top:14px;max-width:220px" onclick="stopAllAudio();nav('onboarding')">✏️ تغيير الاسم</button>
   <button class="btn2" style="margin-top:10px;max-width:220px" onclick="openChildren()">👧👦 الأطفال</button>
   <button class="btn2" style="margin-top:10px;max-width:220px" onclick="openParentReport()">📊 تقرير الأهل</button>
   <div id="voiceStatus2" style="font-size:.78rem;color:var(--muted);text-align:center;font-weight:700;line-height:1.6;margin-top:8px;max-width:340px"></div>
@@ -518,7 +519,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 <!-- شاشة اختيار/إدارة الأطفال -->
 <div id="children" class="screen">
   <div class="topbar">
-    <button class="btn-back" onclick="nav('home')">← رجوع</button>
+    <button class="btn-back" onclick="stopAllAudio();nav('home')">← رجوع</button>
   </div>
   <div class="children-wrap">
     <h2 class="children-title">👨‍👩‍👧‍👦 من يلعب الآن؟</h2>
@@ -530,7 +531,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 <!-- شاشة تقرير الأهل -->
 <div id="parent" class="screen">
   <div class="topbar">
-    <button class="btn-back" onclick="nav('home')">← رجوع</button>
+    <button class="btn-back" onclick="stopAllAudio();nav('home')">← رجوع</button>
   </div>
   <div class="parent-wrap">
     <h2 class="children-title">📊 تقرير الأهل</h2>
@@ -541,7 +542,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 <!-- شاشة اختيار المستوى -->
 <div id="levelSelect" class="screen">
   <div class="topbar">
-    <button class="btn-back" onclick="nav('letters')">← رجوع</button>
+    <button class="btn-back" onclick="stopAllAudio();nav('letters')">← رجوع</button>
   </div>
   <div class="level-wrap">
     <div id="levelLetterBadge" class="level-badge"></div>
@@ -569,7 +570,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 <div id="letters" class="screen">
   <div class="topbar">
     <span class="topbar-title">اختر حرفاً</span>
-    <button class="btn-back" onclick="nav('home')">← رجوع</button>
+    <button class="btn-back" onclick="stopAllAudio();nav('home')">← رجوع</button>
   </div>
   <div class="section-label">الحروف المتصلة</div>
   <div class="lgrid" id="lgridConnecting"></div>
@@ -596,7 +597,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
   <div class="done-sub" id="dmsg"></div>
   <div class="done-btns">
     <button class="btn" onclick="playAgain()">🔄 العب مرة أخرى</button>
-    <button class="btn2" onclick="nav('letters')">اختر حرفاً آخر</button>
+    <button class="btn2" onclick="stopAllAudio();nav('letters')">اختر حرفاً آخر</button>
   </div>
 </div>
 
@@ -2696,8 +2697,11 @@ function toggleSound(){
   updateSoundBtn();
 }
 function updateSoundBtn(){
+  const icon = soundEnabled ? '🔊' : '🔇';
   const b = document.getElementById('soundBtn');
-  if (b) b.textContent = soundEnabled ? '🔊' : '🔇';
+  if (b) b.textContent = icon;
+  const g = document.getElementById('globalMuteBtn');
+  if (g) g.textContent = icon;
 }
 
 /* تحويل أحرف الكلمة إلى نص بالتشكيل (للنطق وللبحث في القاموس) */
