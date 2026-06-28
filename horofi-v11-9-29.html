@@ -2633,25 +2633,28 @@ async function playQuestionAudio(R) {
 
   const pos = R.pos || '';
 
-  if (pos.includes('أَوَّلِ') || pos.includes('بداية') || pos.includes('بِدَايَة')) {
-    posKey = 'ini';
-    suffix = '_c';
-  } else if (pos.includes('وَسَطِ') && pos.includes('مُتَّصِل') && !pos.includes('غَيْرِ')) {
-    posKey = 'med'; suffix = '_c';
-  } else if (pos.includes('وَسَطِ') && pos.includes('غَيْرِ')) {
-    posKey = 'med'; suffix = '_n';
-  } else if (pos.includes('وَسَطِ')) {
-    posKey = 'med'; suffix = '_c';
-  } else if (pos.includes('آخِرِ') && pos.includes('مُتَّصِل') && !pos.includes('غَيْرِ')) {
-    posKey = 'fin'; suffix = '_c';
-  } else if (pos.includes('آخِرِ') && pos.includes('غَيْرِ')) {
-    posKey = 'fin'; suffix = '_n';
-  } else if (pos.includes('آخِرِ') || pos.includes('نِهَايَة')) {
-    posKey = 'fin'; suffix = '_c';
-  } else if (pos.includes('مُنْفَرِدَة') || pos.includes('منفردة')) {
-    posKey = 'iso'; suffix = '';
-  } else if (R.kind === 'joincheck' || R.kind === 'detachcheck' || R.kind === 'specialIdentify') {
+  if (pos.includes('بِدَايَة') || pos.includes('بداية') || pos.includes('أَوَّلِ')) {
     posKey = 'ini'; suffix = '_c';
+  } else if (pos.includes('وَسَط') && pos.includes('مُتَّصِل') && !pos.includes('مُنْفَصِل') && !pos.includes('غَيْرِ')) {
+    posKey = 'med'; suffix = '_c';
+  } else if (pos.includes('وَسَط') && (pos.includes('مُنْفَصِل') || pos.includes('غَيْرِ'))) {
+    posKey = 'med'; suffix = '_n';
+  } else if (pos.includes('وَسَط')) {
+    posKey = 'med'; suffix = '_c';
+  } else if (pos.includes('آخِر') && pos.includes('مُتَّصِل') && !pos.includes('مُنْفَصِل') && !pos.includes('غَيْرِ')) {
+    posKey = 'fin'; suffix = '_c';
+  } else if (pos.includes('آخِر') && (pos.includes('مُنْفَصِل') || pos.includes('غَيْرِ'))) {
+    posKey = 'fin'; suffix = '_n';
+  } else if (pos.includes('آخِر') || pos.includes('نِهَايَة')) {
+    posKey = 'fin'; suffix = '_c';
+  } else if (pos.includes('مُنْفَرِدَة')) {
+    posKey = 'iso'; suffix = '';
+  } else if (R.kind === 'joincheck') {
+    posKey = 'ini'; suffix = '_c';
+  } else if (R.kind === 'detachcheck') {
+    posKey = 'med'; suffix = '_c';
+  } else if (R.kind === 'specialIdentify') {
+    posKey = 'iso'; suffix = '';
   }
 
   const NON_CONN = ['د','ذ','ر','ز','و','ا'];
