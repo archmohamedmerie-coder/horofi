@@ -2429,6 +2429,7 @@ function encourageText(){
 
 /* ── تشغيل MP3 ثابت من مسار معيّن ── */
 function playStaticMP3(path) {
+  if (window._audioStopped) return Promise.resolve();
   return new Promise(resolve => {
     const audio = new Audio(path);
     window._currentAudio = audio;
@@ -2602,25 +2603,9 @@ async function playWelcomeAudio(nisba) {
   });
 }
 
-/* ── Web Speech Fallback ── */
+/* ── Web Speech معطّل نهائياً ── */
 function speakWebSpeech(text, mood) {
-  return new Promise(resolve => {
-    if (!window.speechSynthesis) { resolve(); return; }
-    const cleaned = stripForSpeech ? stripForSpeech(text) : text;
-    if (!cleaned) { resolve(); return; }
-    try {
-      const u = new SpeechSynthesisUtterance(cleaned);
-      u.lang = arabicVoice ? arabicVoice.lang : 'ar';
-      u.volume = 1;
-      if (mood==='excited') { u.rate=1.08; u.pitch=1.25; }
-      else if (mood==='calm') { u.rate=0.88; u.pitch=0.95; }
-      else { u.rate=0.92; u.pitch=1; }
-      if (arabicVoice) u.voice = arabicVoice;
-      u.onend = resolve;
-      u.onerror = resolve;
-      speechSynthesis.speak(u);
-    } catch(e) { resolve(); }
-  });
+  return Promise.resolve(); // صمت تام بدلاً من صوت المتصفح
 }
 
 /* ── تشغيل صوت السؤال من MP3 ── */
@@ -2716,7 +2701,10 @@ function saveSound(){ try{ localStorage.setItem('horofiSound', soundEnabled?'1':
 function toggleSound(){
   soundEnabled = !soundEnabled;
   saveSound();
-  if (!soundEnabled && window.speechSynthesis){ try{ speechSynthesis.cancel(); }catch(e){} }
+  if (!soundEnabled) {
+    stopAllAudio();
+    lockAnswers(false); // فتح الخيارات فوراً عند الكتم
+  }
   updateSoundBtn();
 }
 function updateSoundBtn(){
@@ -3013,9 +3001,17 @@ function buildRoundsForConnecting(L){
     ? L.levels[CURRENT_LEVEL]
     : L;
 
-  (src.start||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي بِدَايَة الْكَلِمَة', src.startD[i], true)));
+  (src.start||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي بِدَايَة الْكَلِمَة، بَعْدَ حَرْفٍ مُتَّصِل', src.startD[i], true)));
+  // نضيف أيضاً كلمات البداية بعد حرف منفصل (نفس الكلمات بتسمية مختلفة للتنويع)
   (src.mid_c||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي وَسَط الْكَلِمَة، بَعْدَ حَرْفٍ مُتَّصِل', src.mid_cD[i])));
   (src.mid_n||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي وَسَط الْكَلِمَة، بَعْدَ حَرْفٍ مُنْفَصِل', src.mid_nD[i])));
+  // بداية بعد حرف منفصل — نستخدم كلمات الوسط منفصل كبداية بعد منفصل
+  if (src.mid_n && src.mid_n.length > 0) {
+    src.mid_n.forEach((w,i) => {
+      const r = makeRound(w, 'فِي بِدَايَة الْكَلِمَة، بَعْدَ حَرْفٍ مُنْفَصِل', src.mid_nD[i], true);
+      rounds.push(r);
+    });
+  }
   (src.end_c||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي آخِر الْكَلِمَة، بَعْدَ حَرْفٍ مُتَّصِل', src.end_cD[i])));
   (src.end_n||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي آخِر الْكَلِمَة، بَعْدَ حَرْفٍ مُنْفَصِل', src.end_nD[i])));
 
@@ -3065,10 +3061,28 @@ function chooseLevel(level){
   CURRENT_LEVEL = level;
   startConnectingLetter(PENDING_LETTER);
 }
+/* ── إيقاف كل الأصوات فوراً ── */
+function stopAllAudio() {
+  // إيقاف MP3 الحالي
+  if (window._currentAudio) {
+    try { window._currentAudio.pause(); window._currentAudio.src = ''; } catch(e) {}
+    window._currentAudio = null;
+  }
+  // إيقاف Web Speech
+  try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch(e) {}
+  // إيقاف ElevenLabs
+  if (window._elAudio) {
+    try { window._elAudio.pause(); window._elAudio.src = ''; } catch(e) {}
+    window._elAudio = null;
+  }
+  // إلغاء أي async صوت معلق
+  window._audioStopped = true;
+  setTimeout(() => { window._audioStopped = false; }, 100);
+}
+
 function gameBack(){
-  // إيقاف كل الأصوات فوراً
-  try { speechSynthesis.cancel(); } catch(e) {}
-  if (window._currentAudio) { try { window._currentAudio.pause(); window._currentAudio = null; } catch(e) {} }
+  stopAllAudio();
+  lockAnswers(false);
   if (CL && CL.kind === 'connecting' && PENDING_LETTER){
     nav('levelSelect');
   } else {
@@ -3444,7 +3458,7 @@ function buildIdentify(R,body){
 /* ── SPECIAL-LETTER IDENTIFY round (2 clear options) ── */
 function buildSpecialIdentify(R,body){
   body.appendChild(mk('div','tlabel',
-    `🔍 اِخْتَرِ <strong>${CL.name}</strong> الصَّحِيحَة`));
+    `🔍 اِخْتَرِ <strong>${CL.name}</strong> الصَّحِيحَة — وَتَذَكَّرْ أَنَّهَا لَا تَتَّصِلُ بِمَا بَعْدَهَا`));
 
   const correctWord = shapeWord(R.letters, {}, R.diac);
   // القاعدة: الكلمة الخاطئة = الحرف الخاص يظهر منفصلاً عمّا قبله (الحرف قبله لا يتصل به)،
@@ -3496,7 +3510,7 @@ function buildSpecialIdentify(R,body){
 /* ── JOINCHECK round (non-connecting letters) ── */
 function buildJoinCheck(R,body){
   body.appendChild(mk('div','tlabel',
-    `🔍 اِخْتَرِ <strong>${CL.name}</strong> الصَّحِيحَة — تَذَكَّرْ أَنَّهَا لَا تَتَّصِلُ بِمَا بَعْدَهَا`));
+    `🔍 اِخْتَرِ <strong>${CL.name}</strong> الصَّحِيحَة`));
   const correctWord = shapeWord(R.letters, {}, R.diac);
   const wrongWord = buildJoinWrong(R.letters, R.targetIdx, R.diac);
   renderTwoOptionGrid(correctWord, wrongWord, R.tip, body, R.letters, R.targetIdx, R.diac, R);
@@ -3505,7 +3519,7 @@ function buildJoinCheck(R,body){
 /* ── DETACHCHECK round ── */
 function buildDetachCheck(R,body){
   body.appendChild(mk('div','tlabel',
-    `🔍 اِخْتَرِ <strong>${CL.name}</strong> الصَّحِيحَة — تَذَكَّرْ أَنَّهَا لَا تَتَّصِلُ بِمَا بَعْدَهَا`));
+    `🔍 اِخْتَرِ <strong>${CL.name}</strong> الصَّحِيحَة`));
   const correctWord = shapeWord(R.letters, {}, R.diac);
   const wrongWord = buildDetachWrong(R.letters, R.targetIdx, R.diac);
   renderTwoOptionGrid(correctWord, wrongWord, R.tip, body, R.letters, R.targetIdx, R.diac, R);
@@ -3545,7 +3559,19 @@ function renderTwoOptionGrid(correctWord, wrongWord, tip, body, hlLetters, hlTar
 /* ── NEXT ── */
 function nextRound(){
   RI++;
-  if(RI>=ROUNDS.length||lives===0) showDone();
+  if(RI>=ROUNDS.length||lives===0){
+    // الجولة الأخيرة — انتظر انتهاء الصوت ثم أظهر النتيجة
+    const nb = document.querySelector('.btn-next');
+    if (nb) nb.classList.remove('show');
+    const waitAndShow = async () => {
+      // انتظر حتى تنتهي الجملة التعليمية الحالية
+      while (window._currentAudio) {
+        await new Promise(r => setTimeout(r, 100));
+      }
+      showDone();
+    };
+    waitAndShow();
+  }
   else{ buildRound(); window.scrollTo(0,0); }
 }
 
