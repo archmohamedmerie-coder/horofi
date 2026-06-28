@@ -3004,6 +3004,8 @@ function buildHome(){
 
 /* ── LETTER GRID ── */
 const ALPHABET_ORDER = ['ا','ب','ت','ث','ج','ح','خ','د','ذ','ر','ز','س','ش','ص','ض','ط','ظ','ع','غ','ف','ق','ك','ل','م','ن','ه','و','ي'];
+const FREE_LETTER_COUNT = 5;
+let isSubscribed = false;
 function buildLetterGrid(){
   const gc=document.getElementById('lgridConnecting');
   const gs=document.getElementById('lgridSpecial');
@@ -4250,9 +4252,6 @@ async function pmSendAndClose(){
 /* ══════════════════════════════════
    FREEMIUM LOGIC
    ══════════════════════════════════ */
-const FREE_LETTER_COUNT = 5;
-let isSubscribed = false;
-
 function loadSubscription(){
   try { isSubscribed = localStorage.getItem('horofiSubscribed') === '1'; } catch(e){}
 }
