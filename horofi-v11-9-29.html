@@ -2754,12 +2754,12 @@ function runSentenceFlow(R){
 
   if (soundEnabled){
     (async ()=>{
-      // 1. التهنئة → MP3 (ثابت + اسم)
-      if (praise) await playPraiseAudio(praise);
-      // 2. المقدمة → MP3 (ثابت + اسم + لقب)
-      await playIntroAudio();
-      // 3. الجملة التعليمية → MP3 أولاً ← ElevenLabs احتياط
-      await playSentenceAudio(key, sentence);
+      // 1. التهنئة
+      if (soundEnabled && praise) await playPraiseAudio(praise);
+      // 2. المقدمة
+      if (soundEnabled) await playIntroAudio();
+      // 3. الجملة التعليمية
+      if (soundEnabled) await playSentenceAudio(key, sentence);
       if (nb) nb.classList.add('show');
     })();
   } else {
@@ -2780,19 +2780,13 @@ function playMP3(key){
 
 /* ── تشغيل MP3 مع fallback لـ ElevenLabs ── */
 async function playSentenceAudio(key, sentence){
-  // أولاً: حاول تشغيل MP3
+  if (!soundEnabled) return;
   return new Promise(resolve => {
     const audio = new Audio(`audio/sentences/${key}.mp3`);
-    audio.onended = resolve;
-    audio.onerror = async () => {
-      // إذا لم يوجد الملف → استخدم ElevenLabs
-      await speakAsync(sentence, 'calm');
-      resolve();
-    };
-    audio.play().catch(async () => {
-      await speakAsync(sentence, 'calm');
-      resolve();
-    });
+    window._currentAudio = audio;
+    audio.onended = () => { window._currentAudio = null; resolve(); };
+    audio.onerror = () => { window._currentAudio = null; resolve(); };
+    audio.play().catch(() => { window._currentAudio = null; resolve(); });
   });
 }
 
@@ -2992,13 +2986,6 @@ function buildRoundsForConnecting(L){
   (src.start||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي بِدَايَة الْكَلِمَة', src.startD[i], true)));
   (src.mid_c||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي وَسَط الْكَلِمَة، بَعْدَ حَرْفٍ مُتَّصِل', src.mid_cD[i])));
   (src.mid_n||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي وَسَط الْكَلِمَة، بَعْدَ حَرْفٍ مُنْفَصِل', src.mid_nD[i])));
-  // بداية بعد حرف منفصل — نفس تسمية البداية
-  if (src.mid_n && src.mid_n.length > 0) {
-    src.mid_n.forEach((w,i) => {
-      const r = makeRound(w, 'فِي بِدَايَة الْكَلِمَة', src.mid_nD[i], true);
-      rounds.push(r);
-    });
-  }
   (src.end_c||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي آخِر الْكَلِمَة، بَعْدَ حَرْفٍ مُتَّصِل', src.end_cD[i])));
   (src.end_n||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي آخِر الْكَلِمَة، بَعْدَ حَرْفٍ مُنْفَصِل', src.end_nD[i])));
 
@@ -3868,7 +3855,17 @@ function checkBadges() {
   saveChildren();
 
   if (newBadge) {
-    setTimeout(() => showBadgePopup(newBadge), 1200);
+    // انتظر انتهاء أي صوت جارٍ ثم أظهر الشارة
+    const waitForAudio = async () => {
+      let waited = 0;
+      while (window._currentAudio && waited < 15000) {
+        await new Promise(r => setTimeout(r, 200));
+        waited += 200;
+      }
+      await new Promise(r => setTimeout(r, 300));
+      showBadgePopup(newBadge);
+    };
+    waitForAudio();
   }
 
   // بطل حروفي — شاشة خاصة
