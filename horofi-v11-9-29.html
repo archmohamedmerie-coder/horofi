@@ -2626,34 +2626,44 @@ function speakWebSpeech(text, mood) {
 async function playQuestionAudio(R) {
   if (!soundEnabled) return;
   const char = CL.char;
-  const isNonConn = ['د','ذ','ر','ز','و','ا'].includes(char);
 
-  let mp3Key = null;
+  let posKey = 'ini';
+  let suffix = '_c';
 
-  if (R.kind === 'joincheck' || R.kind === 'detachcheck') {
-    mp3Key = `audio/questions/${char}_ini`;
-  } else if (R.pos) {
-    const posMap = {
-      'بِدَايَة الْكَلِمَة': 'ini',
-      'وَسَط الْكَلِمَة':   'med',
-      'نِهَايَة الْكَلِمَة': 'fin',
-      'مُنْفَرِدَة':         'iso',
-    };
-    const posKey = posMap[R.pos] || 'ini';
-    if (!isNonConn && posKey !== 'iso') {
-      // متصل أو منفصل
-      const suffix = R.kind === 'identify_mid_n' || R.kind === 'identify_end_n' ? '_n' : '_c';
-      mp3Key = `audio/questions/${char}_${posKey}${suffix}`;
-    } else {
-      mp3Key = `audio/questions/${char}_${posKey}`;
-    }
+  const pos = R.pos || '';
+
+  if (pos.includes('أَوَّلِ') || pos.includes('بداية') || pos.includes('بِدَايَة')) {
+    posKey = 'ini';
+    suffix = '_c';
+  } else if (pos.includes('وَسَطِ') && pos.includes('مُتَّصِل') && !pos.includes('غَيْرِ')) {
+    posKey = 'med'; suffix = '_c';
+  } else if (pos.includes('وَسَطِ') && pos.includes('غَيْرِ')) {
+    posKey = 'med'; suffix = '_n';
+  } else if (pos.includes('وَسَطِ')) {
+    posKey = 'med'; suffix = '_c';
+  } else if (pos.includes('آخِرِ') && pos.includes('مُتَّصِل') && !pos.includes('غَيْرِ')) {
+    posKey = 'fin'; suffix = '_c';
+  } else if (pos.includes('آخِرِ') && pos.includes('غَيْرِ')) {
+    posKey = 'fin'; suffix = '_n';
+  } else if (pos.includes('آخِرِ') || pos.includes('نِهَايَة')) {
+    posKey = 'fin'; suffix = '_c';
+  } else if (pos.includes('مُنْفَرِدَة') || pos.includes('منفردة')) {
+    posKey = 'iso'; suffix = '';
+  } else if (R.kind === 'joincheck' || R.kind === 'detachcheck' || R.kind === 'specialIdentify') {
+    posKey = 'ini'; suffix = '_c';
+  }
+
+  const NON_CONN = ['د','ذ','ر','ز','و','ا'];
+  const isNonConn = NON_CONN.includes(char);
+
+  let mp3Path;
+  if (isNonConn || posKey === 'iso') {
+    mp3Path = `audio/questions/${char}_${posKey}.mp3`;
   } else {
-    mp3Key = `audio/questions/${char}_ini`;
+    mp3Path = `audio/questions/${char}_${posKey}${suffix}.mp3`;
   }
 
-  if (mp3Key) {
-    await playStaticMP3(mp3Key + '.mp3').catch(()=>{});
-  }
+  await playStaticMP3(mp3Path).catch(()=>{});
 }
 
 /* ── TEXT-TO-SPEECH ── */
