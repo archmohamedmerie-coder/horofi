@@ -2612,46 +2612,34 @@ function speakWebSpeech(text, mood) {
 async function playQuestionAudio(R) {
   if (!soundEnabled) return;
   const char = CL.char;
-
-  let posKey = 'ini';
-  let suffix = '_c';
-
-  const pos = R.pos || '';
-
-  if (pos.includes('بِدَايَة') || pos.includes('بداية') || pos.includes('أَوَّلِ')) {
-    posKey = 'ini'; suffix = '_c';
-  } else if (pos.includes('وَسَط') && pos.includes('مُتَّصِل') && !pos.includes('مُنْفَصِل') && !pos.includes('غَيْرِ')) {
-    posKey = 'med'; suffix = '_c';
-  } else if (pos.includes('وَسَط') && (pos.includes('مُنْفَصِل') || pos.includes('غَيْرِ'))) {
-    posKey = 'med'; suffix = '_n';
-  } else if (pos.includes('وَسَط')) {
-    posKey = 'med'; suffix = '_c';
-  } else if (pos.includes('آخِر') && pos.includes('مُتَّصِل') && !pos.includes('مُنْفَصِل') && !pos.includes('غَيْرِ')) {
-    posKey = 'fin'; suffix = '_c';
-  } else if (pos.includes('آخِر') && (pos.includes('مُنْفَصِل') || pos.includes('غَيْرِ'))) {
-    posKey = 'fin'; suffix = '_n';
-  } else if (pos.includes('آخِر') || pos.includes('نِهَايَة')) {
-    posKey = 'fin'; suffix = '_c';
-  } else if (pos.includes('مُنْفَرِدَة')) {
-    posKey = 'iso'; suffix = '';
-  } else if (R.kind === 'joincheck') {
-    posKey = 'ini'; suffix = '_c';
-  } else if (R.kind === 'detachcheck') {
-    posKey = 'med'; suffix = '_c';
-  } else if (R.kind === 'specialIdentify') {
-    posKey = 'iso'; suffix = '';
-  }
-
   const NON_CONN = ['د','ذ','ر','ز','و','ا'];
   const isNonConn = NON_CONN.includes(char);
 
-  let mp3Path;
-  if (isNonConn || posKey === 'iso') {
-    mp3Path = `audio/questions/${char}_${posKey}.mp3`;
-  } else {
-    mp3Path = `audio/questions/${char}_${posKey}${suffix}.mp3`;
+  // الحروف الخاصة → ملف واحد لجميع المواضع
+  if (isNonConn || R.kind === 'joincheck' || R.kind === 'detachcheck' || R.kind === 'specialIdentify') {
+    await playStaticMP3(`audio/questions/${char}_special.mp3`).catch(()=>{});
+    return;
   }
 
+  const pos = R.pos || '';
+  let posKey = 'ini';
+  let suffix = '';
+
+  if (pos.includes('بِدَايَة') || pos.includes('بداية')) {
+    posKey = 'ini'; suffix = '';
+  } else if (pos.includes('وَسَط') && pos.includes('مُتَّصِل') && !pos.includes('مُنْفَصِل')) {
+    posKey = 'med'; suffix = '_c';
+  } else if (pos.includes('وَسَط') && pos.includes('مُنْفَصِل')) {
+    posKey = 'med'; suffix = '_n';
+  } else if (pos.includes('آخِر') && pos.includes('مُتَّصِل') && !pos.includes('مُنْفَصِل')) {
+    posKey = 'fin'; suffix = '_c';
+  } else if (pos.includes('آخِر') && pos.includes('مُنْفَصِل')) {
+    posKey = 'fin'; suffix = '_n';
+  } else if (pos.includes('مُنْفَرِدَة')) {
+    posKey = 'iso'; suffix = '';
+  }
+
+  const mp3Path = `audio/questions/${char}_${posKey}${suffix}.mp3`;
   await playStaticMP3(mp3Path).catch(()=>{});
 }
 
@@ -3001,14 +2989,13 @@ function buildRoundsForConnecting(L){
     ? L.levels[CURRENT_LEVEL]
     : L;
 
-  (src.start||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي بِدَايَة الْكَلِمَة، بَعْدَ حَرْفٍ مُتَّصِل', src.startD[i], true)));
-  // نضيف أيضاً كلمات البداية بعد حرف منفصل (نفس الكلمات بتسمية مختلفة للتنويع)
+  (src.start||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي بِدَايَة الْكَلِمَة', src.startD[i], true)));
   (src.mid_c||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي وَسَط الْكَلِمَة، بَعْدَ حَرْفٍ مُتَّصِل', src.mid_cD[i])));
   (src.mid_n||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي وَسَط الْكَلِمَة، بَعْدَ حَرْفٍ مُنْفَصِل', src.mid_nD[i])));
-  // بداية بعد حرف منفصل — نستخدم كلمات الوسط منفصل كبداية بعد منفصل
+  // بداية بعد حرف منفصل — نفس تسمية البداية
   if (src.mid_n && src.mid_n.length > 0) {
     src.mid_n.forEach((w,i) => {
-      const r = makeRound(w, 'فِي بِدَايَة الْكَلِمَة، بَعْدَ حَرْفٍ مُنْفَصِل', src.mid_nD[i], true);
+      const r = makeRound(w, 'فِي بِدَايَة الْكَلِمَة', src.mid_nD[i], true);
       rounds.push(r);
     });
   }
@@ -3510,7 +3497,7 @@ function buildSpecialIdentify(R,body){
 /* ── JOINCHECK round (non-connecting letters) ── */
 function buildJoinCheck(R,body){
   body.appendChild(mk('div','tlabel',
-    `🔍 اِخْتَرِ <strong>${CL.name}</strong> الصَّحِيحَة`));
+    `🔍 اِخْتَرِ <strong>${CL.name}</strong> الصَّحِيحَة — وَتَذَكَّرْ أَنَّ ${CL.name} لَا تَتَّصِلُ بِمَا بَعْدَهَا`));
   const correctWord = shapeWord(R.letters, {}, R.diac);
   const wrongWord = buildJoinWrong(R.letters, R.targetIdx, R.diac);
   renderTwoOptionGrid(correctWord, wrongWord, R.tip, body, R.letters, R.targetIdx, R.diac, R);
@@ -3519,7 +3506,7 @@ function buildJoinCheck(R,body){
 /* ── DETACHCHECK round ── */
 function buildDetachCheck(R,body){
   body.appendChild(mk('div','tlabel',
-    `🔍 اِخْتَرِ <strong>${CL.name}</strong> الصَّحِيحَة`));
+    `🔍 اِخْتَرِ <strong>${CL.name}</strong> الصَّحِيحَة — وَتَذَكَّرْ أَنَّ ${CL.name} لَا تَتَّصِلُ بِمَا بَعْدَهَا`));
   const correctWord = shapeWord(R.letters, {}, R.diac);
   const wrongWord = buildDetachWrong(R.letters, R.targetIdx, R.diac);
   renderTwoOptionGrid(correctWord, wrongWord, R.tip, body, R.letters, R.targetIdx, R.diac, R);
