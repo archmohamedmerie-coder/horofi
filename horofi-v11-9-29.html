@@ -685,6 +685,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
   <button class="btn2" style="margin-top:14px;max-width:220px" onclick="stopAllAudio();nav('onboarding')">✏️ تغيير الاسم</button>
   <button class="btn2" style="margin-top:10px;max-width:220px" onclick="openChildren()">👧👦 الأطفال</button>
   <button class="btn2" style="margin-top:10px;max-width:220px" onclick="openParentReport()">📊 تقرير الأهل</button>
+  <button class="btn2" style="margin-top:10px;max-width:220px;background:#fff0f0;color:#c73030;border:2px solid #ffcccc" onclick="logoutUser()">🚪 تسجيل الخروج</button>
   <div id="voiceStatus2" style="font-size:.78rem;color:var(--muted);text-align:center;font-weight:700;line-height:1.6;margin-top:8px;max-width:340px"></div>
 </div>
 
@@ -742,7 +743,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 <div id="letters" class="screen">
   <div class="topbar">
     <span class="topbar-title">اختر حرفاً</span>
-    <button class="btn-back" onclick="stopAllAudio();nav('home')">← رجوع</button>
+    <div style="display:flex;gap:7px;align-items:center">
+      <button class="btn-back" onclick="stopAllAudio();nav('home')">← رجوع</button>
+      <button class="btn-back" title="تسجيل الخروج" onclick="logoutUser()" style="background:rgba(255,107,107,.25)">خروج</button>
+    </div>
   </div>
   <div class="section-label">الحروف المتصلة</div>
   <div class="lgrid" id="lgridConnecting"></div>
@@ -2545,29 +2549,6 @@ function testVoice(){
     setStatus('<br>❌ استثناء برمجي: ' + e.message, true);
   }
 }
-function doLogin(){
-  var email = document.getElementById('loginEmail').value.trim().toLowerCase();
-  var pass  = document.getElementById('loginPass').value.trim();
-  var errEl = document.getElementById('loginErr');
-  errEl.textContent = '';
-  if (!email || !pass){ errEl.textContent = 'يرجى إدخال البريد الإلكتروني وكلمة السر'; return; }
-  var creds = null;
-  try { creds = JSON.parse(localStorage.getItem('horofiCreds') || 'null'); } catch(e){}
-  if (!creds){
-    try { localStorage.setItem('horofiCreds', JSON.stringify({email:email, pass:pass})); } catch(e){}
-    document.getElementById('loginPass').value = '';
-    stopAllAudio(); nav('onboarding'); return;
-  }
-  if (creds.email !== email || creds.pass !== pass){
-    errEl.textContent = 'البريد الإلكتروني أو كلمة السر غير صحيحة';
-    return;
-  }
-  document.getElementById('loginPass').value = '';
-  stopAllAudio();
-  var hasProfile = loadProfile();
-  if (hasProfile && PROFILE.name){ loadProgress(); buildHome(); nav('home'); }
-  else { nav('onboarding'); }
-}
 /* ══════════════════════════════════════════════════════
    AUTH — دخول / تسجيل / إعادة تعيين كلمة السر
    ══════════════════════════════════════════════════════ */
@@ -2630,6 +2611,26 @@ function showRegisterTab(){
   document.getElementById('regErr').textContent = '';
 }
 
+/* ════════════════════════════════════════════════════════
+   AUTH HELPERS — حسابات متعددة بالإيميل كمفتاح
+   Storage:
+     horofiAccounts  = { "email": { pass, createdAt } , ... }
+     horofiSession   = "email"  (الجلسة الحالية)
+   ════════════════════════════════════════════════════════ */
+function _getAccounts(){
+  try{ return JSON.parse(localStorage.getItem('horofiAccounts')||'{}'); }catch(e){ return {}; }
+}
+function _saveAccounts(obj){
+  try{ localStorage.setItem('horofiAccounts', JSON.stringify(obj)); }catch(e){}
+}
+function _getSession(){
+  try{ return localStorage.getItem('horofiSession')||null; }catch(e){ return null; }
+}
+function _saveSession(email){
+  try{ if(email) localStorage.setItem('horofiSession',email);
+       else localStorage.removeItem('horofiSession'); }catch(e){}
+}
+
 /* ── دخول ── */
 function doLogin(){
   var email = document.getElementById('loginEmail').value.trim().toLowerCase();
@@ -2637,17 +2638,17 @@ function doLogin(){
   var errEl = document.getElementById('loginErr');
   errEl.textContent = '';
   if (!email || !pass){ errEl.textContent = 'يرجى إدخال البريد وكلمة السر'; return; }
-  var creds = null;
-  try { creds = JSON.parse(localStorage.getItem('horofiCreds') || 'null'); } catch(e){}
-  if (!creds){
-    errEl.textContent = 'لا يوجد حساب — انقر على «تسجيل جديد»';
+  var accounts = _getAccounts();
+  if (!accounts[email]){
+    errEl.textContent = 'لا يوجد حساب بهذا البريد — سجّل حساباً جديداً';
     return;
   }
-  if (creds.email !== email || creds.pass !== pass){
-    errEl.textContent = 'البريد الإلكتروني أو كلمة السر غير صحيحة';
+  if (accounts[email].pass !== pass){
+    errEl.textContent = 'كلمة السر غير صحيحة';
     return;
   }
   document.getElementById('loginPass').value = '';
+  _saveSession(email);
   stopAllAudio();
   var hasProfile = loadProfile();
   if (hasProfile && PROFILE.name){ loadProgress(); buildHome(); nav('home'); }
@@ -2673,21 +2674,52 @@ function doRegister(){
   }
   if (pass !== confirm){ errEl.textContent = 'كلمتا السر غير متطابقتين'; return; }
 
-  var existing = null;
-  try { existing = JSON.parse(localStorage.getItem('horofiCreds') || 'null'); } catch(e){}
-  if (existing){
-    errEl.textContent = 'يوجد حساب مسجّل بالفعل — استخدم تبويب الدخول';
+  var accounts = _getAccounts();
+  if (accounts[email]){
+    errEl.textContent = 'هذا البريد مسجّل بالفعل — استخدم تبويب الدخول';
     return;
   }
 
-  try { localStorage.setItem('horofiCreds', JSON.stringify({email:email, pass:pass})); } catch(e){
-    errEl.textContent = 'خطأ في الحفظ — تحقق من صلاحيات المتصفح'; return;
-  }
+  accounts[email] = { pass: pass, createdAt: Date.now() };
+  _saveAccounts(accounts);
+  _saveSession(email);
+
   document.getElementById('regPass').value = '';
   document.getElementById('regConfirm').value = '';
-  errEl.style.color = '#2d8653'; errEl.textContent = 'تم إنشاء الحساب بنجاح!';
+  errEl.style.color = '#2d8653'; errEl.textContent = 'تم إنشاء الحساب بنجاح! ✅';
   stopAllAudio();
   setTimeout(function(){ nav('onboarding'); }, 900);
+}
+
+/* ── تسجيل الخروج ── */
+function logoutUser(){
+  if (!confirm('هل تريد تسجيل الخروج؟')) return;
+  _saveSession(null);
+  stopAllAudio();
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginPass').value  = '';
+  document.getElementById('loginErr').textContent = '';
+  showLoginTab();
+  nav('login');
+}
+
+/* ── حذف الحساب ── */
+function deleteAccount(){
+  var session = _getSession();
+  if (!session) return;
+  if (!confirm('سيتم حذف حسابك وجميع بياناتك نهائياً. هل أنت متأكد؟')) return;
+  var accounts = _getAccounts();
+  delete accounts[session];
+  _saveAccounts(accounts);
+  _saveSession(null);
+  // مسح بيانات الطفل المرتبطة بهذا الحساب
+  try{ localStorage.removeItem('horofiChildren'); }catch(e){}
+  try{ localStorage.removeItem('horofiActiveChild'); }catch(e){}
+  try{ localStorage.removeItem('horofiProfile'); }catch(e){}
+  try{ localStorage.removeItem('horofiProgress'); }catch(e){}
+  stopAllAudio();
+  showLoginTab();
+  nav('login');
 }
 
 /* ── إعادة تعيين كلمة السر ── */
@@ -2724,9 +2756,8 @@ function sendResetCode(){
   var msg = document.getElementById('resetMsg1');
   msg.style.color='#e53935'; msg.textContent='';
   if (!email){ msg.textContent='يرجى إدخال البريد'; return; }
-  var creds=null;
-  try{ creds=JSON.parse(localStorage.getItem('horofiCreds')||'null'); }catch(e){}
-  if (!creds||creds.email!==email){ msg.textContent='لا يوجد حساب مسجّل بهذا البريد'; return; }
+  var accounts=_getAccounts();
+  if (!accounts[email]){ msg.textContent='لا يوجد حساب مسجّل بهذا البريد'; return; }
   var code=String(Math.floor(100000+Math.random()*900000));
   _resetCode=code; _resetCodeExpiry=Date.now()+10*60*1000; _resetVerifiedEmail=null;
   var ejsReady=(typeof emailjs!=='undefined'&&EMAILJS_PUBLIC_KEY!=='YOUR_PUBLIC_KEY');
@@ -2767,11 +2798,10 @@ function saveNewPassword(){
   }
   if(newPass!==confirm){msg.textContent='كلمتا السر غير متطابقتين';return;}
   if(!_resetVerifiedEmail){msg.textContent='انتهت الجلسة — أعد العملية';return;}
-  var creds=null;
-  try{creds=JSON.parse(localStorage.getItem('horofiCreds')||'null');}catch(e){}
-  if(creds&&creds.email===_resetVerifiedEmail){
-    creds.pass=newPass;
-    try{localStorage.setItem('horofiCreds',JSON.stringify(creds));}catch(e){}
+  var accounts=_getAccounts();
+  if(accounts[_resetVerifiedEmail]){
+    accounts[_resetVerifiedEmail].pass=newPass;
+    _saveAccounts(accounts);
   }
   _resetCode=null;_resetVerifiedEmail=null;
   msg.style.color='#2d8653';msg.textContent='تم تغيير كلمة السر بنجاح ✅';
@@ -4026,7 +4056,34 @@ loadProfile();       // تحميل مسبق للبيانات في الخلفية
 loadProgress();
 buildHome();
 buildLetterGrid();
-nav('login');        // نقطة الدخول دائماً هي شاشة تسجيل الدخول
+/* ── ترحيل البيانات القديمة: horofiCreds → horofiAccounts ── */
+(function migrateLegacyCreds(){
+  try{
+    var old = JSON.parse(localStorage.getItem('horofiCreds')||'null');
+    if (!old || !old.email || !old.pass) return;
+    var accounts = _getAccounts();
+    if (!accounts[old.email]){
+      accounts[old.email] = { pass: old.pass, createdAt: Date.now() };
+      _saveAccounts(accounts);
+    }
+    if (!_getSession()) _saveSession(old.email);
+    localStorage.removeItem('horofiCreds');
+  }catch(e){}
+})();
+
+/* ── auto-login: إذا كانت الجلسة محفوظة انتقل مباشرة ── */
+(function(){
+  var session = _getSession();
+  var accounts = _getAccounts();
+  if (session && accounts[session]){
+    var hasProfile = loadProfile();
+    if (hasProfile && PROFILE.name){ loadProgress(); buildHome(); nav('home'); }
+    else { nav('onboarding'); }
+  } else {
+    _saveSession(null);
+    nav('login');
+  }
+})();
 
 /* ═══════════════════════════════════════════════════════
    نظام المكافآت — REWARDS SYSTEM
