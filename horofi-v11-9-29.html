@@ -2768,8 +2768,15 @@ function sendResetCode(){
       .then(function(){ msg.style.color='#2d8653'; msg.textContent='تم الإرسال ✉️'; setTimeout(function(){showResetStep(2);},1000); },
             function(){ msg.style.color='#e53935'; msg.textContent='فشل الإرسال — تحقق من إعداد EmailJS'; });
   } else {
-    msg.style.color='#2d8653'; msg.textContent='وضع الاختبار — كودك: '+code;
-    setTimeout(function(){showResetStep(2);},1800);
+    // EmailJS غير مُعدّ — اعرض الكود مباشرة على الشاشة
+    msg.style.color='#1a1035';
+    msg.style.background='#f0f9ff';
+    msg.style.border='2px solid #9B5DE5';
+    msg.style.borderRadius='10px';
+    msg.style.padding='10px 14px';
+    msg.style.fontSize='1rem';
+    msg.innerHTML='🔑 كود التحقق الخاص بك:<br><strong style="font-size:1.6rem;letter-spacing:6px;color:#9B5DE5">'+code+'</strong><br><span style="font-size:.78rem;color:#888">صالح لمدة 10 دقائق — احتفظ به</span>';
+    setTimeout(function(){showResetStep(2);},3000);
   }
 }
 function verifyResetCode(){
@@ -3771,16 +3778,35 @@ function addNewChild(){
   nav('onboarding');
 }
 function openParentReport(){
-  buildParentReport();
-  nav('parent');
+  nav('parent'); // افتح الشاشة أولاً دائماً
+  try { loadChildren(); buildParentReport(); } catch(e){
+    const box = document.getElementById('parentReport');
+    if(box) box.innerHTML = '<div class="pr-empty">⚠️ خطأ في التحميل — ' + e.message + '</div>';
+  }
 }
 function buildParentReport(){
   const box = document.getElementById('parentReport');
   if (!box) return;
+
+  // إذا لا يوجد أطفال → اعرض شبكة الشارات كاملة رمادية مع رسالة تشجيعية
   if (!CHILDREN.length){
-    box.innerHTML = '<div class="pr-empty">لا توجد بيانات بعد. ابدأ اللعب لتظهر التقارير.</div>';
+    box.innerHTML = `
+      <div class="pr-child">
+        <div class="pr-name" style="color:var(--muted)">👤 لم تبدأ بعد</div>
+        <div class="pr-stats">
+          <div class="pr-stat"><div class="pr-num">0/28</div><div class="pr-lbl">حروف أُتقنت</div></div>
+          <div class="pr-stat"><div class="pr-num">0</div><div class="pr-lbl">إجابات صحيحة</div></div>
+          <div class="pr-stat"><div class="pr-num">—</div><div class="pr-lbl">الدقّة</div></div>
+        </div>
+        <div class="pr-bar-wrap"><div class="pr-bar" style="width:0%"></div></div>
+        <div class="pr-weak" style="color:var(--muted);text-align:center;padding:8px 0">
+          🎮 ابدأ اللعب لكسب الشارات وملء التقرير!
+        </div>
+        ${buildBadgesSectionEmpty()}
+      </div>`;
     return;
   }
+
   box.innerHTML = CHILDREN.map(ch=>{
     const s = ch.stats||{};
     const done = (ch.progress||[]).length;
@@ -3789,7 +3815,6 @@ function buildParentReport(){
     const wrong = s.totalWrong||0;
     const total = correct+wrong;
     const acc = total ? Math.round((correct/total)*100) : 0;
-    // أضعف الحروف (الأكثر خطأً)
     let weakHTML = '';
     if (s.weakLetters){
       const arr = Object.entries(s.weakLetters).sort((a,b)=>b[1]-a[1]).slice(0,3);
@@ -3799,6 +3824,7 @@ function buildParentReport(){
       }
     }
     const av = ch.gender==='female' ? '👧' : '👦';
+    const lastPlayed = s.lastPlayed ? `<div class="pr-weak" style="color:var(--muted)">🕐 آخر نشاط: ${fmtDate(s.lastPlayed)}</div>` : '';
     return `<div class="pr-child">
       <div class="pr-name">${av} ${ch.name||'طفل'}</div>
       <div class="pr-stats">
@@ -3807,15 +3833,35 @@ function buildParentReport(){
         <div class="pr-stat"><div class="pr-num">${acc}%</div><div class="pr-lbl">الدقّة</div></div>
       </div>
       <div class="pr-bar-wrap"><div class="pr-bar" style="width:${pct}%"></div></div>
-      ${weakHTML}${buildBadgesSection(ch)}
-      <div class="pr-weak" style="color:var(--muted)">🕐 آخر نشاط: ${fmtDate(s.lastPlayed)}</div>
+      ${weakHTML}
+      ${buildBadgesSection(ch)}
+      ${lastPlayed}
     </div>`;
   }).join('');
 }
 
+/* شبكة شارات فارغة (كلها رمادية) للمستخدم الجديد */
+function buildBadgesSectionEmpty(){
+  const rows = BADGES.map(b => `
+    <div class="badge-item">
+      <svg width="56" height="56" viewBox="0 0 80 80">
+        <circle cx="40" cy="40" r="38" fill="#f3f4f6" stroke="#d1d5db" stroke-width="3"/>
+        <circle cx="40" cy="40" r="22" fill="#e5e7eb"/>
+      </svg>
+      <div class="bi-name" style="color:#9ca3af">${b.name}</div>
+      <div class="bi-pts" style="color:#d1d5db">${b.points} نقطة</div>
+    </div>`).join('');
+  return `<div style="margin-top:16px">
+    <div style="font-weight:800;color:#9ca3af;margin-bottom:8px;font-size:14px">🏅 الشارات (0/${BADGES.length})</div>
+    <div class="badges-grid">${rows}</div>
+  </div>`;
+}
+
 /* تسجيل إحصائية إجابة (صح/خطأ) + الحرف المتعثَّر فيه للطفل النشط */
 function recordStat(correct, letterChar){
-  const ch = activeChild();
+  let ch = activeChild();
+  // إذا لم يوجد طفل نشط وعندنا profile → أنشئه تلقائياً
+  if (!ch && PROFILE.name) { ch = createChildFromProfile(); }
   if (!ch) return;
   if (!ch.stats) ch.stats = {};
   const s = ch.stats;
@@ -4121,7 +4167,7 @@ buildLetterGrid();
    ═══════════════════════════════════════════════════════ */
 
 /* ── تعريف الشارات ── */
-const BADGES = [
+var BADGES = [
   {
     id: 'first_correct',
     name: 'أول خطوة',
