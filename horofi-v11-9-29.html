@@ -446,93 +446,150 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 <button id="globalMuteBtn" class="global-mute-btn" onclick="toggleSound()" title="كتم/تشغيل الصوت">🔊</button>
 
 <div id="login" class="screen active">
-  <div style="text-align:center;padding:32px 20px 0">
-    <img src="Logo.jpeg" style="width:140px;height:auto;display:block;margin:0 auto 10px">
-    <h2 style="font-family:'Tajawal',sans-serif;font-size:1.55rem;font-weight:900;color:#9B5DE5;margin:0">صحّح حروفك</h2>
+  <div style="text-align:center;padding:28px 20px 0">
+    <img src="Logo.jpeg" style="width:130px;height:auto;display:block;margin:0 auto 8px">
+    <h2 style="font-family:'Tajawal',sans-serif;font-size:1.5rem;font-weight:900;color:#9B5DE5;margin:0">صحّح حروفك</h2>
   </div>
 
-  <div style="width:90%;max-width:320px;margin:20px auto 0;background:#fff;border-radius:16px;padding:22px 18px;box-shadow:0 4px 20px rgba(0,0,0,.13)">
+  <div style="width:92%;max-width:340px;margin:18px auto 0;background:#fff;border-radius:18px;padding:20px 16px 22px;box-shadow:0 4px 22px rgba(0,0,0,.12)">
 
-    <!-- نموذج الدخول -->
-    <div id="loginForm">
-      <input id="loginEmail" type="email" placeholder="البريد الإلكتروني"
-        style="display:block;width:100%;padding:12px;margin-bottom:11px;border:2px solid #e0d0f5;border-radius:10px;font-size:1rem;font-family:'Tajawal',sans-serif;box-sizing:border-box;direction:ltr;text-align:left;outline:none"
-        autocomplete="email">
-      <input id="loginPass" type="password" placeholder="كلمة السر"
-        style="display:block;width:100%;padding:12px;margin-bottom:8px;border:2px solid #e0d0f5;border-radius:10px;font-size:1rem;font-family:'Tajawal',sans-serif;box-sizing:border-box;outline:none"
-        autocomplete="current-password">
-      <div id="loginErr" style="color:#e53935;font-size:.85rem;font-weight:700;text-align:center;margin-bottom:10px;min-height:18px"></div>
-      <button onclick="doLogin()"
-        style="display:block;width:100%;padding:13px;background:#9B5DE5;color:#fff;border:none;border-radius:10px;font-size:1.1rem;font-weight:700;font-family:'Tajawal',sans-serif;cursor:pointer;margin-bottom:10px">
+    <!-- تبويبات الدخول / التسجيل -->
+    <div style="display:flex;border:2px solid #e0d0f5;border-radius:10px;overflow:hidden;margin-bottom:18px">
+      <button id="tabLoginBtn" onclick="showLoginTab()"
+        style="flex:1;padding:11px 6px;background:#9B5DE5;color:#fff;border:none;font-size:.95rem;font-weight:800;font-family:'Tajawal',sans-serif;cursor:pointer;transition:background .2s">
         دخول
       </button>
-      <button onclick="showResetForm()"
-        style="display:block;width:100%;padding:10px;background:transparent;color:#9B5DE5;border:2px solid #9B5DE5;border-radius:10px;font-size:.92rem;font-weight:700;font-family:'Tajawal',sans-serif;cursor:pointer">
-        نسيت كلمة السر؟ إعادة الضبط
+      <button id="tabRegBtn" onclick="showRegisterTab()"
+        style="flex:1;padding:11px 6px;background:#fff;color:#9B5DE5;border:none;font-size:.95rem;font-weight:800;font-family:'Tajawal',sans-serif;cursor:pointer;transition:background .2s">
+        تسجيل جديد
       </button>
     </div>
 
-    <!-- نموذج إعادة كلمة السر (3 خطوات) -->
+    <!-- ══ نموذج الدخول ══ -->
+    <div id="loginForm">
+      <input id="loginEmail" type="email" placeholder="البريد الإلكتروني"
+        style="display:block;width:100%;padding:12px;margin-bottom:10px;border:2px solid #e0d0f5;border-radius:10px;font-size:1rem;font-family:'Tajawal',sans-serif;box-sizing:border-box;direction:ltr;text-align:left;outline:none"
+        autocomplete="email">
+      <input id="loginPass" type="password" placeholder="كلمة السر"
+        style="display:block;width:100%;padding:12px;margin-bottom:7px;border:2px solid #e0d0f5;border-radius:10px;font-size:1rem;font-family:'Tajawal',sans-serif;box-sizing:border-box;outline:none"
+        autocomplete="current-password">
+      <div id="loginErr" style="color:#e53935;font-size:.83rem;font-weight:700;text-align:center;margin-bottom:9px;min-height:18px"></div>
+      <button onclick="doLogin()"
+        style="display:block;width:100%;padding:13px;background:#9B5DE5;color:#fff;border:none;border-radius:10px;font-size:1.1rem;font-weight:800;font-family:'Tajawal',sans-serif;cursor:pointer;margin-bottom:10px">
+        دخول
+      </button>
+      <button onclick="showResetForm()"
+        style="display:block;width:100%;padding:10px;background:transparent;color:#9B5DE5;border:2px solid #9B5DE5;border-radius:10px;font-size:.9rem;font-weight:700;font-family:'Tajawal',sans-serif;cursor:pointer">
+        نسيت كلمة السر؟
+      </button>
+    </div>
+
+    <!-- ══ نموذج التسجيل ══ -->
+    <div id="registerForm" style="display:none">
+      <input id="regEmail" type="email" placeholder="البريد الإلكتروني"
+        style="display:block;width:100%;padding:12px;margin-bottom:10px;border:2px solid #e0d0f5;border-radius:10px;font-size:1rem;font-family:'Tajawal',sans-serif;box-sizing:border-box;direction:ltr;text-align:left;outline:none"
+        autocomplete="email">
+
+      <div style="position:relative">
+        <input id="regPass" type="password" placeholder="كلمة السر"
+          oninput="updatePassStrength('regPass','regStrengthBar','regStrengthLabel','regChecklist')"
+          style="display:block;width:100%;padding:12px;margin-bottom:6px;border:2px solid #e0d0f5;border-radius:10px;font-size:1rem;font-family:'Tajawal',sans-serif;box-sizing:border-box;outline:none"
+          autocomplete="new-password">
+      </div>
+
+      <!-- مقياس القوة -->
+      <div style="margin-bottom:8px">
+        <div style="height:6px;background:#eee;border-radius:4px;overflow:hidden">
+          <div id="regStrengthBar" style="height:100%;width:0%;border-radius:4px;transition:width .3s,background .3s;background:#e53935"></div>
+        </div>
+        <div id="regStrengthLabel" style="font-size:.75rem;font-weight:700;color:#aaa;text-align:left;margin-top:3px;direction:ltr"></div>
+      </div>
+
+      <!-- قائمة الشروط -->
+      <div id="regChecklist" style="font-size:.78rem;font-family:'Tajawal',sans-serif;color:#888;margin-bottom:10px;line-height:1.8">
+        <div id="chk-len">⬜ 8 أحرف على الأقل</div>
+        <div id="chk-up">⬜ حرف كبير (A-Z)</div>
+        <div id="chk-low">⬜ حرف صغير (a-z)</div>
+        <div id="chk-num">⬜ رقم (0-9)</div>
+        <div id="chk-sym">⬜ رمز خاص (!@#$...)</div>
+      </div>
+
+      <input id="regConfirm" type="password" placeholder="تأكيد كلمة السر"
+        style="display:block;width:100%;padding:12px;margin-bottom:7px;border:2px solid #e0d0f5;border-radius:10px;font-size:1rem;font-family:'Tajawal',sans-serif;box-sizing:border-box;outline:none"
+        autocomplete="new-password">
+      <div id="regErr" style="color:#e53935;font-size:.83rem;font-weight:700;text-align:center;margin-bottom:9px;min-height:18px"></div>
+      <button onclick="doRegister()"
+        style="display:block;width:100%;padding:13px;background:#52C97A;color:#fff;border:none;border-radius:10px;font-size:1.1rem;font-weight:800;font-family:'Tajawal',sans-serif;cursor:pointer">
+        إنشاء حساب
+      </button>
+    </div>
+
+    <!-- ══ نموذج إعادة كلمة السر (3 خطوات) ══ -->
     <div id="resetForm" style="display:none">
 
-      <!-- خطوة 1: إدخال البريد -->
+      <!-- خطوة 1 -->
       <div id="resetStep1">
-        <p style="font-family:'Tajawal',sans-serif;font-size:.88rem;color:#666;text-align:center;margin:0 0 12px">
+        <p style="font-family:'Tajawal',sans-serif;font-size:.87rem;color:#666;text-align:center;margin:0 0 12px">
           أدخل البريد المسجّل لإرسال كود التحقق
         </p>
         <input id="resetEmail" type="email" placeholder="البريد الإلكتروني"
           style="display:block;width:100%;padding:12px;margin-bottom:10px;border:2px solid #e0d0f5;border-radius:10px;font-size:1rem;font-family:'Tajawal',sans-serif;box-sizing:border-box;direction:ltr;text-align:left;outline:none"
           autocomplete="email">
-        <div id="resetMsg1" style="font-size:.85rem;font-weight:700;text-align:center;margin-bottom:10px;min-height:18px"></div>
+        <div id="resetMsg1" style="font-size:.83rem;font-weight:700;text-align:center;margin-bottom:9px;min-height:18px"></div>
         <button onclick="sendResetCode()"
-          style="display:block;width:100%;padding:13px;background:#9B5DE5;color:#fff;border:none;border-radius:10px;font-size:1.05rem;font-weight:700;font-family:'Tajawal',sans-serif;cursor:pointer;margin-bottom:10px">
+          style="display:block;width:100%;padding:12px;background:#9B5DE5;color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:800;font-family:'Tajawal',sans-serif;cursor:pointer;margin-bottom:9px">
           إرسال كود التحقق 📧
         </button>
         <button onclick="hideResetForm()"
-          style="display:block;width:100%;padding:10px;background:transparent;color:#888;border:2px solid #ddd;border-radius:10px;font-size:.9rem;font-weight:700;font-family:'Tajawal',sans-serif;cursor:pointer">
+          style="display:block;width:100%;padding:10px;background:transparent;color:#888;border:2px solid #ddd;border-radius:10px;font-size:.88rem;font-weight:700;font-family:'Tajawal',sans-serif;cursor:pointer">
           رجوع
         </button>
       </div>
 
-      <!-- خطوة 2: إدخال الكود -->
+      <!-- خطوة 2 -->
       <div id="resetStep2" style="display:none">
-        <p style="font-family:'Tajawal',sans-serif;font-size:.88rem;color:#555;text-align:center;margin:0 0 12px">
-          تحقق من بريدك الإلكتروني وأدخل الكود المكوّن من 6 أرقام
+        <p style="font-family:'Tajawal',sans-serif;font-size:.87rem;color:#555;text-align:center;margin:0 0 12px">
+          أدخل الكود المرسل إلى بريدك (6 أرقام)
         </p>
-        <input id="resetCodeInput" type="text" placeholder="الكود: ••••••"
+        <input id="resetCodeInput" type="text" placeholder="••••••"
           maxlength="6" inputmode="numeric"
-          style="display:block;width:100%;padding:14px;margin-bottom:10px;border:2px solid #e0d0f5;border-radius:10px;font-size:1.4rem;font-family:'Tajawal',sans-serif;box-sizing:border-box;text-align:center;letter-spacing:6px;outline:none">
-        <div id="resetMsg2" style="font-size:.85rem;font-weight:700;text-align:center;margin-bottom:10px;min-height:18px"></div>
+          style="display:block;width:100%;padding:14px;margin-bottom:10px;border:2px solid #e0d0f5;border-radius:10px;font-size:1.5rem;font-family:'Tajawal',sans-serif;box-sizing:border-box;text-align:center;letter-spacing:8px;outline:none">
+        <div id="resetMsg2" style="font-size:.83rem;font-weight:700;text-align:center;margin-bottom:9px;min-height:18px"></div>
         <button onclick="verifyResetCode()"
-          style="display:block;width:100%;padding:13px;background:#52C97A;color:#fff;border:none;border-radius:10px;font-size:1.05rem;font-weight:700;font-family:'Tajawal',sans-serif;cursor:pointer;margin-bottom:10px">
+          style="display:block;width:100%;padding:12px;background:#52C97A;color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:800;font-family:'Tajawal',sans-serif;cursor:pointer;margin-bottom:9px">
           تأكيد الكود ✓
         </button>
         <button onclick="showResetStep(1)"
-          style="display:block;width:100%;padding:10px;background:transparent;color:#888;border:2px solid #ddd;border-radius:10px;font-size:.9rem;font-weight:700;font-family:'Tajawal',sans-serif;cursor:pointer">
+          style="display:block;width:100%;padding:10px;background:transparent;color:#888;border:2px solid #ddd;border-radius:10px;font-size:.88rem;font-weight:700;font-family:'Tajawal',sans-serif;cursor:pointer">
           رجوع
         </button>
       </div>
 
-      <!-- خطوة 3: كلمة سر جديدة -->
+      <!-- خطوة 3 -->
       <div id="resetStep3" style="display:none">
-        <p style="font-family:'Tajawal',sans-serif;font-size:.88rem;color:#555;text-align:center;margin:0 0 12px">
+        <p style="font-family:'Tajawal',sans-serif;font-size:.87rem;color:#555;text-align:center;margin:0 0 12px">
           أدخل كلمة سر جديدة
         </p>
         <input id="resetNewPass" type="password" placeholder="كلمة السر الجديدة"
-          style="display:block;width:100%;padding:12px;margin-bottom:10px;border:2px solid #e0d0f5;border-radius:10px;font-size:1rem;font-family:'Tajawal',sans-serif;box-sizing:border-box;outline:none">
+          oninput="updatePassStrength('resetNewPass','resetStrengthBar','resetStrengthLabel',null)"
+          style="display:block;width:100%;padding:12px;margin-bottom:6px;border:2px solid #e0d0f5;border-radius:10px;font-size:1rem;font-family:'Tajawal',sans-serif;box-sizing:border-box;outline:none">
+        <div style="height:6px;background:#eee;border-radius:4px;overflow:hidden;margin-bottom:4px">
+          <div id="resetStrengthBar" style="height:100%;width:0%;border-radius:4px;transition:width .3s,background .3s;background:#e53935"></div>
+        </div>
+        <div id="resetStrengthLabel" style="font-size:.75rem;font-weight:700;color:#aaa;text-align:left;margin-bottom:10px;direction:ltr"></div>
         <input id="resetConfirm" type="password" placeholder="تأكيد كلمة السر"
-          style="display:block;width:100%;padding:12px;margin-bottom:8px;border:2px solid #e0d0f5;border-radius:10px;font-size:1rem;font-family:'Tajawal',sans-serif;box-sizing:border-box;outline:none">
-        <div id="resetMsg3" style="font-size:.85rem;font-weight:700;text-align:center;margin-bottom:10px;min-height:18px"></div>
+          style="display:block;width:100%;padding:12px;margin-bottom:7px;border:2px solid #e0d0f5;border-radius:10px;font-size:1rem;font-family:'Tajawal',sans-serif;box-sizing:border-box;outline:none">
+        <div id="resetMsg3" style="font-size:.83rem;font-weight:700;text-align:center;margin-bottom:9px;min-height:18px"></div>
         <button onclick="saveNewPassword()"
-          style="display:block;width:100%;padding:13px;background:#52C97A;color:#fff;border:none;border-radius:10px;font-size:1.05rem;font-weight:700;font-family:'Tajawal',sans-serif;cursor:pointer">
+          style="display:block;width:100%;padding:12px;background:#52C97A;color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:800;font-family:'Tajawal',sans-serif;cursor:pointer">
           حفظ كلمة السر الجديدة 💾
         </button>
       </div>
 
-    </div>
+    </div><!-- /resetForm -->
 
-  </div>
-</div>
+  </div><!-- /card -->
+</div><!-- /login screen -->
 
 <div id="onboarding" class="screen">
   <div style="width:100%;padding:12px 16px 0;display:flex;justify-content:flex-end">
@@ -2511,12 +2568,129 @@ function doLogin(){
   if (hasProfile && PROFILE.name){ loadProgress(); buildHome(); nav('home'); }
   else { nav('onboarding'); }
 }
-/* ══ EmailJS config — عدّل هذه القيم بعد إنشاء حساب emailjs.com ══
-   1. أنشئ حساباً في emailjs.com
-   2. أضف Service (Gmail أو Outlook)
-   3. أنشئ Template فيها المتغيرات: {{to_email}} و {{reset_code}}
-   4. انسخ Public Key وService ID وTemplate ID هنا
-   ══════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   AUTH — دخول / تسجيل / إعادة تعيين كلمة السر
+   ══════════════════════════════════════════════════════ */
+
+/* ── شروط كلمة السر ── */
+function passErrors(p){
+  var e = [];
+  if (p.length < 8)                               e.push('len');
+  if (!/[A-Z]/.test(p))                           e.push('up');
+  if (!/[a-z]/.test(p))                           e.push('low');
+  if (!/[0-9]/.test(p))                           e.push('num');
+  if (!/[!@#$%^&*()\-_=+\[\]{};:'",.<>/?\\|`~]/.test(p)) e.push('sym');
+  return e;
+}
+
+/* ── مقياس قوة كلمة السر (مشترك بين التسجيل وإعادة التعيين) ── */
+function updatePassStrength(inputId, barId, labelId, checklistId){
+  var p = document.getElementById(inputId).value;
+  var errs = passErrors(p);
+  var score = 5 - errs.length;
+  var pct   = score * 20;
+  var colors = ['#e53935','#e53935','#FF9800','#FFD600','#4CAF50','#2E7D32'];
+  var labels = ['','ضعيفة جداً','ضعيفة','متوسطة','جيدة','قوية جداً'];
+  var bar = document.getElementById(barId);
+  var lbl = document.getElementById(labelId);
+  if (bar){ bar.style.width = pct + '%'; bar.style.background = colors[score] || '#eee'; }
+  if (lbl){ lbl.textContent = p.length ? labels[score] : ''; lbl.style.color = colors[score] || '#aaa'; }
+  if (checklistId){
+    var map = {len:'chk-len', up:'chk-up', low:'chk-low', num:'chk-num', sym:'chk-sym'};
+    var texts = {len:'8 أحرف على الأقل', up:'حرف كبير (A-Z)', low:'حرف صغير (a-z)', num:'رقم (0-9)', sym:'رمز خاص (!@#$...)'};
+    Object.keys(map).forEach(function(k){
+      var el = document.getElementById(map[k]);
+      if (!el) return;
+      var ok = errs.indexOf(k) === -1;
+      el.textContent = (ok ? '✅ ' : '⬜ ') + texts[k];
+      el.style.color = ok ? '#2d8653' : '#999';
+    });
+  }
+}
+
+/* ── تبويبات ── */
+function showLoginTab(){
+  document.getElementById('loginForm').style.display    = 'block';
+  document.getElementById('registerForm').style.display = 'none';
+  document.getElementById('resetForm').style.display    = 'none';
+  document.getElementById('tabLoginBtn').style.background = '#9B5DE5';
+  document.getElementById('tabLoginBtn').style.color    = '#fff';
+  document.getElementById('tabRegBtn').style.background = '#fff';
+  document.getElementById('tabRegBtn').style.color      = '#9B5DE5';
+  document.getElementById('loginErr').textContent = '';
+}
+function showRegisterTab(){
+  document.getElementById('loginForm').style.display    = 'none';
+  document.getElementById('registerForm').style.display = 'block';
+  document.getElementById('resetForm').style.display    = 'none';
+  document.getElementById('tabRegBtn').style.background = '#9B5DE5';
+  document.getElementById('tabRegBtn').style.color      = '#fff';
+  document.getElementById('tabLoginBtn').style.background = '#fff';
+  document.getElementById('tabLoginBtn').style.color    = '#9B5DE5';
+  document.getElementById('regErr').textContent = '';
+}
+
+/* ── دخول ── */
+function doLogin(){
+  var email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  var pass  = document.getElementById('loginPass').value;
+  var errEl = document.getElementById('loginErr');
+  errEl.textContent = '';
+  if (!email || !pass){ errEl.textContent = 'يرجى إدخال البريد وكلمة السر'; return; }
+  var creds = null;
+  try { creds = JSON.parse(localStorage.getItem('horofiCreds') || 'null'); } catch(e){}
+  if (!creds){
+    errEl.textContent = 'لا يوجد حساب — انقر على «تسجيل جديد»';
+    return;
+  }
+  if (creds.email !== email || creds.pass !== pass){
+    errEl.textContent = 'البريد الإلكتروني أو كلمة السر غير صحيحة';
+    return;
+  }
+  document.getElementById('loginPass').value = '';
+  stopAllAudio();
+  var hasProfile = loadProfile();
+  if (hasProfile && PROFILE.name){ loadProgress(); buildHome(); nav('home'); }
+  else { nav('onboarding'); }
+}
+
+/* ── تسجيل جديد ── */
+function doRegister(){
+  var email   = document.getElementById('regEmail').value.trim().toLowerCase();
+  var pass    = document.getElementById('regPass').value;
+  var confirm = document.getElementById('regConfirm').value;
+  var errEl   = document.getElementById('regErr');
+  errEl.style.color = '#e53935'; errEl.textContent = '';
+
+  if (!email){ errEl.textContent = 'يرجى إدخال البريد الإلكتروني'; return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ errEl.textContent = 'صيغة البريد غير صحيحة'; return; }
+
+  var errs = passErrors(pass);
+  if (errs.length > 0){
+    var msgs = {len:'8 أحرف على الأقل', up:'حرف كبير (A-Z)', low:'حرف صغير (a-z)', num:'رقم (0-9)', sym:'رمز خاص (!@#$...)'};
+    errEl.textContent = 'كلمة السر يجب أن تحتوي على: ' + errs.map(function(k){ return msgs[k]; }).join(' ، ');
+    return;
+  }
+  if (pass !== confirm){ errEl.textContent = 'كلمتا السر غير متطابقتين'; return; }
+
+  var existing = null;
+  try { existing = JSON.parse(localStorage.getItem('horofiCreds') || 'null'); } catch(e){}
+  if (existing){
+    errEl.textContent = 'يوجد حساب مسجّل بالفعل — استخدم تبويب الدخول';
+    return;
+  }
+
+  try { localStorage.setItem('horofiCreds', JSON.stringify({email:email, pass:pass})); } catch(e){
+    errEl.textContent = 'خطأ في الحفظ — تحقق من صلاحيات المتصفح'; return;
+  }
+  document.getElementById('regPass').value = '';
+  document.getElementById('regConfirm').value = '';
+  errEl.style.color = '#2d8653'; errEl.textContent = 'تم إنشاء الحساب بنجاح!';
+  stopAllAudio();
+  setTimeout(function(){ nav('onboarding'); }, 900);
+}
+
+/* ── إعادة تعيين كلمة السر ── */
 var EMAILJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';
 var EMAILJS_SERVICE_ID  = 'YOUR_SERVICE_ID';
 var EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
@@ -2526,8 +2700,9 @@ var _resetCodeExpiry = 0;
 var _resetVerifiedEmail = null;
 
 function showResetForm(){
-  document.getElementById('loginForm').style.display = 'none';
-  document.getElementById('resetForm').style.display = 'block';
+  document.getElementById('loginForm').style.display    = 'none';
+  document.getElementById('registerForm').style.display = 'none';
+  document.getElementById('resetForm').style.display    = 'block';
   showResetStep(1);
 }
 function hideResetForm(){
@@ -2537,85 +2712,72 @@ function hideResetForm(){
   _resetCode = null; _resetVerifiedEmail = null;
 }
 function showResetStep(n){
-  ['resetStep1','resetStep2','resetStep3'].forEach(function(id, i){
-    document.getElementById(id).style.display = (i+1 === n) ? 'block' : 'none';
+  ['resetStep1','resetStep2','resetStep3'].forEach(function(id,i){
+    document.getElementById(id).style.display = (i+1===n) ? 'block' : 'none';
   });
   ['resetMsg1','resetMsg2','resetMsg3'].forEach(function(id){
-    var el = document.getElementById(id);
-    if (el){ el.textContent = ''; el.style.color = '#e53935'; }
+    var el=document.getElementById(id); if(el){el.textContent='';el.style.color='#e53935';}
   });
 }
 function sendResetCode(){
   var email = document.getElementById('resetEmail').value.trim().toLowerCase();
   var msg = document.getElementById('resetMsg1');
-  msg.style.color = '#e53935'; msg.textContent = '';
-  if (!email){ msg.textContent = 'يرجى إدخال البريد الإلكتروني'; return; }
-  var creds = null;
-  try { creds = JSON.parse(localStorage.getItem('horofiCreds') || 'null'); } catch(e){}
-  if (!creds || creds.email !== email){
-    msg.textContent = 'لا يوجد حساب مسجّل بهذا البريد'; return;
-  }
-  // توليد كود 6 أرقام
-  var code = String(Math.floor(100000 + Math.random() * 900000));
-  _resetCode = code;
-  _resetCodeExpiry = Date.now() + 10 * 60 * 1000; // 10 دقائق
-  _resetVerifiedEmail = null;
-
-  var ejsReady = (typeof emailjs !== 'undefined' && EMAILJS_PUBLIC_KEY !== 'YOUR_PUBLIC_KEY');
-  if (ejsReady){
-    msg.style.color = '#888'; msg.textContent = 'جارٍ الإرسال...';
-    emailjs.init({publicKey: EMAILJS_PUBLIC_KEY});
-    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-      to_email: email,
-      reset_code: code
-    }).then(function(){
-      msg.style.color = '#2d8653';
-      msg.textContent = 'تم إرسال الكود إلى بريدك الإلكتروني ✉️';
-      setTimeout(function(){ showResetStep(2); }, 1200);
-    }, function(err){
-      msg.style.color = '#e53935';
-      msg.textContent = 'فشل الإرسال — تحقق من إعداد EmailJS';
-      console.error('EmailJS error', err);
-    });
+  msg.style.color='#e53935'; msg.textContent='';
+  if (!email){ msg.textContent='يرجى إدخال البريد'; return; }
+  var creds=null;
+  try{ creds=JSON.parse(localStorage.getItem('horofiCreds')||'null'); }catch(e){}
+  if (!creds||creds.email!==email){ msg.textContent='لا يوجد حساب مسجّل بهذا البريد'; return; }
+  var code=String(Math.floor(100000+Math.random()*900000));
+  _resetCode=code; _resetCodeExpiry=Date.now()+10*60*1000; _resetVerifiedEmail=null;
+  var ejsReady=(typeof emailjs!=='undefined'&&EMAILJS_PUBLIC_KEY!=='YOUR_PUBLIC_KEY');
+  if(ejsReady){
+    msg.style.color='#888'; msg.textContent='جارٍ الإرسال...';
+    emailjs.init({publicKey:EMAILJS_PUBLIC_KEY});
+    emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TEMPLATE_ID,{to_email:email,reset_code:code})
+      .then(function(){ msg.style.color='#2d8653'; msg.textContent='تم الإرسال ✉️'; setTimeout(function(){showResetStep(2);},1000); },
+            function(){ msg.style.color='#e53935'; msg.textContent='فشل الإرسال — تحقق من إعداد EmailJS'; });
   } else {
-    // وضع الاختبار: اعرض الكود مباشرة
-    msg.style.color = '#2d8653';
-    msg.textContent = 'وضع الاختبار — كودك: ' + code;
-    setTimeout(function(){ showResetStep(2); }, 1800);
+    msg.style.color='#2d8653'; msg.textContent='وضع الاختبار — كودك: '+code;
+    setTimeout(function(){showResetStep(2);},1800);
   }
 }
 function verifyResetCode(){
-  var entered = document.getElementById('resetCodeInput').value.trim();
-  var msg = document.getElementById('resetMsg2');
-  msg.style.color = '#e53935'; msg.textContent = '';
-  if (!entered){ msg.textContent = 'يرجى إدخال الكود'; return; }
-  if (!_resetCode || Date.now() > _resetCodeExpiry){
-    msg.textContent = 'انتهت صلاحية الكود (10 دقائق) — أعد الإرسال';
-    setTimeout(function(){ showResetStep(1); }, 2000); return;
+  var entered=document.getElementById('resetCodeInput').value.trim();
+  var msg=document.getElementById('resetMsg2');
+  msg.style.color='#e53935'; msg.textContent='';
+  if(!entered){msg.textContent='يرجى إدخال الكود';return;}
+  if(!_resetCode||Date.now()>_resetCodeExpiry){
+    msg.textContent='انتهت صلاحية الكود — أعد الإرسال';
+    setTimeout(function(){showResetStep(1);},2000);return;
   }
-  if (entered !== _resetCode){ msg.textContent = 'الكود غير صحيح'; return; }
-  _resetVerifiedEmail = document.getElementById('resetEmail').value.trim().toLowerCase();
+  if(entered!==_resetCode){msg.textContent='الكود غير صحيح';return;}
+  _resetVerifiedEmail=document.getElementById('resetEmail').value.trim().toLowerCase();
   showResetStep(3);
 }
 function saveNewPassword(){
-  var newPass = document.getElementById('resetNewPass').value.trim();
-  var confirm = document.getElementById('resetConfirm').value.trim();
-  var msg = document.getElementById('resetMsg3');
-  msg.style.color = '#e53935'; msg.textContent = '';
-  if (!newPass || !confirm){ msg.textContent = 'يرجى ملء جميع الحقول'; return; }
-  if (newPass.length < 4){ msg.textContent = 'كلمة السر يجب أن تكون 4 أحرف على الأقل'; return; }
-  if (newPass !== confirm){ msg.textContent = 'كلمتا السر غير متطابقتين'; return; }
-  if (!_resetVerifiedEmail){ msg.textContent = 'انتهت الجلسة — أعد العملية'; return; }
-  var creds = null;
-  try { creds = JSON.parse(localStorage.getItem('horofiCreds') || 'null'); } catch(e){}
-  if (creds && creds.email === _resetVerifiedEmail){
-    creds.pass = newPass;
-    try { localStorage.setItem('horofiCreds', JSON.stringify(creds)); } catch(e){}
+  var newPass=document.getElementById('resetNewPass').value;
+  var confirm=document.getElementById('resetConfirm').value;
+  var msg=document.getElementById('resetMsg3');
+  msg.style.color='#e53935'; msg.textContent='';
+  if(!newPass||!confirm){msg.textContent='يرجى ملء جميع الحقول';return;}
+  var errs=passErrors(newPass);
+  if(errs.length>0){
+    var msgs={len:'8 أحرف على الأقل',up:'حرف كبير',low:'حرف صغير',num:'رقم',sym:'رمز خاص'};
+    msg.textContent='كلمة السر تحتاج: '+errs.map(function(k){return msgs[k];}).join('، ');return;
   }
-  _resetCode = null; _resetVerifiedEmail = null;
-  msg.style.color = '#2d8653'; msg.textContent = 'تم تغيير كلمة السر بنجاح! ✅';
-  setTimeout(hideResetForm, 1600);
+  if(newPass!==confirm){msg.textContent='كلمتا السر غير متطابقتين';return;}
+  if(!_resetVerifiedEmail){msg.textContent='انتهت الجلسة — أعد العملية';return;}
+  var creds=null;
+  try{creds=JSON.parse(localStorage.getItem('horofiCreds')||'null');}catch(e){}
+  if(creds&&creds.email===_resetVerifiedEmail){
+    creds.pass=newPass;
+    try{localStorage.setItem('horofiCreds',JSON.stringify(creds));}catch(e){}
+  }
+  _resetCode=null;_resetVerifiedEmail=null;
+  msg.style.color='#2d8653';msg.textContent='تم تغيير كلمة السر بنجاح ✅';
+  setTimeout(hideResetForm,1600);
 }
+
 
 function completeOnboarding(){
   unlockSpeech();
