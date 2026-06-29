@@ -4125,49 +4125,12 @@ function confetti(n=35){
   }
 }
 
-buildLogo();
-loadSound();
-updateSoundBtn();
-loadSubscription();  // تحميل حالة الاشتراك
-loadProfile();       // تحميل مسبق للبيانات في الخلفية
-loadProgress();
-buildHome();
-buildLetterGrid();
-/* ── ترحيل البيانات القديمة: horofiCreds → horofiAccounts ── */
-(function migrateLegacyCreds(){
-  try{
-    var old = JSON.parse(localStorage.getItem('horofiCreds')||'null');
-    if (!old || !old.email || !old.pass) return;
-    var accounts = _getAccounts();
-    if (!accounts[old.email]){
-      accounts[old.email] = { pass: old.pass, createdAt: Date.now() };
-      _saveAccounts(accounts);
-    }
-    if (!_getSession()) _saveSession(old.email);
-    localStorage.removeItem('horofiCreds');
-  }catch(e){}
-})();
-
-/* ── auto-login: إذا كانت الجلسة محفوظة انتقل مباشرة ── */
-(function(){
-  var session = _getSession();
-  var accounts = _getAccounts();
-  if (session && accounts[session]){
-    var hasProfile = loadProfile();
-    if (hasProfile && PROFILE.name){ loadProgress(); buildHome(); nav('home'); }
-    else { nav('onboarding'); }
-  } else {
-    _saveSession(null);
-    nav('login');
-  }
-})();
-
 /* ═══════════════════════════════════════════════════════
    نظام المكافآت — REWARDS SYSTEM
    ═══════════════════════════════════════════════════════ */
 
-/* ── تعريف الشارات ── */
-var BADGES = [
+/* ── تعريف الشارات — يجب أن يكون قبل أي استدعاء للدوال ── */
+const BADGES = [
   {
     id: 'first_correct',
     name: 'أول خطوة',
@@ -4262,6 +4225,44 @@ var BADGES = [
     points: 0
   },
 ];
+
+buildLogo();
+loadSound();
+updateSoundBtn();
+loadSubscription();
+loadProfile();
+loadProgress();
+buildHome();
+buildLetterGrid();
+
+/* ── ترحيل البيانات القديمة: horofiCreds → horofiAccounts ── */
+(function migrateLegacyCreds(){
+  try{
+    var old = JSON.parse(localStorage.getItem('horofiCreds')||'null');
+    if (!old || !old.email || !old.pass) return;
+    var accounts = _getAccounts();
+    if (!accounts[old.email]){
+      accounts[old.email] = { pass: old.pass, createdAt: Date.now() };
+      _saveAccounts(accounts);
+    }
+    if (!_getSession()) _saveSession(old.email);
+    localStorage.removeItem('horofiCreds');
+  }catch(e){}
+})();
+
+/* ── auto-login: إذا كانت الجلسة محفوظة انتقل مباشرة ── */
+(function(){
+  var session = _getSession();
+  var accounts = _getAccounts();
+  if (session && accounts[session]){
+    var hasProfile = loadProfile();
+    if (hasProfile && PROFILE.name){ loadProgress(); buildHome(); nav('home'); }
+    else { nav('onboarding'); }
+  } else {
+    _saveSession(null);
+    nav('login');
+  }
+})();
 
 /* ── SVG الشارات ── */
 function badgeSVG(icon, color, size=80) {
@@ -4410,7 +4411,7 @@ function checkBadges() {
   saveChildren();
 
   if (newBadge) {
-    setTimeout(() => showBadgePopup(newBadge), 300);
+    setTimeout(() => showBadgePopup(newBadge), 1200);
   }
 
   // بطل حروفي — شاشة خاصة
