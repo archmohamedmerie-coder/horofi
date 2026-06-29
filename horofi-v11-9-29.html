@@ -2868,10 +2868,16 @@ function encourageText(){
 function playStaticMP3(path) {
   if (window._audioStopped) return Promise.resolve();
   return new Promise(resolve => {
-    const _t = setTimeout(resolve, 6000); // حد أقصى 6 ث للملف الواحد
+    const _t = setTimeout(resolve, 6000);
     const audio = new Audio(path);
     window._currentAudio = audio;
-    const done = () => { clearTimeout(_t); window._currentAudio = null; resolve(); };
+    const done = () => {
+      clearTimeout(_t);
+      window._currentAudio = null;
+      if (window._pendingAudioResolve === resolve) window._pendingAudioResolve = null;
+      resolve();
+    };
+    window._pendingAudioResolve = resolve;
     audio.onended = done;
     audio.onerror = done;
     audio.play().catch(done);
@@ -3129,8 +3135,11 @@ function toggleSound(){
   soundEnabled = !soundEnabled;
   saveSound();
   if (!soundEnabled) {
-    stopAllAudio();
-    lockAnswers(false); // فتح الخيارات فوراً عند الكتم
+    stopAllAudio(); // يوقف الصوت فوراً ويحل الـ promise المعلّقة
+    lockAnswers(false);
+    // إظهار زر التالي فوراً إذا كنا في شاشة اللعب
+    const nb = document.querySelector('.btn-next');
+    if (nb) nb.classList.add('show');
   }
   updateSoundBtn();
 }
@@ -3160,16 +3169,23 @@ function runSentenceFlow(R){
   const nb = document.querySelector('.btn-next');
   const praise = __pendingPraise; __pendingPraise = null;
 
-  // ضمان إظهار الزر بعد 9 ث على أبعد تقدير
+  // التقاط token الحالي — إذا تغيّر (stopAllAudio) نتوقف ولا نُظهر الزر
+  const myToken = window._flowToken = (window._flowToken || 0);
+
   let _btnShown = false;
-  const _safeTimer = setTimeout(() => { if (!_btnShown && nb) nb.classList.add('show'); _btnShown = true; }, 9000);
-  const showBtn = () => { clearTimeout(_safeTimer); if (!_btnShown){ _btnShown = true; if (nb) nb.classList.add('show'); } };
+  const showBtn = () => {
+    if (window._safeTimer){ clearTimeout(window._safeTimer); window._safeTimer = null; }
+    if (!_btnShown){ _btnShown = true; if (nb) nb.classList.add('show'); }
+  };
+  // ضمان إظهار الزر بعد 9 ث على أبعد تقدير
+  window._safeTimer = setTimeout(() => { showBtn(); }, 9000);
 
   if (!sentence){
     if (soundEnabled){
       if (nb) nb.classList.remove('show');
       (async ()=>{
         if (praise) await playPraiseAudio(praise);
+        if (window._flowToken !== myToken) return;
         checkBadges();
         showBtn();
       })();
@@ -3183,9 +3199,7 @@ function runSentenceFlow(R){
   const isF = PROFILE.gender==='female';
   const listen = isF ? 'اِسْتَمِعِي' : 'اِسْتَمِعْ';
   const intro = `${listen} لِهَذِهِ الْجُمْلَة`;
-  const outro = ''; // تم إزالة جملة "هيا يا بطلة..."
 
-  // اعرض الجملة فوق زر التالي مع الإبقاء على رسالة التهنئة في الأعلى
   const box = document.querySelector('.fb');
   if (box){
     const praiseHTML = box.innerHTML;
@@ -3193,7 +3207,6 @@ function runSentenceFlow(R){
       <div class="sentence-flow">
         <div class="sf-intro">📣 ${intro}</div>
         <div class="sf-main">${sentence}</div>
-
       </div>`;
     box.className = 'fb show ok';
   }
@@ -3203,8 +3216,11 @@ function runSentenceFlow(R){
   if (soundEnabled){
     (async ()=>{
       if (soundEnabled && praise) await playPraiseAudio(praise);
+      if (window._flowToken !== myToken) return;
       if (soundEnabled) await playIntroAudio();
+      if (window._flowToken !== myToken) return;
       if (soundEnabled) await playSentenceAudio(key, sentence);
+      if (window._flowToken !== myToken) return;
       checkBadges();
       showBtn();
     })();
@@ -3231,9 +3247,15 @@ async function playSentenceAudio(key, sentence){
   return new Promise(resolve => {
     const audio = new Audio(`audio/sentences/${key}.mp3`);
     window._currentAudio = audio;
-    audio.onended = () => { window._currentAudio = null; resolve(); };
-    audio.onerror = () => { window._currentAudio = null; resolve(); };
-    audio.play().catch(() => { window._currentAudio = null; resolve(); });
+    const done = () => {
+      window._currentAudio = null;
+      if (window._pendingAudioResolve === resolve) window._pendingAudioResolve = null;
+      resolve();
+    };
+    window._pendingAudioResolve = resolve;
+    audio.onended = done;
+    audio.onerror = done;
+    audio.play().catch(done);
   });
 }
 
@@ -3494,6 +3516,16 @@ function chooseLevel(level){
 }
 /* ── إيقاف كل الأصوات فوراً ── */
 function stopAllAudio() {
+  // إلغاء أي flow صوتي جارٍ (يمنع استمرار الـ async بعد الإيقاف)
+  window._flowToken = (window._flowToken || 0) + 1;
+  // حل الـ promise المعلّقة فوراً حتى لا يتجمّد الـ async
+  if (window._pendingAudioResolve) {
+    const r = window._pendingAudioResolve;
+    window._pendingAudioResolve = null;
+    r();
+  }
+  // إلغاء مؤقت الأمان (9 ث)
+  if (window._safeTimer) { clearTimeout(window._safeTimer); window._safeTimer = null; }
   // إيقاف MP3 الحالي
   if (window._currentAudio) {
     try { window._currentAudio.pause(); window._currentAudio.src = ''; } catch(e) {}
@@ -3506,7 +3538,6 @@ function stopAllAudio() {
     try { window._elAudio.pause(); window._elAudio.src = ''; } catch(e) {}
     window._elAudio = null;
   }
-  // إلغاء أي async صوت معلق
   window._audioStopped = true;
   setTimeout(() => { window._audioStopped = false; }, 100);
 }
@@ -4498,12 +4529,18 @@ async function elFetch(text) {
 function elPlay(url, mood) {
   return new Promise(resolve => {
     const audio = new Audio(url);
-    /* ضبط السرعة حسب المزاج */
     if (mood === 'excited') audio.playbackRate = 1.08;
     else if (mood === 'calm') audio.playbackRate = 0.92;
-    audio.onended  = resolve;
-    audio.onerror  = resolve; // لا تعلّق في حالة الخطأ
-    audio.play().catch(resolve);
+    window._elAudio = audio;
+    const done = () => {
+      window._elAudio = null;
+      if (window._pendingAudioResolve === resolve) window._pendingAudioResolve = null;
+      resolve();
+    };
+    window._pendingAudioResolve = resolve;
+    audio.onended  = done;
+    audio.onerror  = done;
+    audio.play().catch(done);
   });
 }
 
