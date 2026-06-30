@@ -4581,6 +4581,32 @@ async function pmSendAndClose(){
   }
 }
 
+/* ══════════════════════════════════
+   FREEMIUM LOGIC
+   ══════════════════════════════════ */
+function loadSubscription(){
+  try { isSubscribed = localStorage.getItem('horofiSubscribed') === '1'; } catch(e){}
+}
+function isLetterFree(char){
+  if (isSubscribed) return true;
+  const idx = ALPHABET_ORDER.indexOf(char);
+  return idx !== -1 && idx < FREE_LETTER_COUNT;
+}
+function showSubscriptionPage(){
+  stopAllAudio();
+  nav('subscription');
+}
+const STRIPE_URL = 'https://buy.stripe.com/test_cNIaEX4Uu7AqgAv1gMbo400';
+function activateSubscription(){
+  window.open(STRIPE_URL, '_blank', 'noopener,noreferrer');
+}
+function checkSubscriptionReturn(){
+  isSubscribed = true;
+  try { localStorage.setItem('horofiSubscribed', '1'); } catch(e){}
+  buildLetterGrid();
+  nav('letters');
+}
+
 </script>
 
 <!-- شاشة الاشتراك Freemium -->
@@ -4608,35 +4634,6 @@ async function pmSendAndClose(){
   </div>
 </div>
 
-<script>
-/* ══════════════════════════════════
-   FREEMIUM LOGIC
-   ══════════════════════════════════ */
-function loadSubscription(){
-  try { isSubscribed = localStorage.getItem('horofiSubscribed') === '1'; } catch(e){}
-}
-function isLetterFree(char){
-  if (isSubscribed) return true;
-  const idx = ALPHABET_ORDER.indexOf(char);
-  return idx !== -1 && idx < FREE_LETTER_COUNT;
-}
-function showSubscriptionPage(){
-  stopAllAudio();
-  nav('subscription');
-}
-const STRIPE_URL = 'https://buy.stripe.com/test_cNIaEX4Uu7AqgAv1gMbo400';
-function activateSubscription(){
-  window.open(STRIPE_URL, '_blank', 'noopener,noreferrer');
-}
-function checkSubscriptionReturn(){
-  /* يُستدعى بعد عودة المستخدم من صفحة الدفع */
-  isSubscribed = true;
-  try { localStorage.setItem('horofiSubscribed', '1'); } catch(e){}
-  buildLetterGrid();
-  nav('letters');
-}
-
-</script>
 <!-- شارة منبثقة -->
 <div id="badgePopup" class="badge-popup">
   <div class="badge-box">
