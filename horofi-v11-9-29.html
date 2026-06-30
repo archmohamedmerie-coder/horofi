@@ -3294,6 +3294,7 @@ function buildHome(){
 /* ── LETTER GRID ── */
 const ALPHABET_ORDER = ['ا','ب','ت','ث','ج','ح','خ','د','ذ','ر','ز','س','ش','ص','ض','ط','ظ','ع','غ','ف','ق','ك','ل','م','ن','ه','و','ي'];
 const FREE_LETTER_COUNT = 5;
+const FREE_LETTERS = ['ب','ت','ث','ج'];
 let isSubscribed = false;
 function buildLetterGrid(){
   const gc=document.getElementById('lgridConnecting');
@@ -4590,8 +4591,7 @@ function loadSubscription(){
 }
 function isLetterFree(char){
   if (isSubscribed) return true;
-  const idx = ALPHABET_ORDER.indexOf(char);
-  return idx !== -1 && idx < FREE_LETTER_COUNT;
+  return FREE_LETTERS.includes(char);
 }
 function showSubscriptionPage(){
   stopAllAudio();
