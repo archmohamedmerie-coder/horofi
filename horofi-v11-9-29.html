@@ -3099,12 +3099,10 @@ function runSentenceFlow(R){
       (async ()=>{
         if (praise) await playPraiseAudio(praise);
         if (window._flowToken !== myToken) return;
-        checkBadges();
-        showBtn();
+        checkBadges(showBtn);
       })();
     } else {
-      checkBadges();
-      showBtn();
+      checkBadges(showBtn);
     }
     return;
   }
@@ -3134,12 +3132,10 @@ function runSentenceFlow(R){
       if (window._flowToken !== myToken) return;
       if (soundEnabled) await playSentenceAudio(key, sentence);
       if (window._flowToken !== myToken) return;
-      checkBadges();
-      showBtn();
+      checkBadges(showBtn);
     })();
   } else {
-    checkBadges();
-    showBtn();
+    checkBadges(showBtn);
   }
 }
 
@@ -4280,9 +4276,9 @@ function spawnStars(count=1) {
 }
 
 /* ── فحص الشارات ── */
-function checkBadges() {
+function checkBadges(doneCallback) {
   const ch = activeChild();
-  if (!ch) return;
+  if (!ch){ if (doneCallback) doneCallback(); return; }
   if (!ch.stats) ch.stats = {};
   const s = ch.stats;
   const earned = s.earnedBadges || [];
@@ -4293,7 +4289,7 @@ function checkBadges() {
       earned.push(b.id);
       newBadge = b;
       if (b.points > 0) addPoints(ch, b.points);
-      break; // شارة واحدة في كل مرة
+      break;
     }
   }
 
@@ -4301,12 +4297,12 @@ function checkBadges() {
   saveChildren();
 
   if (newBadge) {
-    setTimeout(() => showBadgePopup(newBadge), 1200);
-  }
-
-  // بطل حروفي — شاشة خاصة
-  if (newBadge && newBadge.id === 'letter_28') {
-    setTimeout(() => showChampionScreen(), 3500);
+    // احفظ callback لاستدعائه بعد إغلاق الشارة
+    window._badgeDoneCallback = doneCallback || null;
+    setTimeout(() => showBadgePopup(newBadge), 600);
+    if (newBadge.id === 'letter_28') setTimeout(() => showChampionScreen(), 3500);
+  } else {
+    if (doneCallback) doneCallback();
   }
 }
 
@@ -4329,6 +4325,11 @@ function showBadgePopup(badge) {
 }
 function closeBadgePopup() {
   document.getElementById('badgePopup')?.classList.remove('show');
+  if (window._badgeDoneCallback) {
+    const cb = window._badgeDoneCallback;
+    window._badgeDoneCallback = null;
+    cb();
+  }
 }
 
 /* ── شاشة البطل الكبيرة ── */
