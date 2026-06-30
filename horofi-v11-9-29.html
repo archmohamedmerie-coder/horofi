@@ -3508,7 +3508,6 @@ function startConnectingLetter(L){ recordSession();
   ROUNDS = buildRoundsForConnecting(L);
   nav('game');
   buildRound();
-  showLetterStartMotivation();
 }
 function startNonConnectingLetter(L){
   CURRENT_LEVEL=null;
@@ -3516,7 +3515,6 @@ function startNonConnectingLetter(L){
   ROUNDS = buildRoundsForNonConnecting(L);
   nav('game');
   buildRound();
-  showLetterStartMotivation();
 }
 function startSpecialIdentifyLetter(L){
   CURRENT_LEVEL=null;
@@ -3524,26 +3522,6 @@ function startSpecialIdentifyLetter(L){
   ROUNDS = buildRoundsForSpecialIdentify(L);
   nav('game');
   buildRound();
-  showLetterStartMotivation();
-}
-
-/* ── شارة تحفيزية عند بداية كل حرف ── */
-function showLetterStartMotivation() {
-  const ch = activeChild();
-  const lb = (ch && CURRENT_LEVEL && CL && CL.char)
-    ? _lvlBadges(ch, CURRENT_LEVEL, CL.char)
-    : [];
-  const nextBadge = BADGES.find(b => !lb.includes(b.id)) || BADGES[0];
-  const pop = document.getElementById('badgePopup');
-  if (!pop) return;
-  pop.querySelector('.bb-title').textContent = '🎯 هدفك في هذا الحرف';
-  pop.querySelector('.bb-svg').innerHTML = badgeSVG(nextBadge.icon, nextBadge.color, 100);
-  pop.querySelector('.bb-name').textContent = nextBadge.name;
-  pop.querySelector('.bb-desc').textContent = `اجمع هذه الشارة: ${nextBadge.desc}`;
-  window._badgeDoneCallback = () => {
-    pop.querySelector('.bb-title').textContent = '🏅 شارة جديدة!';
-  };
-  setTimeout(() => pop.classList.add('show'), 400);
 }
 
 /* ── TREE SHOWCASE — 5 real cases for connecting letters, 2 cases for non-connecting ── */
@@ -4548,14 +4526,18 @@ function buildBadgesSection(ch) {
 
     const letterCards = allLetters.map(char => {
       const charBadges = lb[char] || [];
-      const badgeDots = BADGES.map(b => {
+      const badgeIcons = BADGES.map(b => {
         const got = charBadges.includes(b.id);
-        return `<span title="${b.name}" style="display:inline-block;width:20px;height:20px;border-radius:50%;background:${got ? b.color : '#d1d5db'};margin:2px;flex-shrink:0"></span>`;
+        const svg = badgeSVG(b.icon, got ? b.color : '#9ca3af', 36);
+        return `<div title="${b.name}" style="display:flex;flex-direction:column;align-items:center;gap:2px;opacity:${got?'1':'0.35'}">
+          ${svg}
+          <span style="font-size:8px;color:${got?'#374151':'#9ca3af'};text-align:center;line-height:1.1;max-width:38px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.name}</span>
+        </div>`;
       }).join('');
-      return `<div style="background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:12px;padding:8px 6px;text-align:center;min-width:0">
-        <div style="font-size:1.3rem;font-weight:900;color:var(--purple)">${char}</div>
-        <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:0;margin-top:4px">${badgeDots}</div>
-        <div style="font-size:10px;color:#6b7280;margin-top:3px">${charBadges.length}/${BADGES.length}</div>
+      return `<div style="background:#f9fafb;border:1.5px solid ${charBadges.length>0?'#a78bfa':'#e5e7eb'};border-radius:14px;padding:10px 6px;text-align:center;min-width:0">
+        <div style="font-size:1.5rem;font-weight:900;color:var(--purple);margin-bottom:6px">${char}</div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;justify-items:center">${badgeIcons}</div>
+        <div style="font-size:10px;color:#6b7280;margin-top:5px;font-weight:700">${charBadges.length}/${BADGES.length}</div>
       </div>`;
     }).join('');
 
@@ -4566,7 +4548,7 @@ function buildBadgesSection(ch) {
         <span>${lvl.emoji} مستوى ${lvl.label}</span>
         <span style="font-size:12px;color:#6b7280">${totalEarned} / ${totalPossible} شارة ▾</span>
       </button>
-      <div id="${folderId}" style="margin-top:8px;display:none;grid-template-columns:repeat(4,1fr);gap:6px">${letterCards}</div>
+      <div id="${folderId}" style="margin-top:8px;display:none;grid-template-columns:repeat(2,1fr);gap:10px">${letterCards}</div>
     </div>`;
   }
 
