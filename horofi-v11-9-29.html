@@ -4044,13 +4044,16 @@ function showDone(){
   nav('done');
   if(pct>=80) confetti(80);
   // صوت إتقان الحرف
+  let _masteryAudio = Promise.resolve();
   if (pct>=50 && soundEnabled) {
     const isF = PROFILE.gender === 'female';
-    playStaticMP3(isF ? 'audio/mastery/mastery_f.mp3' : 'audio/mastery/mastery_m.mp3').catch(()=>{});
+    _masteryAudio = playStaticMP3(isF ? 'audio/mastery/mastery_f.mp3' : 'audio/mastery/mastery_m.mp3').catch(()=>{});
   }
   if (_newLetterMastered) {
     const total = CONNECTING_LETTERS.length + NONCONNECTING_LETTERS.length;
-    setTimeout(() => celebrateLetterMastery(completedLetters.size, total), 1500);
+    _masteryAudio.then(() => {
+      setTimeout(() => celebrateLetterMastery(completedLetters.size, total), 400);
+    });
   }
 }
 function playAgain(){
@@ -4436,6 +4439,10 @@ function showProgressBadgePopup(count, total) {
     });
   } else {
     pop.classList.add('show');
+  }
+  if (soundEnabled) {
+    const isF = PROFILE.gender === 'female';
+    playStaticMP3(`audio/progress/progress_${count}_${isF ? 'f' : 'm'}.mp3`).catch(()=>{});
   }
   confetti(60);
 }
