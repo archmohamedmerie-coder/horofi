@@ -4445,11 +4445,7 @@ function closeProgressBadgePopup() {
 
 /* ── احتفال إتقان حرف جديد: تكرار تصميم الشارات الحالية + شارة العدد (X من 28) ── */
 function celebrateLetterMastery(count, total) {
-  const badge = BADGES[(count - 1) % BADGES.length];
-  window._badgeDoneCallback = () => {
-    setTimeout(() => showProgressBadgePopup(count, total), 300);
-  };
-  showBadgePopup(badge, { showPoints: false });
+  showProgressBadgePopup(count, total);
 }
 
 /* ── شاشة البطل الكبيرة ── */
