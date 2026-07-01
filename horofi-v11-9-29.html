@@ -4370,7 +4370,8 @@ function checkBadges(doneCallback) {
   }
   s.earnedBadges = earned;
 
-  // ── فحص الشارات per-letter-level ──
+  // ── فحص الشارات per-letter-level: تتكرر مع كل حرف جديد لتحفيز الطفل ──
+  let newLevelBadge = null;
   if (CURRENT_LEVEL && CL && CL.char) {
     const lb = _lvlBadges(ch, CURRENT_LEVEL, CL.char);
     const ls = _lvlStats(ch, CURRENT_LEVEL, CL.char);
@@ -4379,16 +4380,23 @@ function checkBadges(doneCallback) {
     for (const b of BADGES) {
       if (!lb.includes(b.id) && b.condition(lsCtx)) {
         lb.push(b.id);
+        if (!newLevelBadge) newLevelBadge = b;
       }
     }
   }
 
   saveChildren();
 
-  if (newBadge) {
-    window._badgeDoneCallback = doneCallback || null;
-    setTimeout(() => showBadgePopup(newBadge), 600);
-    if (newBadge.id === 'letter_28') setTimeout(() => showChampionScreen(), 3500);
+  const queue = [newBadge, (newLevelBadge && newLevelBadge.id !== (newBadge && newBadge.id)) ? newLevelBadge : null].filter(Boolean);
+  if (queue.length) {
+    const showNext = () => {
+      const b = queue.shift();
+      if (!b) { if (doneCallback) doneCallback(); return; }
+      window._badgeDoneCallback = queue.length ? showNext : (doneCallback || null);
+      setTimeout(() => showBadgePopup(b), 600);
+      if (b.id === 'letter_28') setTimeout(() => showChampionScreen(), 3500);
+    };
+    showNext();
   } else {
     if (doneCallback) doneCallback();
   }
