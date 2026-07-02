@@ -1,0 +1,12 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid} {
+      // كل مستخدم يقرأ فقط وثيقته الخاصة، ولا يستطيع الكتابة إطلاقاً —
+      // التفعيل الوحيد المسموح به يأتي من Cloud Function عبر Admin SDK
+      // (Admin SDK يتجاوز قواعد الأمان هذه بالكامل).
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+  }
+}
