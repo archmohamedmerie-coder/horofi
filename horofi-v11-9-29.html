@@ -3770,10 +3770,18 @@ function buildParentReport(){
     const acc = total ? Math.round((correct/total)*100) : 0;
     let weakHTML = '';
     if (s.weakLetters){
-      const arr = Object.entries(s.weakLetters).sort((a,b)=>b[1]-a[1]).slice(0,3);
+      const arr = Object.entries(s.weakLetters).sort((a,b)=>b[1]-a[1]).slice(0,5);
       if (arr.length){
-        weakHTML = '<div class="pr-weak">🎯 يحتاج تدريباً أكثر على: ' +
-          arr.map(([l,n])=>`<strong>${l}</strong> (${n})`).join('، ') + '</div>';
+        weakHTML = '<div class="pr-weak">🔤 حروف تحتاج إعادة: ' +
+          arr.map(([l,n])=>`<strong>${l}</strong> (${n} أخطاء)`).join('، ') + '</div>';
+      }
+    }
+    let weakWordsHTML = '';
+    if (s.weakWords){
+      const arr = Object.entries(s.weakWords).sort((a,b)=>b[1]-a[1]).slice(0,5);
+      if (arr.length){
+        weakWordsHTML = '<div class="pr-weak">📝 كلمات صعبة: ' +
+          arr.map(([w,n])=>`<strong>${w}</strong> (${n} أخطاء)`).join('، ') + '</div>';
       }
     }
     const av = ch.gender==='female' ? '👧' : '👦';
@@ -3787,6 +3795,7 @@ function buildParentReport(){
       </div>
       <div class="pr-bar-wrap"><div class="pr-bar" style="width:${pct}%"></div></div>
       ${weakHTML}
+      ${weakWordsHTML}
       ${buildBadgesSection(ch)}
       ${lastPlayed}
     </div>`;
@@ -3811,7 +3820,7 @@ function buildBadgesSectionEmpty(){
 }
 
 /* تسجيل إحصائية إجابة (صح/خطأ) + الحرف المتعثَّر فيه للطفل النشط */
-function recordStat(correct, letterChar){
+function recordStat(correct, letterChar, wordText){
   let ch = activeChild();
   // إذا لم يوجد طفل نشط وعندنا profile → أنشئه تلقائياً
   if (!ch && PROFILE.name) { ch = createChildFromProfile(); }
@@ -3824,6 +3833,10 @@ function recordStat(correct, letterChar){
     if (letterChar){
       if (!s.weakLetters) s.weakLetters = {};
       s.weakLetters[letterChar] = (s.weakLetters[letterChar]||0)+1;
+    }
+    if (wordText){
+      if (!s.weakWords) s.weakWords = {};
+      s.weakWords[wordText] = (s.weakWords[wordText]||0)+1;
     }
   }
   s.lastPlayed = Date.now();
@@ -3905,7 +3918,7 @@ function buildIdentify(R,body){
         score+=10; streak++; wrongStreak=0; recordStat(true, (CL&&CL.char)||''); updateRewardStats(true); const msg=praiseText(); showFB(true,'🎉 '+msg); confetti(); __pendingSentence=R; __pendingPraise=msg;
       } else {
         c.classList.add('wrong'); c.innerHTML+=`<div class="verdict">❌</div>`;
-        lives=Math.max(0,lives-1); setLives(); streak=0; wrongStreak++; recordStat(false, (CL&&CL.char)||''); updateRewardStats(false);
+        lives=Math.max(0,lives-1); setLives(); streak=0; wrongStreak++; recordStat(false, (CL&&CL.char)||'', shapeWord(R.letters, {}, R.diac)); updateRewardStats(false);
         grid.querySelectorAll('.icard').forEach((el,i)=>{ if(shuffled[i].correct) el.classList.add('reveal'); });
         const msg=encourageText(); showFB(false,`${msg}<br>💡 ${R.tip}`); playEncourageAudio(msg);
       }
@@ -3957,7 +3970,7 @@ function buildSpecialIdentify(R,body){
         score+=10; streak++; wrongStreak=0; recordStat(true, (CL&&CL.char)||''); updateRewardStats(true); const msg=praiseText(); showFB(true,'🎉 '+msg); confetti(); __pendingSentence=R; __pendingPraise=msg;
       } else {
         c.classList.add('wrong'); c.innerHTML+=`<div class="verdict">❌</div>`;
-        lives=Math.max(0,lives-1); setLives(); streak=0; wrongStreak++; recordStat(false, (CL&&CL.char)||''); updateRewardStats(false);
+        lives=Math.max(0,lives-1); setLives(); streak=0; wrongStreak++; recordStat(false, (CL&&CL.char)||'', correctWord); updateRewardStats(false);
         grid.querySelectorAll('.icard').forEach(el=>{ if(el!==c) el.classList.add('reveal'); });
         const msg=encourageText(); showFB(false,`${msg}<br>💡 ${R.tip}`); playEncourageAudio(msg);
       }
@@ -4006,7 +4019,7 @@ function renderTwoOptionGrid(correctWord, wrongWord, tip, body, hlLetters, hlTar
         score+=10; streak++; wrongStreak=0; recordStat(true, (CL&&CL.char)||''); updateRewardStats(true); const msg=praiseText(); showFB(true,'🎉 '+msg); confetti(); __pendingSentence=roundObj||null; __pendingPraise=msg;
       } else {
         c.classList.add('wrong'); c.innerHTML+=`<div class="verdict">❌</div>`;
-        lives=Math.max(0,lives-1); setLives(); streak=0; wrongStreak++; recordStat(false, (CL&&CL.char)||''); updateRewardStats(false);
+        lives=Math.max(0,lives-1); setLives(); streak=0; wrongStreak++; recordStat(false, (CL&&CL.char)||'', correctWord); updateRewardStats(false);
         grid.querySelectorAll('.icard').forEach(el=>{ if(el!==c) el.classList.add('reveal'); });
         const msg=encourageText(); showFB(false,`${msg}<br>💡 ${tip}`); playEncourageAudio(msg);
       }
