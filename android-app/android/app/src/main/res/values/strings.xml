@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Horofi</string>
-    <string name="title_activity_main">Horofi</string>
+    <string name="app_name">صحّح حروفك</string>
+    <string name="title_activity_main">صحّح حروفك</string>
     <string name="package_name">com.horofi.app</string>
     <string name="custom_url_scheme">com.horofi.app</string>
 </resources>

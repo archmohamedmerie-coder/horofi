@@ -3906,7 +3906,7 @@ function buildIdentify(R,body){
     }
     const c=mk('div','icard');
     c.innerHTML=`<div class="word-txt">${word}</div>`;
-    c.onclick=()=>{
+    c.onclick=async ()=>{
       if(answered)return; answered=true;
       if(opt.correct){
         c.classList.add('correct');
@@ -3920,7 +3920,7 @@ function buildIdentify(R,body){
         c.classList.add('wrong'); c.innerHTML+=`<div class="verdict">❌</div>`;
         lives=Math.max(0,lives-1); setLives(); streak=0; wrongStreak++; recordStat(false, (CL&&CL.char)||'', shapeWord(R.letters, {}, R.diac)); updateRewardStats(false);
         grid.querySelectorAll('.icard').forEach((el,i)=>{ if(shuffled[i].correct) el.classList.add('reveal'); });
-        const msg=encourageText(); showFB(false,`${msg}<br>💡 ${R.tip}`); playEncourageAudio(msg);
+        const msg=encourageText(); showFB(false,`${msg}<br>💡 ${R.tip}`); await playEncourageAudio(msg);
       }
       if(__pendingSentence){ const _r=__pendingSentence; __pendingSentence=null; runSentenceFlow(_r); } else { document.querySelector('.btn-next').classList.add('show'); }
     };
@@ -3959,7 +3959,7 @@ function buildSpecialIdentify(R,body){
   options.forEach(opt=>{
     const c=mk('div','icard');
     c.innerHTML=`<div class="word-txt">${opt.word}</div>`;
-    c.onclick=()=>{
+    c.onclick=async ()=>{
       if(answered)return; answered=true;
       if(opt.correct){
         c.classList.add('correct');
@@ -3972,7 +3972,7 @@ function buildSpecialIdentify(R,body){
         c.classList.add('wrong'); c.innerHTML+=`<div class="verdict">❌</div>`;
         lives=Math.max(0,lives-1); setLives(); streak=0; wrongStreak++; recordStat(false, (CL&&CL.char)||'', correctWord); updateRewardStats(false);
         grid.querySelectorAll('.icard').forEach(el=>{ if(el!==c) el.classList.add('reveal'); });
-        const msg=encourageText(); showFB(false,`${msg}<br>💡 ${R.tip}`); playEncourageAudio(msg);
+        const msg=encourageText(); showFB(false,`${msg}<br>💡 ${R.tip}`); await playEncourageAudio(msg);
       }
       if(__pendingSentence){ const _r=__pendingSentence; __pendingSentence=null; runSentenceFlow(_r); } else { document.querySelector('.btn-next').classList.add('show'); }
     };
@@ -4006,7 +4006,7 @@ function renderTwoOptionGrid(correctWord, wrongWord, tip, body, hlLetters, hlTar
   options.forEach(opt=>{
     const c=mk('div','icard');
     c.innerHTML=`<div class="word-txt">${opt.word}</div>`;
-    c.onclick=()=>{
+    c.onclick=async ()=>{
       if(answered)return; answered=true;
       if(opt.correct){
         c.classList.add('correct');
@@ -4021,7 +4021,7 @@ function renderTwoOptionGrid(correctWord, wrongWord, tip, body, hlLetters, hlTar
         c.classList.add('wrong'); c.innerHTML+=`<div class="verdict">❌</div>`;
         lives=Math.max(0,lives-1); setLives(); streak=0; wrongStreak++; recordStat(false, (CL&&CL.char)||'', correctWord); updateRewardStats(false);
         grid.querySelectorAll('.icard').forEach(el=>{ if(el!==c) el.classList.add('reveal'); });
-        const msg=encourageText(); showFB(false,`${msg}<br>💡 ${tip}`); playEncourageAudio(msg);
+        const msg=encourageText(); showFB(false,`${msg}<br>💡 ${tip}`); await playEncourageAudio(msg);
       }
       if(__pendingSentence){ const _r=__pendingSentence; __pendingSentence=null; runSentenceFlow(_r); } else { document.querySelector('.btn-next').classList.add('show'); }
     };
