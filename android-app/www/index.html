@@ -3942,8 +3942,8 @@ function buildIdentify(R,body){
         c.classList.add('wrong'); c.innerHTML+=`<div class="verdict">❌</div>`;
         lives=Math.max(0,lives-1); setLives(); streak=0; wrongStreak++; recordStat(false, (CL&&CL.char)||'', shapeWord(R.letters, {}, R.diac)); updateRewardStats(false);
         grid.querySelectorAll('.icard').forEach((el,i)=>{ if(shuffled[i].correct) el.classList.add('reveal'); });
-        const msg=encourageText(); showFB(false,`${msg}<br>💡 ${R.tip}`); await playEncourageAudio(msg);
         highlightTreeForRound(R, opt.form);
+        const msg=encourageText(); showFB(false,`${msg}<br>💡 ${R.tip}`); await playEncourageAudio(msg);
       }
       if(__pendingSentence){ const _r=__pendingSentence; __pendingSentence=null; runSentenceFlow(_r); } else { document.querySelector('.btn-next').classList.add('show'); }
     };
@@ -4472,6 +4472,11 @@ function showBadgePopup(badge, opts) {
 }
 function closeBadgePopup() {
   document.getElementById('badgePopup')?.classList.remove('show');
+  // إيقاف صوت الشارة فوراً كي لا يتداخل مع صوت الحرف/الجملة التالية
+  if (window._currentAudio) {
+    try { window._currentAudio.pause(); window._currentAudio.src = ''; } catch(e) {}
+    window._currentAudio = null;
+  }
   if (window._badgeDoneCallback) {
     const cb = window._badgeDoneCallback;
     window._badgeDoneCallback = null;
@@ -4505,6 +4510,10 @@ function showProgressBadgePopup(count, total) {
 }
 function closeProgressBadgePopup() {
   document.getElementById('progressBadgePopup')?.classList.remove('show');
+  if (window._currentAudio) {
+    try { window._currentAudio.pause(); window._currentAudio.src = ''; } catch(e) {}
+    window._currentAudio = null;
+  }
 }
 
 /* ── احتفال إتقان حرف جديد: تكرار تصميم الشارات الحالية + شارة العدد (X من 28) ── */
