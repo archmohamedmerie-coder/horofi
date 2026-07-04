@@ -667,8 +667,6 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
       </optgroup>
     </select>
     <button class="btn" onclick="completeOnboarding()" style="margin-top:6px">ابدأ! 🚀</button>
-    <button class="btn2" onclick="testVoice()" style="margin-top:2px">🔊 اختبار الصوت</button>
-    <div id="voiceStatus" style="font-size:.78rem;color:var(--muted);text-align:center;font-weight:700;line-height:1.6"></div>
   </div>
 </div>
 
@@ -2541,42 +2539,6 @@ function selectGender(g){
   document.getElementById('obGirl').style.borderColor = g==='female' ? 'var(--purple)' : 'var(--border)';
   document.getElementById('obGirl').style.background = g==='female' ? '#F5F0FF' : '#fff';
 }
-function testVoice(){
-  unlockSpeech();
-  const statusEl = document.getElementById('voiceStatus') || document.getElementById('voiceStatus2');
-  const statusEl2 = document.getElementById('voiceStatus2');
-  const setStatus = (html, append)=>{
-    [document.getElementById('voiceStatus'), document.getElementById('voiceStatus2')].forEach(el=>{
-      if (!el) return;
-      el.innerHTML = append ? (el.innerHTML + html) : html;
-    });
-  };
-  if (!window.speechSynthesis){
-    setStatus('❌ هذا المتصفح لا يدعم نطق الصوت إطلاقاً (Web Speech API غير متوفرة).', false);
-    return;
-  }
-  const voices = speechSynthesis.getVoices();
-  const arVoices = voices.filter(v=>v.lang && v.lang.toLowerCase().startsWith('ar'));
-  let report = `🎙️ عدد الأصوات الكلية بالجهاز: ${voices.length}<br>🇸🇦 أصوات عربية موجودة: ${arVoices.length}`;
-  if (arVoices.length) report += ' (' + arVoices.map(v=>v.name).join('، ') + ')';
-  setStatus(report, false);
-  try{
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance('مرحباً، هذا اختبار للصوت');
-    if (arVoices[0]) u.voice = arVoices[0]; else u.lang='ar';
-    u.onstart = ()=>{ setStatus('<br>✅ الصوت بدأ النطق فعلياً الآن.', true); };
-    u.onerror = (e)=>{ setStatus('<br>❌ خطأ أثناء النطق: ' + e.error, true); };
-    u.onend = ()=>{ setStatus('<br>🔚 انتهى النطق.', true); };
-    speechSynthesis.speak(u);
-    setTimeout(()=>{
-      if (!speechSynthesis.speaking && !speechSynthesis.pending) {
-        setStatus('<br>⚠️ لم يبدأ أي صوت بعد ثانيتين — المتصفح على الأغلب يحجب الصوت أو ما فيه صوت عربي مثبّت بنظام التشغيل.', true);
-      }
-    }, 2000);
-  }catch(e){
-    setStatus('<br>❌ استثناء برمجي: ' + e.message, true);
-  }
-}
 /* ══════════════════════════════════════════════════════
    AUTH — دخول / تسجيل / إعادة تعيين كلمة السر
    ══════════════════════════════════════════════════════ */
@@ -3224,7 +3186,7 @@ function nav(id){
   window.scrollTo(0,0);
   // إخفاء زر كتم الصوت العام في هذه الشاشات فقط (يبقى ظاهراً في بقية الشاشات)
   const gm = document.getElementById('globalMuteBtn');
-  const hideMuteBtnScreens = ['home', 'letters', 'levelSelect', 'subscription', 'parent'];
+  const hideMuteBtnScreens = ['home', 'letters', 'levelSelect', 'subscription', 'parent', 'onboarding'];
   if (gm) gm.style.display = hideMuteBtnScreens.includes(id) ? 'none' : '';
   // إعادة بناء الشاشات الديناميكية كي يُحدَّث العداد والشارات
   if (id === 'home') buildHome();
