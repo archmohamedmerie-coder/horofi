@@ -131,6 +131,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 .leaf-glyph.arm-both::before{content:'ـ';position:absolute;right:-0.18em}
 .tree-leaf .leaf-label{font-size:.5rem;font-weight:700;color:var(--muted);display:block;margin-top:1px;line-height:1.15}
 .tree-leaf .leaf-sublabel{font-size:.44rem;font-weight:600;color:#A89BC4;display:block;margin-top:2px}
+.tree-leaf.tl-correct{background:#ecfdf5 !important;border-color:var(--green) !important;box-shadow:0 4px 0 var(--green-d);animation:popC .3s ease}
+.tree-leaf.tl-correct .leaf-glyph{color:var(--green-d) !important}
+.tree-leaf.tl-wrong{background:#fff0f0 !important;border-color:var(--red) !important;box-shadow:0 4px 0 var(--red-d);animation:shake .35s ease}
+.tree-leaf.tl-wrong .leaf-glyph{color:var(--red-d) !important}
 
 .tlabel{font-size:.78rem;font-weight:700;color:var(--ink);background:#fff;border-radius:13px;padding:7px 10px;box-shadow:var(--sh);text-align:center;width:100%;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
@@ -740,9 +744,9 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 <div id="letters" class="screen">
   <div class="topbar">
     <span class="topbar-title">اختر حرفاً</span>
-    <div style="display:flex;gap:7px;align-items:center;margin-left:54px">
-      <button class="btn-back" onclick="stopAllAudio();nav('home')">← رجوع</button>
-      <button class="btn-back" title="تسجيل الخروج" onclick="logoutUser()" style="background:rgba(255,107,107,.25)">خروج</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex:1;margin-right:10px">
+      <button class="btn-back" onclick="stopAllAudio();nav('home')">→ رجوع</button>
+      <button class="btn-back" title="تسجيل الخروج" onclick="logoutUser()" style="background:rgba(255,107,107,.25)">خروج ←</button>
     </div>
   </div>
   <div class="section-label">الحروف المتصلة</div>
@@ -3218,9 +3222,10 @@ function nav(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   window.scrollTo(0,0);
-  // إخفاء زر كتم الصوت العام في الصفحة الرئيسية فقط (نبدأ التعلم / تقرير الأهل)
+  // إخفاء زر كتم الصوت العام في هذه الشاشات فقط (يبقى ظاهراً في بقية الشاشات)
   const gm = document.getElementById('globalMuteBtn');
-  if (gm) gm.style.display = (id === 'home') ? 'none' : '';
+  const hideMuteBtnScreens = ['home', 'letters', 'levelSelect', 'subscription', 'parent'];
+  if (gm) gm.style.display = hideMuteBtnScreens.includes(id) ? 'none' : '';
   // إعادة بناء الشاشات الديناميكية كي يُحدَّث العداد والشارات
   if (id === 'home') buildHome();
   else if (id === 'letters') buildLetterGrid();
@@ -3397,7 +3402,7 @@ function buildRoundsForConnecting(L){
   const rounds = [];
   const char = L.char;
 
-  function makeRound(word, posLabel, diacArr, isStart){
+  function makeRound(word, posLabel, diacArr, isStart, cat){
     const letters = Array.from(word);
     const targetIdx = letters.indexOf(char);
     const natForm = getNaturalForm(letters, targetIdx);
@@ -3408,7 +3413,7 @@ function buildRoundsForConnecting(L){
       pos: posLabel,
       tip: `شَكْل ${L.name} الصَّحِيح هُنَا هُوَ شَكْل ${FORM_LABEL[natForm]}`,
       letters, targetIdx, correctForm: natForm,
-      wrongForms: chosenWrongs, diac: diacArr, isStart: !!isStart
+      wrongForms: chosenWrongs, diac: diacArr, isStart: !!isStart, cat
     };
   }
 
@@ -3418,11 +3423,11 @@ function buildRoundsForConnecting(L){
     ? L.levels[CURRENT_LEVEL]
     : L;
 
-  (src.start||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي بِدَايَة الْكَلِمَة', src.startD[i], true)));
-  (src.mid_c||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي وَسَط الْكَلِمَة، بَعْدَ حَرْفٍ مُتَّصِل', src.mid_cD[i])));
-  (src.mid_n||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي وَسَط الْكَلِمَة، بَعْدَ حَرْفٍ مُنْفَصِل', src.mid_nD[i])));
-  (src.end_c||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي آخِر الْكَلِمَة، بَعْدَ حَرْفٍ مُتَّصِل', src.end_cD[i])));
-  (src.end_n||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي آخِر الْكَلِمَة، بَعْدَ حَرْفٍ مُنْفَصِل', src.end_nD[i])));
+  (src.start||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي بِدَايَة الْكَلِمَة', src.startD[i], true, 'start')));
+  (src.mid_c||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي وَسَط الْكَلِمَة، بَعْدَ حَرْفٍ مُتَّصِل', src.mid_cD[i], false, 'mid_c')));
+  (src.mid_n||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي وَسَط الْكَلِمَة، بَعْدَ حَرْفٍ مُنْفَصِل', src.mid_nD[i], false, 'mid_n')));
+  (src.end_c||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي آخِر الْكَلِمَة، بَعْدَ حَرْفٍ مُتَّصِل', src.end_cD[i], false, 'end_c')));
+  (src.end_n||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي آخِر الْكَلِمَة، بَعْدَ حَرْفٍ مُنْفَصِل', src.end_nD[i], false, 'end_n')));
 
   return rounds; // ترتيب تعليمي ثابت: بداية→وسط→نهاية
 }
@@ -3562,7 +3567,7 @@ function buildTree(L){
           <div class="group-heading">بداية</div>
           <div class="group-arrow">⬇</div>
           <div class="leaf-group">
-            <div class="tree-leaf">
+            <div class="tree-leaf" data-cat="start">
               <span class="leaf-glyph arm-left">${String.fromCodePoint(gStart)}</span>
             </div>
           </div>
@@ -3571,11 +3576,11 @@ function buildTree(L){
           <div class="group-heading">وسط</div>
           <div class="group-arrow">⬇</div>
           <div class="leaf-group">
-            <div class="tree-leaf">
+            <div class="tree-leaf" data-cat="mid_c">
               <span class="leaf-glyph arm-both">${String.fromCodePoint(gMidC)}</span>
               <span class="leaf-sublabel">بعد متصل</span>
             </div>
-            <div class="tree-leaf alt">
+            <div class="tree-leaf alt" data-cat="mid_n">
               <span class="leaf-glyph arm-left">${String.fromCodePoint(gMidN)}</span>
               <span class="leaf-sublabel">بعد غير متصل</span>
             </div>
@@ -3585,11 +3590,11 @@ function buildTree(L){
           <div class="group-heading">نهاية</div>
           <div class="group-arrow">⬇</div>
           <div class="leaf-group">
-            <div class="tree-leaf">
+            <div class="tree-leaf" data-cat="end_c">
               <span class="leaf-glyph arm-right">${String.fromCodePoint(gEndC)}</span>
               <span class="leaf-sublabel">بعد متصل</span>
             </div>
-            <div class="tree-leaf alt">
+            <div class="tree-leaf alt" data-cat="end_n">
               <span class="leaf-glyph">${String.fromCodePoint(gEndN)}</span>
               <span class="leaf-sublabel">بعد غير متصل</span>
             </div>
@@ -3887,6 +3892,22 @@ function lockAnswers(locked){
   });
 }
 
+/* ── تظليل شجرة أشكال الحرف حسب نتيجة الجولة (أخضر للصحيح، أحمر للخطأ المُختار) ── */
+const FORM_TO_TREE_CAT = { ini:'start', med:'mid_c', fin:'end_c', iso:'end_n' };
+function highlightTreeForRound(R, wrongForm){
+  const tree = document.querySelector('.tree');
+  if (!tree || !R.cat) return;
+  const correctLeaf = tree.querySelector(`.tree-leaf[data-cat="${R.cat}"]`);
+  if (correctLeaf) correctLeaf.classList.add('tl-correct');
+  if (wrongForm){
+    const wrongCat = FORM_TO_TREE_CAT[wrongForm];
+    if (wrongCat && wrongCat !== R.cat){
+      const wrongLeaf = tree.querySelector(`.tree-leaf[data-cat="${wrongCat}"]`);
+      if (wrongLeaf) wrongLeaf.classList.add('tl-wrong');
+    }
+  }
+}
+
 /* ── IDENTIFY round (connecting letters, 15 rounds total) ── */
 function buildIdentify(R,body){
   body.appendChild(mk('div','tlabel',
@@ -3916,11 +3937,13 @@ function buildIdentify(R,body){
         if (wtEl) wtEl.innerHTML = hlWord;
         c.innerHTML+=`<div class="verdict">✅</div>`;
         score+=10; streak++; wrongStreak=0; recordStat(true, (CL&&CL.char)||''); updateRewardStats(true); const msg=praiseText(); showFB(true,'🎉 '+msg); confetti(); __pendingSentence=R; __pendingPraise=msg;
+        highlightTreeForRound(R, null);
       } else {
         c.classList.add('wrong'); c.innerHTML+=`<div class="verdict">❌</div>`;
         lives=Math.max(0,lives-1); setLives(); streak=0; wrongStreak++; recordStat(false, (CL&&CL.char)||'', shapeWord(R.letters, {}, R.diac)); updateRewardStats(false);
         grid.querySelectorAll('.icard').forEach((el,i)=>{ if(shuffled[i].correct) el.classList.add('reveal'); });
         const msg=encourageText(); showFB(false,`${msg}<br>💡 ${R.tip}`); await playEncourageAudio(msg);
+        highlightTreeForRound(R, opt.form);
       }
       if(__pendingSentence){ const _r=__pendingSentence; __pendingSentence=null; runSentenceFlow(_r); } else { document.querySelector('.btn-next').classList.add('show'); }
     };
@@ -4770,8 +4793,12 @@ async function pmSendAndClose(){
   const notes  = document.getElementById('pmNotes').value.trim();
   const status = document.getElementById('pmSendStatus');
 
-  // إذا لم يختر تقييماً ولم يكتب شيئاً → أغلق مباشرة
-  if(!rating && !notes){ pmClose(); return; }
+  // زر "إرسال وبدء" يتطلب اختيار تقييم أولاً — من يريد التخطي بلا إرسال يستخدم زر "بدء بدون إرسال"
+  if(!rating){
+    status.textContent = '⚠️ يرجى اختيار تقييم أولاً';
+    status.style.color = '#e53935';
+    return;
+  }
 
   status.textContent = '⏳ جارٍ الإرسال...';
   status.style.color = '#888';
