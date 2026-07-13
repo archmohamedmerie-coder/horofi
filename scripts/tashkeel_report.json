@@ -1,0 +1,332 @@
+[
+  {
+    "letter": "ش",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "شب",
+    "vowel": "شَبّْ",
+    "errs": [
+      "شدّة مع سكون على «ب»"
+    ]
+  },
+  {
+    "letter": "ش",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "شق",
+    "vowel": "شَقّْ",
+    "errs": [
+      "شدّة مع سكون على «ق»"
+    ]
+  },
+  {
+    "letter": "ش",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "شن",
+    "vowel": "شَنّْ",
+    "errs": [
+      "شدّة مع سكون على «ن»"
+    ]
+  },
+  {
+    "letter": "ص",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "صف",
+    "vowel": "صَفّْ",
+    "errs": [
+      "شدّة مع سكون على «ف»"
+    ]
+  },
+  {
+    "letter": "ص",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "صد",
+    "vowel": "صَدّْ",
+    "errs": [
+      "شدّة مع سكون على «د»"
+    ]
+  },
+  {
+    "letter": "ص",
+    "lvl": "beginner",
+    "cat": "end_n",
+    "word": "رص",
+    "vowel": "رَصّْ",
+    "errs": [
+      "شدّة مع سكون على «ص»"
+    ]
+  },
+  {
+    "letter": "ض",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "ضب",
+    "vowel": "ضَبّْ",
+    "errs": [
+      "شدّة مع سكون على «ب»"
+    ]
+  },
+  {
+    "letter": "ط",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "طن",
+    "vowel": "طَنّْ",
+    "errs": [
+      "شدّة مع سكون على «ن»"
+    ]
+  },
+  {
+    "letter": "ط",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "طق",
+    "vowel": "طَقّْ",
+    "errs": [
+      "شدّة مع سكون على «ق»"
+    ]
+  },
+  {
+    "letter": "ط",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "طب",
+    "vowel": "طِبّْ",
+    "errs": [
+      "شدّة مع سكون على «ب»"
+    ]
+  },
+  {
+    "letter": "ظ",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "ظن",
+    "vowel": "ظَنّْ",
+    "errs": [
+      "شدّة مع سكون على «ن»"
+    ]
+  },
+  {
+    "letter": "ع",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "عد",
+    "vowel": "عَدّْ",
+    "errs": [
+      "شدّة مع سكون على «د»"
+    ]
+  },
+  {
+    "letter": "ع",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "عز",
+    "vowel": "عِزّْ",
+    "errs": [
+      "شدّة مع سكون على «ز»"
+    ]
+  },
+  {
+    "letter": "غ",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "غل",
+    "vowel": "غِلّْ",
+    "errs": [
+      "شدّة مع سكون على «ل»"
+    ]
+  },
+  {
+    "letter": "ف",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "فن",
+    "vowel": "فَنّْ",
+    "errs": [
+      "شدّة مع سكون على «ن»"
+    ]
+  },
+  {
+    "letter": "ف",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "فج",
+    "vowel": "فَجّْ",
+    "errs": [
+      "شدّة مع سكون على «ج»"
+    ]
+  },
+  {
+    "letter": "ق",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "قف",
+    "vowel": "قِفّْ",
+    "errs": [
+      "شدّة مع سكون على «ف»"
+    ]
+  },
+  {
+    "letter": "ق",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "قص",
+    "vowel": "قَصّْ",
+    "errs": [
+      "شدّة مع سكون على «ص»"
+    ]
+  },
+  {
+    "letter": "ق",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "قد",
+    "vowel": "قِدّْ",
+    "errs": [
+      "شدّة مع سكون على «د»"
+    ]
+  },
+  {
+    "letter": "ك",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "كف",
+    "vowel": "كَفّْ",
+    "errs": [
+      "شدّة مع سكون على «ف»"
+    ]
+  },
+  {
+    "letter": "ك",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "كم",
+    "vowel": "كُمّْ",
+    "errs": [
+      "شدّة مع سكون على «م»"
+    ]
+  },
+  {
+    "letter": "ك",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "كن",
+    "vowel": "كُنّْ",
+    "errs": [
+      "شدّة مع سكون على «ن»"
+    ]
+  },
+  {
+    "letter": "ل",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "لب",
+    "vowel": "لُبّْ",
+    "errs": [
+      "شدّة مع سكون على «ب»"
+    ]
+  },
+  {
+    "letter": "ل",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "لز",
+    "vowel": "لَزّْ",
+    "errs": [
+      "شدّة مع سكون على «ز»"
+    ]
+  },
+  {
+    "letter": "م",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "مد",
+    "vowel": "مَدّْ",
+    "errs": [
+      "شدّة مع سكون على «د»"
+    ]
+  },
+  {
+    "letter": "م",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "مر",
+    "vowel": "مُرّْ",
+    "errs": [
+      "شدّة مع سكون على «ر»"
+    ]
+  },
+  {
+    "letter": "ن",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "نم",
+    "vowel": "نَمّْ",
+    "errs": [
+      "شدّة مع سكون على «م»"
+    ]
+  },
+  {
+    "letter": "ن",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "نق",
+    "vowel": "نَقّْ",
+    "errs": [
+      "شدّة مع سكون على «ق»"
+    ]
+  },
+  {
+    "letter": "ن",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "نك",
+    "vowel": "نَكّْ",
+    "errs": [
+      "شدّة مع سكون على «ك»"
+    ]
+  },
+  {
+    "letter": "ه",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "هم",
+    "vowel": "هَمّْ",
+    "errs": [
+      "شدّة مع سكون على «م»"
+    ]
+  },
+  {
+    "letter": "ه",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "هب",
+    "vowel": "هَبّْ",
+    "errs": [
+      "شدّة مع سكون على «ب»"
+    ]
+  },
+  {
+    "letter": "ه",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "هر",
+    "vowel": "هِرّْ",
+    "errs": [
+      "شدّة مع سكون على «ر»"
+    ]
+  },
+  {
+    "letter": "ي",
+    "lvl": "beginner",
+    "cat": "start",
+    "word": "يم",
+    "vowel": "يَمّْ",
+    "errs": [
+      "شدّة مع سكون على «م»"
+    ]
+  }
+]
