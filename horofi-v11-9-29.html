@@ -3122,6 +3122,8 @@ function runSentenceFlow(R){
     if (soundEnabled){
       if (nb) nb.classList.remove('show');
       (async ()=>{
+        await playWordAudio(key);
+        if (window._flowToken !== myToken) return;
         if (praise) await playPraiseAudio(praise);
         if (window._flowToken !== myToken) return;
         checkBadges(showBtn);
@@ -3151,6 +3153,8 @@ function runSentenceFlow(R){
 
   if (soundEnabled){
     (async ()=>{
+      await playWordAudio(key);
+      if (window._flowToken !== myToken) return;
       if (soundEnabled && praise) await playPraiseAudio(praise);
       if (window._flowToken !== myToken) return;
       if (soundEnabled) await playIntroAudio();
@@ -3180,6 +3184,24 @@ async function playSentenceAudio(key, sentence){
   if (!soundEnabled) return;
   return new Promise(resolve => {
     const audio = new Audio(`audio/sentences/${key}.mp3`);
+    window._currentAudio = audio;
+    const done = () => {
+      window._currentAudio = null;
+      if (window._pendingAudioResolve === resolve) window._pendingAudioResolve = null;
+      resolve();
+    };
+    window._pendingAudioResolve = resolve;
+    audio.onended = done;
+    audio.onerror = done;
+    audio.play().catch(done);
+  });
+}
+
+/* ── تشغيل نطق الكلمة المفردة (بعد الإجابة الصحيحة مباشرة، قبل صوت التهنئة) ── */
+async function playWordAudio(key){
+  if (!soundEnabled) return;
+  return new Promise(resolve => {
+    const audio = new Audio(`audio/words/${key}.mp3`);
     window._currentAudio = audio;
     const done = () => {
       window._currentAudio = null;
@@ -3889,7 +3911,7 @@ function highlightTreeForRound(R, wrongForm){
 /* ── IDENTIFY round (connecting letters, 15 rounds total) ── */
 function buildIdentify(R,body){
   body.appendChild(mk('div','tlabel',
-    `🔍 اِخْتَرِ <strong>${CL.name}</strong> الصَّحِيحَة — <strong>${R.pos}</strong>`));
+    `🔍 اِقْرَأِ الْكَلِمَةَ وَاخْتَرِ <strong>${CL.name}</strong> الصَّحِيحَة — <strong>${R.pos}</strong>`));
 
   const options = [
     {form:R.correctForm, correct:true},
@@ -3933,7 +3955,7 @@ function buildIdentify(R,body){
 /* ── SPECIAL-LETTER IDENTIFY round (2 clear options) ── */
 function buildSpecialIdentify(R,body){
   body.appendChild(mk('div','tlabel',
-    `🔍 اِخْتَرِ <strong>${CL.name}</strong> الصَّحِيحَة — وَتَذَكَّرْ أَنَّهَا لَا تَتَّصِلُ بِمَا بَعْدَهَا`));
+    `🔍 اِقْرَأِ الْكَلِمَةَ وَاخْتَرِ <strong>${CL.name}</strong> الصَّحِيحَة — وَتَذَكَّرْ أَنَّهَا لَا تَتَّصِلُ بِمَا بَعْدَهَا`));
 
   const correctWord = shapeWord(R.letters, {}, R.diac);
   // القاعدة: الكلمة الخاطئة = الحرف الخاص يظهر منفصلاً عمّا قبله (الحرف قبله لا يتصل به)،
@@ -3985,7 +4007,7 @@ function buildSpecialIdentify(R,body){
 /* ── JOINCHECK round (non-connecting letters) ── */
 function buildJoinCheck(R,body){
   body.appendChild(mk('div','tlabel',
-    `🔍 اِخْتَرِ <strong>${CL.name}</strong> الصَّحِيحَة — وَتَذَكَّرْ أَنَّ ${CL.name} لَا تَتَّصِلُ بِمَا بَعْدَهَا`));
+    `🔍 اِقْرَأِ الْكَلِمَةَ وَاخْتَرِ <strong>${CL.name}</strong> الصَّحِيحَة — وَتَذَكَّرْ أَنَّ ${CL.name} لَا تَتَّصِلُ بِمَا بَعْدَهَا`));
   const correctWord = shapeWord(R.letters, {}, R.diac);
   const wrongWord = buildJoinWrong(R.letters, R.targetIdx, R.diac);
   renderTwoOptionGrid(correctWord, wrongWord, R.tip, body, R.letters, R.targetIdx, R.diac, R);
@@ -3994,7 +4016,7 @@ function buildJoinCheck(R,body){
 /* ── DETACHCHECK round ── */
 function buildDetachCheck(R,body){
   body.appendChild(mk('div','tlabel',
-    `🔍 اِخْتَرِ <strong>${CL.name}</strong> الصَّحِيحَة — وَتَذَكَّرْ أَنَّ ${CL.name} لَا تَتَّصِلُ بِمَا بَعْدَهَا`));
+    `🔍 اِقْرَأِ الْكَلِمَةَ وَاخْتَرِ <strong>${CL.name}</strong> الصَّحِيحَة — وَتَذَكَّرْ أَنَّ ${CL.name} لَا تَتَّصِلُ بِمَا بَعْدَهَا`));
   const correctWord = shapeWord(R.letters, {}, R.diac);
   const wrongWord = buildDetachWrong(R.letters, R.targetIdx, R.diac);
   renderTwoOptionGrid(correctWord, wrongWord, R.tip, body, R.letters, R.targetIdx, R.diac, R);
