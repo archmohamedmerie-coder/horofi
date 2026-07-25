@@ -14,7 +14,7 @@
     firebase deploy --only functions:horofi
 */
 
-const { onRequest } = require("firebase-functions/v2/https");
+const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const logger = require("firebase-functions/logger");
@@ -73,6 +73,51 @@ exports.stripeWebhook = onRequest(
       }
     }
 
+    // الاشتراك انتهى فعلياً (إمّا بعد إلغاء المستخدم من بوابة العميل وانتهاء فترة الفوترة، أو فشل تجديد الدفع)
+    if (event.type === "customer.subscription.deleted") {
+      const sub = event.data.object;
+      const customerId = sub.customer;
+      try {
+        const snap = await db.collection("users").where("stripeCustomerId", "==", customerId).limit(1).get();
+        if (!snap.empty) {
+          await snap.docs[0].ref.set({ subscribed: false }, { merge: true });
+          logger.info(`⛔ تم إلغاء الاشتراك فعلياً للعميل ${customerId}`);
+        } else {
+          logger.warn(`⚠️ لم يُعثر على مستخدم مرتبط بالعميل ${customerId}`);
+        }
+      } catch (err) {
+        logger.error("خطأ في تحديث حالة الإلغاء:", err);
+        res.status(500).send("Firestore write failed");
+        return;
+      }
+    }
+
     res.status(200).send("OK");
+  }
+);
+
+/*
+  إنشاء جلسة بوابة العميل (Stripe Customer Portal) — تتيح للمستخدم إدارة
+  أو إلغاء اشتراكه بأمان مباشرة عبر صفحة Stripe الرسمية، دون أن نلمس
+  بيانات الدفع من جهتنا إطلاقاً.
+*/
+exports.createPortalSession = onCall(
+  { secrets: [stripeSecretKey] },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "يجب تسجيل الدخول أولاً");
+    }
+    const uid = request.auth.uid;
+    const doc = await db.collection("users").doc(uid).get();
+    const customerId = doc.exists ? doc.data().stripeCustomerId : null;
+    if (!customerId) {
+      throw new HttpsError("failed-precondition", "لا يوجد اشتراك مرتبط بهذا الحساب");
+    }
+    const stripe = require("stripe")(stripeSecretKey.value());
+    const session = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: "https://archmohamedmerie-coder.github.io/horofi/privacy.html",
+    });
+    return { url: session.url };
   }
 );

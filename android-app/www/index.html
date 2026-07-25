@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>صحّح حروفك — تعلّم الحروف العربية</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@400;700;800;900&family=Aref+Ruqaa:wght@400;700&family=Scheherazade+New:wght@400;700&family=Noto+Naskh+Arabic:wght@400;700&display=swap');
@@ -18,14 +18,21 @@
   --shm:0 8px 28px rgba(26,16,53,.14);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;direction:rtl;overflow-x:hidden}
+body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;direction:rtl;overflow-x:hidden;padding-top:env(safe-area-inset-top)}
 .screen{display:none;min-height:100vh;flex-direction:column;align-items:center}
-.screen.active{display:flex}
+.screen.active{display:flex;animation:screenIn .32s ease}
+@keyframes screenIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
 /* HOME */
 #home{background:linear-gradient(180deg,#FFFFFF 0%,#FFFFFF 20%,#e8f4ff 38%,#fff4e0 68%,#f0ffe8 100%);justify-content:center;padding:28px 20px;text-align:center;gap:0}
 #onboarding{background:linear-gradient(180deg,#FFFFFF 0%,#FFFFFF 22%,#e8f4ff 42%,#fff4e0 72%,#f0ffe8 100%)}
-#login{background:linear-gradient(180deg,#FFFFFF 0%,#e8f4ff 55%,#fff4e0 100%);justify-content:center;align-items:center;padding:40px 20px;gap:0}
+#login{background:linear-gradient(180deg,#FFFFFF 0%,#e8f4ff 55%,#fff4e0 100%);justify-content:center;align-items:center;padding:40px 20px;gap:0;position:relative;overflow:hidden}
+#login>.login-float-letters{position:absolute;inset:0;pointer-events:none;z-index:0}
+.lfl{position:absolute;font-family:'Amiri',serif;font-weight:700;color:var(--purple);opacity:.22;animation:lflFloat var(--lfd,7s) ease-in-out infinite;animation-delay:var(--lfdel,0s)}
+@keyframes lflFloat{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-22px) rotate(4deg)}}
+#login>div{position:relative;z-index:1}
+#login .login-card-anim{animation:cardRise .5s cubic-bezier(.2,.8,.3,1.1)}
+@keyframes cardRise{from{opacity:0;transform:translateY(26px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 #header{text-align:center;margin-bottom:32px}
 #header #mainLogo{width:150px;height:auto;display:block;margin:0 auto 14px}
 #header h2{font-family:'Tajawal',sans-serif;font-size:1.7rem;font-weight:900;color:var(--purple);margin:0;line-height:1.3}
@@ -63,6 +70,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
   100%{opacity:1;transform:translate(0,0) rotate(0) scale(1)}
 }
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.home-mascot-duo{display:flex;align-items:flex-end;justify-content:center;gap:18px;margin:2px 0 6px}
+.home-mascot{width:92px;height:auto;filter:drop-shadow(0 4px 10px rgba(26,16,53,.25))}
+.home-mascot-happy{animation:float 3.4s ease-in-out infinite}
+.home-mascot-sad{animation:float 3.4s ease-in-out infinite;animation-delay:.6s;width:80px}
 .home-title{font-size:2.6rem;font-weight:900;color:var(--purple);margin:8px 0 4px}
 .home-sub{font-size:1rem;color:var(--muted);font-weight:500;margin-bottom:24px}
 .parade{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;margin-bottom:20px;max-width:340px}
@@ -158,7 +169,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 .icard.correct{background:#ecfdf5;border-color:var(--green);box-shadow:0 4px 0 var(--green-d);animation:popC .3s ease}
 .icard.wrong{background:#fff0f0;border-color:var(--red);box-shadow:0 4px 0 var(--red-d);animation:shake .35s ease}
 .icard.reveal{background:#fffbeb;border-color:var(--sun);box-shadow:0 4px 0 var(--sun-d)}
-.verdict{position:absolute;top:5px;left:7px;font-size:1.3rem}
+.verdict{position:absolute;top:5px;right:7px;font-size:1.3rem;z-index:6}
 @keyframes popC{0%{transform:scale(1)}50%{transform:scale(1.06)}100%{transform:scale(1)}}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
 
@@ -168,6 +179,51 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 .fb.ok{background:#ecfdf5;color:#065f46;border:2px solid var(--green)}
 .fb.err{background:#fff0f0;color:#991b1b;border:2px solid var(--red)}
 @keyframes slideD{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+/* ═══ WRITING STAGE — مرحلة اختبار الكتابة ═══ */
+.write-board-wrap{width:100%;position:relative}
+.write-board{
+  width:100%;height:290px;border-radius:18px;border:3px dashed var(--purple);
+  background:
+    linear-gradient(to bottom, transparent 61.8%, rgba(155,93,229,.22) 61.8%, rgba(155,93,229,.22) calc(61.8% + 2px), transparent calc(61.8% + 2px)),
+    #fff;
+  box-shadow:var(--sh);position:relative;overflow:hidden;
+}
+.write-board canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
+.write-hint-overlay{
+  position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.88);z-index:3;pointer-events:none;
+  font-family:'Amiri','Scheherazade New',serif;font-weight:700;color:var(--purple);
+}
+.write-hint-overlay.show{display:flex;animation:slideD .2s ease}
+.write-reveal-overlay{
+  position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+  z-index:2;pointer-events:none;
+  font-family:'Amiri','Scheherazade New',serif;font-weight:700;color:rgba(45,134,83,.5);
+}
+.write-reveal-overlay.show{display:flex}
+.write-tools{display:flex;gap:8px;width:100%;justify-content:center;flex-wrap:wrap}
+.write-tool{
+  background:#fff;border:2px solid var(--border);border-radius:12px;
+  font-family:'Tajawal',sans-serif;font-size:.9rem;font-weight:800;color:var(--ink);
+  padding:9px 16px;cursor:pointer;transition:transform .12s;
+}
+.write-tool:active{transform:scale(.95)}
+.write-check{
+  background:var(--green);color:#fff;border:none;border-radius:14px;
+  font-family:'Tajawal',sans-serif;font-size:1.05rem;font-weight:800;
+  padding:12px 34px;cursor:pointer;box-shadow:0 4px 0 var(--green-d);
+  transition:transform .12s,box-shadow .12s,opacity .2s;
+}
+.write-check:disabled{opacity:.45;cursor:default;box-shadow:0 4px 0 var(--green-d)}
+.write-check:not(:disabled):active{transform:translateY(2px);box-shadow:0 2px 0 var(--green-d)}
+
+.igrid-mascot-host{position:relative}
+.fb-mascot-wrap{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:5;pointer-events:none}
+.fb-mascot{width:104px;height:auto;display:none;filter:drop-shadow(0 4px 10px rgba(26,16,53,.3))}
+.fb-mascot.show-ok{display:block;animation:mascotBounceOk .6s cubic-bezier(.3,.8,.4,1.3)}
+.fb-mascot.show-err{display:block;animation:mascotWobbleErr .55s ease}
+@keyframes mascotBounceOk{0%{opacity:0;transform:translateY(14px) scale(.6) rotate(-8deg)}55%{opacity:1;transform:translateY(-10px) scale(1.08) rotate(4deg)}100%{opacity:1;transform:translateY(0) scale(1) rotate(0)}}
+@keyframes mascotWobbleErr{0%{opacity:0;transform:translateY(10px) scale(.8)}40%{opacity:1;transform:translateY(0) scale(1) rotate(-6deg)}60%{transform:rotate(5deg)}80%{transform:rotate(-3deg)}100%{transform:rotate(0)}}
 
 
 
@@ -223,12 +279,17 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 #done{background:linear-gradient(160deg,#f0e8ff,#e8f4ff);justify-content:center;align-items:center;text-align:center;padding:32px 20px;gap:14px}
 .trophy{font-size:76px;animation:bounce 1s ease-in-out infinite alternate}
 @keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-14px)}}
-.done-title{font-size:2rem;font-weight:900;color:var(--purple)}
+.done-title{font-size:2rem;font-weight:900;color:var(--purple);animation:titlePop .5s cubic-bezier(.2,.8,.3,1.2)}
+@keyframes titlePop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
 .stars{font-size:2.6rem;letter-spacing:5px}
+.stars span{display:inline-block;animation:starPop .55s cubic-bezier(.2,.9,.3,1.4) both;animation-delay:var(--stdel,0s)}
+@keyframes starPop{0%{opacity:0;transform:scale(0) rotate(-40deg)}70%{opacity:1;transform:scale(1.25) rotate(8deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
 .score-txt{font-size:1.2rem;font-weight:800}
 .done-sub{font-size:.95rem;color:var(--muted);font-weight:600}
 .done-btns{display:flex;flex-direction:column;gap:11px;width:100%;max-width:300px}
-.btn2{background:#fff;color:var(--purple);border:2.5px solid var(--purple);border-radius:18px;padding:13px;width:100%;font-size:1rem;font-weight:800;font-family:'Tajawal',sans-serif;cursor:pointer}
+.btn2{background:#fff;color:var(--purple);border:2.5px solid var(--purple);border-radius:18px;padding:13px;width:100%;font-size:1rem;font-weight:800;font-family:'Tajawal',sans-serif;cursor:pointer;transition:transform .13s,box-shadow .13s}
+.btn2:hover{transform:translateY(-2px);box-shadow:0 5px 14px rgba(124,58,237,.18)}
+.btn2:active{transform:scale(.97)}
 
 .cp{position:fixed;pointer-events:none;animation:cf linear forwards}
 @keyframes cf{0%{opacity:1;transform:translateY(-10px) rotate(0)}100%{opacity:0;transform:translateY(110vh) rotate(720deg)}}
@@ -467,8 +528,9 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 }
 
 /* ── FREEMIUM ── */
-.ltile-lock{position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:1.5rem;pointer-events:none}
-.ltile.locked{filter:grayscale(.65);opacity:.72;cursor:pointer}
+.ltile-lock{position:absolute;top:4px;left:4px;font-size:.72rem;pointer-events:none;background:rgba(255,255,255,.92);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+.ltile.locked{filter:saturate(.55);opacity:.88;cursor:pointer}
+.ltile.locked .lchar{opacity:.85}
 #subscription{background:linear-gradient(180deg,#FFFFFF 0%,#e8f4ff 50%,#fff4e0 100%);justify-content:flex-start;padding:0;gap:0}
 .sub-body{display:flex;flex-direction:column;align-items:center;padding:28px 20px;gap:18px;width:100%;max-width:400px;margin:0 auto}
 .sub-card{background:#fff;border-radius:24px;padding:28px 22px;width:100%;box-shadow:var(--shm);display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
@@ -487,17 +549,32 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
 </head>
 <body>
-<button id="globalMuteBtn" class="global-mute-btn" onclick="toggleSound()" title="كتم/تشغيل الصوت">🔊</button>
+<button id="globalMuteBtn" class="global-mute-btn" style="display:none" onclick="toggleSound()" title="كتم/تشغيل الصوت">🔊</button>
 
 <div id="login" class="screen active">
-  <div style="text-align:center;padding:28px 20px 0">
+  <div class="login-float-letters" aria-hidden="true">
+    <span class="lfl" style="top:3%;right:7%;font-size:2.7rem;--lfd:8s">ب</span>
+    <span class="lfl" style="top:5%;right:33%;font-size:2rem;--lfd:6.8s;--lfdel:1.3s">ج</span>
+    <span class="lfl" style="top:2%;left:26%;font-size:2.3rem;--lfd:7.6s;--lfdel:.5s">ر</span>
+    <span class="lfl" style="top:6%;left:6%;font-size:2.5rem;--lfd:9s;--lfdel:2s">ح</span>
+    <span class="lfl" style="top:16%;right:16%;font-size:2.2rem;--lfd:7.2s;--lfdel:.9s">س</span>
+    <span class="lfl" style="top:14%;left:15%;font-size:2.6rem;--lfd:8.4s;--lfdel:1.8s">ع</span>
+    <span class="lfl" style="top:25%;right:5%;font-size:2.4rem;--lfd:7.8s;--lfdel:.3s">ن</span>
+    <span class="lfl" style="top:24%;left:30%;font-size:2rem;--lfd:6.6s;--lfdel:2.4s">ط</span>
+    <span class="lfl" style="top:27%;left:5%;font-size:2.8rem;--lfd:9.2s;--lfdel:1.1s">م</span>
+    <span class="lfl" style="top:37%;right:24%;font-size:2.5rem;--lfd:8s;--lfdel:1.6s">ك</span>
+    <span class="lfl" style="top:39%;left:9%;font-size:2.2rem;--lfd:7.4s;--lfdel:.7s">ص</span>
+    <span class="lfl" style="top:47%;right:9%;font-size:2rem;--lfd:8.6s;--lfdel:2.1s">ل</span>
+  </div>
+  <div style="text-align:center;padding:28px 20px 0;position:relative">
     <img src="Logo.jpeg" style="width:130px;height:auto;display:block;margin:0 auto 8px">
     <h2 style="font-family:'Tajawal',sans-serif;font-size:1.5rem;font-weight:900;color:#9B5DE5;margin:0">صحّح حروفك</h2>
   </div>
 
-  <div style="width:92%;max-width:340px;margin:18px auto 0;background:#fff;border-radius:18px;padding:20px 16px 22px;box-shadow:0 4px 22px rgba(0,0,0,.12)">
+  <div class="login-card-anim" style="width:92%;max-width:340px;margin:18px auto 0;background:#fff;border-radius:18px;padding:20px 16px 22px;box-shadow:0 4px 22px rgba(0,0,0,.12)">
 
     <!-- تبويبات الدخول / التسجيل -->
     <div style="display:flex;border:2px solid #e0d0f5;border-radius:10px;overflow:hidden;margin-bottom:18px">
@@ -676,6 +753,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
   <img class="logo-bg2" src="Logo.jpeg">
 </div>
 </div>
+  <div class="home-mascot-duo">
+    <img src="mascot/mascot_happy.png" alt="" class="home-mascot home-mascot-happy">
+    <img src="mascot/mascot_sad.png" alt="" class="home-mascot home-mascot-sad">
+  </div>
   <div class="home-title">صحّح حروفك</div>
   <div class="home-sub" id="homeGreeting">تعلَّم الحروف العربية بطريقة ممتعة!</div>
   <div class="word-swarm" id="wordSwarm"></div>
@@ -683,6 +764,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
   <button class="btn" onclick="showParentMsg()">نبدأ التعلم! ✏️</button>
   <button class="btn2" style="margin-top:14px;max-width:220px" onclick="stopAllAudio();nav('onboarding')">✏️ تغيير الاسم</button>
   <button class="btn2" style="margin-top:10px;max-width:220px" onclick="openChildren()">👧👦 الأطفال</button>
+  <button class="btn2" style="margin-top:10px;max-width:220px" onclick="stopAllAudio();openAccount()">👤 حسابي</button>
   <button class="btn2" style="margin-top:10px;max-width:220px" onclick="openParentReport()">📊 تقرير الأهل</button>
   <button class="btn2" style="margin-top:10px;max-width:220px;background:#fff0f0;color:#c73030;border:2px solid #ffcccc" onclick="logoutUser()">🚪 تسجيل الخروج</button>
   <div id="voiceStatus2" style="font-size:.78rem;color:var(--muted);text-align:center;font-weight:700;line-height:1.6;margin-top:8px;max-width:340px"></div>
@@ -708,6 +790,17 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
   <div class="parent-wrap">
     <h2 class="children-title">📊 تقرير الأهل</h2>
     <div id="parentReport" class="parent-report"></div>
+  </div>
+</div>
+
+<!-- شاشة حسابي -->
+<div id="account" class="screen">
+  <div class="topbar">
+    <button class="btn-back" onclick="stopAllAudio();nav('home')">← رجوع</button>
+  </div>
+  <div class="parent-wrap">
+    <h2 class="children-title">👤 حسابي</h2>
+    <div id="accountBody" class="parent-report"></div>
   </div>
 </div>
 
@@ -747,9 +840,9 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
       <button class="btn-back" title="تسجيل الخروج" onclick="logoutUser()" style="background:rgba(255,107,107,.25)">خروج ←</button>
     </div>
   </div>
-  <div class="section-label">الحروف المتصلة</div>
+  <div class="section-label">الحروف كاملة</div>
   <div class="lgrid" id="lgridConnecting"></div>
-  <div class="section-label">⚠️ حروف لا تتصل بما بعدها</div>
+  <div class="section-label">⚠️ تمرين إضافي: حروف لا تتصل بما بعدها</div>
   <div class="lgrid special" id="lgridSpecial"></div>
 </div>
 
@@ -789,6 +882,7 @@ firebase.initializeApp({
 });
 const auth = firebase.auth();
 const db = firebase.firestore();
+const functionsApi = firebase.functions();
 let CURRENT_UID = null;
 let _subscriptionUnsub = null; // إلغاء الاستماع السابق عند تبديل المستخدم
 
@@ -2693,6 +2787,81 @@ function logoutUser(){
   });
 }
 
+/* ── شاشة حسابي ── */
+function openAccount(){
+  buildAccountScreen();
+  nav('account');
+}
+function buildAccountScreen(){
+  const body = document.getElementById('accountBody');
+  if (!body) return;
+  const user = auth.currentUser;
+  const email = user ? user.email : '';
+  const subTxt = isSubscribed
+    ? '<span style="color:#2d8653;font-weight:800">مُفعَّل ✅</span>'
+    : '<span style="color:#c73030;font-weight:800">غير مُفعَّل</span>';
+  let childrenHTML = '';
+  if (CHILDREN.length){
+    childrenHTML = CHILDREN.map(ch=>{
+      const done = (ch.progress||[]).length;
+      return `<div class="child-meta" style="margin:4px 0">👧👦 ${ch.name||''} — أتقن ${done} من 28 حرفاً${ch.id===ACTIVE_CHILD_ID?' • يلعب الآن':''}</div>`;
+    }).join('');
+  } else {
+    childrenHTML = '<div class="child-meta">لا يوجد أطفال مُضافون بعد</div>';
+  }
+  body.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:var(--sh)">
+      <div style="font-weight:800;margin-bottom:6px">📧 البريد الإلكتروني</div>
+      <div style="color:var(--muted);font-weight:600">${email}</div>
+    </div>
+    <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:var(--sh)">
+      <div style="font-weight:800;margin-bottom:6px">👨‍👩‍👧‍👦 الأطفال</div>
+      ${childrenHTML}
+    </div>
+    <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:var(--sh)">
+      <div style="font-weight:800;margin-bottom:6px">💳 حالة الاشتراك</div>
+      <div>${subTxt}</div>
+    </div>
+  `;
+  const btnWrap = document.createElement('div');
+  btnWrap.style.cssText = 'display:flex;flex-direction:column;gap:10px;align-items:center;margin-top:6px';
+  btnWrap.innerHTML = `
+    ${isSubscribed ? `<button class="btn2" style="max-width:280px;width:100%" id="manageSubBtn" onclick="openBillingPortal()">💳 إدارة / إلغاء الاشتراك</button>` : ''}
+    <button class="btn2" style="max-width:280px;width:100%" onclick="changeMyPassword()">🔑 تغيير كلمة السر</button>
+    <button class="btn2" style="max-width:280px;width:100%;background:#fff0f0;color:#c73030;border:2px solid #ffcccc" onclick="deleteAccount()">🗑️ حذف الحساب نهائياً</button>
+  `;
+  body.appendChild(btnWrap);
+}
+/* ── فتح بوابة إدارة/إلغاء الاشتراك من Stripe ── */
+async function openBillingPortal(){
+  const btn = document.getElementById('manageSubBtn');
+  if (btn){ btn.disabled = true; btn.textContent = '⏳ جارٍ التحضير...'; }
+  try{
+    const call = functionsApi.httpsCallable('createPortalSession');
+    const res = await call();
+    const url = res.data && res.data.url;
+    if (!url) throw new Error('لم يصل رابط من الخادم');
+    const CapBrowser = window.Capacitor?.Plugins?.Browser;
+    if (window.Capacitor?.isNativePlatform() && CapBrowser) {
+      CapBrowser.open({ url });
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  }catch(err){
+    alert('تعذّر فتح صفحة إدارة الاشتراك: ' + (err.message||err));
+  }finally{
+    if (btn){ btn.disabled = false; btn.textContent = '💳 إدارة / إلغاء الاشتراك'; }
+  }
+}
+function changeMyPassword(){
+  const user = auth.currentUser;
+  if (!user || !user.email) return;
+  if (!confirm('سيتم إرسال رابط تغيير كلمة السر إلى بريدك: ' + user.email + '\nهل تريد المتابعة؟')) return;
+  auth.sendPasswordResetEmail(user.email)
+    .then(function(){ alert('✅ تم إرسال رابط تغيير كلمة السر إلى بريدك، تحقق من صندوق الوارد أو مجلد Spam'); })
+    .catch(function(err){ alert('تعذّر الإرسال: ' + err.message); });
+}
+
 /* ── حذف الحساب ── */
 function deleteAccount(){
   var user = auth.currentUser;
@@ -3115,8 +3284,8 @@ function runSentenceFlow(R){
     if (window._safeTimer){ clearTimeout(window._safeTimer); window._safeTimer = null; }
     if (!_btnShown){ _btnShown = true; if (nb) nb.classList.add('show'); }
   };
-  // ضمان إظهار الزر بعد 9 ث على أبعد تقدير
-  window._safeTimer = setTimeout(() => { showBtn(); }, 9000);
+  // ضمان إظهار الزر بعد 20 ث على أبعد تقدير (فقط كحماية من عطل صوتي، وليس ضمن المسار الطبيعي)
+  window._safeTimer = setTimeout(() => { showBtn(); }, 20000);
 
   if (!sentence){
     if (soundEnabled){
@@ -3224,7 +3393,7 @@ function nav(id){
   window.scrollTo(0,0);
   // إخفاء زر كتم الصوت العام في هذه الشاشات فقط (يبقى ظاهراً في بقية الشاشات)
   const gm = document.getElementById('globalMuteBtn');
-  const hideMuteBtnScreens = ['home', 'letters', 'levelSelect', 'subscription', 'parent', 'onboarding'];
+  const hideMuteBtnScreens = ['login', 'home', 'letters', 'levelSelect', 'subscription', 'parent', 'onboarding', 'game'];
   if (gm) gm.style.display = hideMuteBtnScreens.includes(id) ? 'none' : '';
   // إعادة بناء الشاشات الديناميكية كي يُحدَّث العداد والشارات
   if (id === 'home') buildHome();
@@ -3517,23 +3686,438 @@ function gameBack(){
   }
 }
 
+/* ══════════════════════════════════════════════════════════
+   WRITING STAGE — مرحلة اختبار الكتابة بعد انتهاء الجولات
+   الطفل يكتب شكل الحرف (ثم كلمات) بإصبعه/قلمه على لوح رسم،
+   والتقييم هندسي متسامح: تغطية الشكل + النقاط، وليس جمال الخط.
+   ══════════════════════════════════════════════════════════ */
+let WROUNDS = null;   // أسئلة الكتابة — null = المرحلة لم تُبنَ بعد
+let WRI = 0;          // مؤشر سؤال الكتابة الحالي
+let WTRIES = 0;       // محاولات السؤال الحالي (محاولتان قبل احتساب الخطأ)
+let _wStrokes = [];   // ضربات الرسم الحالية [[{x,y},...],...]
+let _wCanvas = null, _wCtx = null;
+
+/* أسئلة أشكال الحرف: التسمية التربوية + الشكل المستهدف مع بدائل للحروف غير المتصلة.
+   لكل سؤال نطابق ضد صيغتين: الغليف المضغوط + الصيغة الممدودة بالكشيدة (ـبـ) —
+   لأن الطفل يكتب الوصلات ممدودة طبيعياً وكلاهما صحيح. */
+const WRITE_FORM_QUESTIONS = [
+  {label:'فِي بِدَايَةِ الْكَلِمَة',                          pick:f=>f.ini||f.iso, kash:(ch,f)=> f.c? ch+'ـ' : ch},
+  {label:'فِي وَسَطِ الْكَلِمَة بَعْدَ حَرْفٍ مُتَّصِل',        pick:f=>f.med||f.fin||f.iso, kash:(ch,f)=> f.c? 'ـ'+ch+'ـ' : 'ـ'+ch},
+  {label:'فِي وَسَطِ الْكَلِمَة بَعْدَ حَرْفٍ غَيْرِ مُتَّصِل', pick:f=>f.ini||f.iso, kash:(ch,f)=> f.c? ch+'ـ' : ch},
+  {label:'فِي نِهَايَةِ الْكَلِمَة بَعْدَ حَرْفٍ مُتَّصِل',     pick:f=>f.fin||f.iso, kash:(ch,f)=> 'ـ'+ch},
+  {label:'فِي نِهَايَةِ الْكَلِمَة بَعْدَ حَرْفٍ غَيْرِ مُتَّصِل', pick:f=>f.iso, kash:(ch,f)=> ch},
+];
+
+function buildWritingRounds(){
+  const f = ARFORMS[CL.char] || {};
+  const rounds = [];
+  // 1) أشكال الحرف — الحروف غير المتصلة يكون لها شكلان فقط، فنحذف الأسئلة المكررة الشكل
+  const seen = new Set();
+  WRITE_FORM_QUESTIONS.forEach(q=>{
+    const cp = q.pick(f);
+    if (!cp) return;
+    const glyph = String.fromCodePoint(cp);
+    const kash  = q.kash(CL.char, f);
+    const dedupe = f.c === false; // غير متصل: لا نكرر نفس الشكل
+    if (dedupe && seen.has(kash)) return;
+    seen.add(kash);
+    // target = الصيغة الممدودة (أوضح للعرض في التلميح/الكشف)، variants = كل المقبول
+    rounds.push({kind:'glyph', label:q.label, target:kash, variants:[kash, glyph]});
+  });
+  // 2) خمس كلمات من كلمات الجولات (بدون تشكيل — الطفل يكتب الحروف فقط)
+  const wordSet = new Map();
+  (ROUNDS||[]).forEach(R=>{
+    if (R.letters && R.letters.length) wordSet.set(R.letters.join(''), R.letters);
+  });
+  shuffle([...wordSet.values()]).slice(0,5).forEach(ls=>{
+    rounds.push({kind:'word', target:ls.join(''), letters:ls});
+  });
+  return rounds;
+}
+
+function startWritingStage(){
+  WROUNDS = buildWritingRounds();
+  WRI = 0;
+  if (!WROUNDS.length){ showDone(); return; }
+  buildWriteRound();
+  window.scrollTo(0,0);
+}
+
+function buildWriteRound(){
+  answered = false;
+  WTRIES = 0;
+  _wStrokes = [];
+  const W = WROUNDS[WRI];
+  const body = document.getElementById('gbody');
+  body.innerHTML = '';
+
+  body.appendChild(mk('div','rbadge',`✍️ اِخْتِبَارُ الْكِتَابَة — ${WRI+1} مِنْ ${WROUNDS.length}`));
+
+  const qTxt = W.kind==='glyph'
+    ? `✍️ اُكْتُبْ شَكْلَ حَرْفِ <strong>${CL.name}</strong> ${W.label}`
+    : `✍️ اُكْتُبْ كَلِمَةَ <strong>${W.target}</strong>`;
+  body.appendChild(mk('div','tlabel',qTxt));
+
+  // لوح الرسم
+  const wrap = mk('div','write-board-wrap');
+  wrap.innerHTML = `
+    <div class="write-board">
+      <canvas id="wCanvas"></canvas>
+      <div class="write-hint-overlay" id="wHint"></div>
+      <div class="write-reveal-overlay" id="wReveal"></div>
+    </div>`;
+  body.appendChild(wrap);
+
+  // الأدوات
+  const tools = mk('div','write-tools');
+  tools.innerHTML = `
+    <button class="write-tool" onclick="wUndo()">↩️ تراجع</button>
+    <button class="write-tool" onclick="wClear()">🧽 مسح</button>
+    <button class="write-tool" onclick="wShowHint()">👁 ذكّرني بالشكل</button>
+  `;
+  body.appendChild(tools);
+
+  const check = mk('button','write-check','تحقّق ✓');
+  check.id = 'wCheck';
+  check.disabled = true;
+  check.onclick = ()=>evaluateWriteAnswer();
+  body.appendChild(check);
+
+  body.appendChild(mk('div','fb-mascot-wrap','<img id="fbMascot" class="fb-mascot" alt="">'));
+  body.appendChild(mk('div','fb',''));
+  const nb = mk('button','btn-next', WRI+1<WROUNDS.length ? 'التالي ←' : 'اعرض نتيجتي 🏆');
+  nb.onclick = nextWriteRound;
+  body.appendChild(nb);
+
+  initWriteCanvas();
+}
+
+function initWriteCanvas(){
+  _wCanvas = document.getElementById('wCanvas');
+  const board = _wCanvas.parentElement;
+  const dpr = Math.min(window.devicePixelRatio||1, 2);
+  const rect = board.getBoundingClientRect();
+  _wCanvas.width  = Math.round(rect.width  * dpr);
+  _wCanvas.height = Math.round(rect.height * dpr);
+  _wCtx = _wCanvas.getContext('2d');
+  _wCtx.scale(dpr, dpr);
+  _wCtx.lineCap = 'round'; _wCtx.lineJoin = 'round';
+  _wCtx.strokeStyle = '#1A1035';
+  _wCtx.lineWidth = Math.max(6, rect.width * 0.028);
+
+  let drawing = false, cur = null;
+  const pos = e => {
+    const r = _wCanvas.getBoundingClientRect();
+    return {x: e.clientX - r.left, y: e.clientY - r.top};
+  };
+  _wCanvas.addEventListener('pointerdown', e=>{
+    if (answered) return;
+    e.preventDefault();
+    _wCanvas.setPointerCapture(e.pointerId);
+    drawing = true; cur = [pos(e)];
+    _wStrokes.push(cur);
+  });
+  _wCanvas.addEventListener('pointermove', e=>{
+    if (!drawing || answered) return;
+    e.preventDefault();
+    const p = pos(e); cur.push(p);
+    const n = cur.length;
+    if (n>1){
+      _wCtx.beginPath();
+      _wCtx.moveTo(cur[n-2].x, cur[n-2].y);
+      _wCtx.lineTo(p.x, p.y);
+      _wCtx.stroke();
+    }
+  });
+  const up = e=>{
+    if (!drawing) return;
+    drawing = false;
+    // نقطة مفردة (نقرة) = نقطة الحرف: ارسمها كنقطة مرئية
+    if (cur && cur.length === 1){
+      _wCtx.beginPath();
+      _wCtx.arc(cur[0].x, cur[0].y, _wCtx.lineWidth*0.55, 0, Math.PI*2);
+      _wCtx.fillStyle = '#1A1035';
+      _wCtx.fill();
+    }
+    document.getElementById('wCheck').disabled = _wStrokes.length === 0;
+  };
+  _wCanvas.addEventListener('pointerup', up);
+  _wCanvas.addEventListener('pointercancel', up);
+}
+
+function wRedraw(){
+  const r = _wCanvas.getBoundingClientRect();
+  _wCtx.clearRect(0,0,r.width,r.height);
+  _wStrokes.forEach(s=>{
+    if (s.length === 1){
+      _wCtx.beginPath();
+      _wCtx.arc(s[0].x, s[0].y, _wCtx.lineWidth*0.55, 0, Math.PI*2);
+      _wCtx.fillStyle = '#1A1035'; _wCtx.fill();
+      return;
+    }
+    _wCtx.beginPath();
+    _wCtx.moveTo(s[0].x, s[0].y);
+    for (let i=1;i<s.length;i++) _wCtx.lineTo(s[i].x, s[i].y);
+    _wCtx.stroke();
+  });
+}
+function wUndo(){ if (answered) return; _wStrokes.pop(); wRedraw(); document.getElementById('wCheck').disabled = _wStrokes.length===0; }
+function wClear(){ if (answered) return; _wStrokes = []; wRedraw(); document.getElementById('wCheck').disabled = true; }
+/* حجم عرض متناسب مع طول النص (شكل مفرد كبير جداً، كلمة كاملة أصغر) */
+function _writeOverlayFontSize(text){
+  if (text.length<=1) return 9;
+  if (text.length<=3) return 6.5;
+  return 5;
+}
+function wShowHint(){
+  const W = WROUNDS[WRI];
+  const h = document.getElementById('wHint');
+  h.textContent = W.target;
+  h.style.fontSize = _writeOverlayFontSize(W.target) + 'rem';
+  h.classList.add('show');
+  setTimeout(()=>h.classList.remove('show'), 1600);
+}
+
+/* ── التقييم الهندسي المتسامح ── */
+function _maskFromCanvas(cnv, size){
+  // يقصّ محتوى الرسم إلى مربعه المحيط ثم يوحّده في شبكة size×size مع هامش
+  const ctx = cnv.getContext('2d');
+  const {width:w, height:h} = cnv;
+  const img = ctx.getImageData(0,0,w,h).data;
+  let minX=w, minY=h, maxX=-1, maxY=-1;
+  for (let y=0;y<h;y++) for (let x=0;x<w;x++){
+    if (img[(y*w+x)*4+3] > 40){
+      if (x<minX)minX=x; if (x>maxX)maxX=x;
+      if (y<minY)minY=y; if (y>maxY)maxY=y;
+    }
+  }
+  if (maxX<0) return null; // فارغ
+  const bw=maxX-minX+1, bh=maxY-minY+1;
+  const out = document.createElement('canvas');
+  out.width=size; out.height=size;
+  const octx = out.getContext('2d');
+  const m = size*0.08, box=size-2*m;
+  const sc = Math.min(box/bw, box/bh);
+  octx.drawImage(cnv, minX,minY,bw,bh, (size-bw*sc)/2, (size-bh*sc)/2, bw*sc, bh*sc);
+  const od = octx.getImageData(0,0,size,size).data;
+  const mask = new Uint8Array(size*size);
+  let count=0;
+  for (let i=0;i<size*size;i++){ if (od[i*4+3]>40){ mask[i]=1; count++; } }
+  return {mask, count, w:size, aspect:bw/bh};
+}
+
+function _renderTargetCanvas(text, dilate, fontFamily){
+  const cnv = document.createElement('canvas');
+  cnv.width=700; cnv.height=440;
+  const ctx = cnv.getContext('2d');
+  const fpx = text.length===1 ? 240 : Math.min(200, Math.floor(560/(text.length*0.62)));
+  ctx.font = `700 ${fpx}px ${fontFamily || "Amiri, 'Scheherazade New', serif"}`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.direction='rtl';
+  ctx.fillStyle='#000';
+  ctx.fillText(text, 350, 230);
+  if (dilate){
+    ctx.strokeStyle='#000';
+    ctx.lineWidth = fpx * (text.length===1 ? 0.30 : 0.22);
+    ctx.lineJoin='round';
+    ctx.strokeText(text, 350, 230);
+  }
+  return cnv;
+}
+/* خطوط القوالب: خط الطفل قد يشبه النسخ أو الخط المبسّط — نطابق ضد الاثنين ونأخذ الأفضل */
+const _WRITE_TPL_FONTS = ["Amiri, 'Scheherazade New', serif", "Tajawal, sans-serif"];
+
+/* بصمة النقاط للكلمة: هل توجد نقاط فوق الجسم؟ وهل توجد تحته؟ (منطق منيع أمام دمج الطفل للنقاط) */
+function _dotSignature(m){
+  const c = _components(m);
+  let above=false, below=false;
+  c.secs.forEach(s=>{ if (s.cy < c.main.cy) above=true; else below=true; });
+  return {above, below};
+}
+
+function _drawStrokesCanvas(widthMul){
+  const r = _wCanvas.getBoundingClientRect();
+  const cnv = document.createElement('canvas');
+  cnv.width=Math.round(r.width); cnv.height=Math.round(r.height);
+  const ctx = cnv.getContext('2d');
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.strokeStyle='#000'; ctx.fillStyle='#000';
+  const lw = Math.max(6, r.width*0.028) * widthMul;
+  ctx.lineWidth = lw;
+  _wStrokes.forEach(s=>{
+    if (s.length===1){ ctx.beginPath(); ctx.arc(s[0].x,s[0].y,lw*0.55,0,Math.PI*2); ctx.fill(); return; }
+    ctx.beginPath(); ctx.moveTo(s[0].x,s[0].y);
+    for (let i=1;i<s.length;i++) ctx.lineTo(s[i].x,s[i].y);
+    ctx.stroke();
+  });
+  return cnv;
+}
+
+function _components(m){
+  // مكوّنات متصلة: الأكبر = جسم الحرف/الكلمة.
+  // "النقطة" = مكوّن صغير في البعدين معاً — أما جزء حرف كتبه الطفل منفصلاً
+  // (عادة شائعة عند الأطفال) فيُعامل كجزء من الجسم ولا يُحتسب نقطة.
+  const {mask,w}=m, seen=new Uint8Array(w*w), comps=[];
+  for (let i=0;i<w*w;i++){
+    if (!mask[i]||seen[i]) continue;
+    const stack=[i]; seen[i]=1;
+    let area=0, sy=0, n=0, minX=w, maxX=0, minY=w, maxY=0;
+    while (stack.length){
+      const p=stack.pop(); area++;
+      const y=(p/w)|0, x=p%w; sy+=y; n++;
+      if (x<minX)minX=x; if (x>maxX)maxX=x;
+      if (y<minY)minY=y; if (y>maxY)maxY=y;
+      [[x+1,y],[x-1,y],[x,y+1],[x,y-1]].forEach(([nx,ny])=>{
+        if (nx<0||ny<0||nx>=w||ny>=w) return;
+        const q=ny*w+nx;
+        if (mask[q]&&!seen[q]){ seen[q]=1; stack.push(q); }
+      });
+    }
+    comps.push({area, cy:sy/n, bw:maxX-minX+1, bh:maxY-minY+1});
+  }
+  comps.sort((a,b)=>b.area-a.area);
+  const main=comps[0];
+  const dotMax = w*0.24; // النقطة صغيرة في العرض والارتفاع معاً
+  const secs=comps.slice(1).filter(c=>c.area>=8 && c.bw<=dotMax && c.bh<=dotMax);
+  return {main, secs};
+}
+
+function _overlap(a, bDil){
+  let hit=0;
+  for (let i=0;i<a.mask.length;i++) if (a.mask[i]&&bDil.mask[i]) hit++;
+  return a.count ? hit/a.count : 0;
+}
+
+function checkWriting(W){
+  const SIZE=200;
+  const drawn    = _maskFromCanvas(_drawStrokesCanvas(1),   SIZE);
+  // تمديد أكبر لضربات الطفل الرفيعة — الغليف المرجعي خط تقويمي سميك (calligraphic)،
+  // فحاجة تغطيته يتطلّب هامشاً واسعاً حول خط الطفل الرفيع وإلا سيُرفض كل شيء تقريباً.
+  const drawnDil = _maskFromCanvas(_drawStrokesCanvas(9),   SIZE);
+  if (!drawn || drawn.count<120) return {ok:false, reason:'empty'};
+
+  const isWord = W.kind==='word';
+  // نطابق ضد كل صيغة مقبولة (ممدودة بالكشيدة / غليف مضغوط) وكل خط، ونعتمد أفضل نتيجة
+  const fonts = isWord ? _WRITE_TPL_FONTS : [_WRITE_TPL_FONTS[0]];
+  const variants = W.variants && W.variants.length ? W.variants : [W.target];
+  let best = null;
+  variants.forEach(variant=>{
+    fonts.forEach(fam=>{
+      const tpl    = _maskFromCanvas(_renderTargetCanvas(variant,false,fam), SIZE);
+      const tplDil = _maskFromCanvas(_renderTargetCanvas(variant,true ,fam), SIZE);
+      if (!tpl) return;
+      const cov  = _overlap(tpl,   drawnDil); // كم من الشكل المستهدف غطّته الكتابة
+      const prec = _overlap(drawn, tplDil);   // كم من الكتابة داخل حدود الشكل
+      if (!best || cov+prec > best.cov+best.prec) best = {cov, prec, tpl};
+    });
+  });
+  if (!best) return {ok:true}; // تعذّر رسم القالب — لا نعاقب الطفل
+
+  const covMin  = isWord ? 0.60 : 0.50;
+  const precMin = isWord ? 0.52 : 0.45;
+  // تناسب الأبعاد: الكلمات أفقية ممتدة — نشدّد عليها أكثر من الحرف المفرد
+  const ar = drawn.aspect/best.tpl.aspect;
+  const aspectOk = isWord ? (ar>0.45 && ar<2.2) : (ar>0.33 && ar<3.0);
+  // كثافة الحبر: الخربشة المصمتة تملأ اللوح بحبر أضعاف الكتابة الحقيقية
+  const dens = drawn.count / best.tpl.count;
+  const densOk = dens <= 2.6 && dens >= 0.10;
+
+  let dotsOk = true, dotsMsg = false;
+  if (isWord){
+    // بصمة النقاط: نرفض فقط إذا رسم الطفل نقاطاً في جهةٍ لا نقاط فيها أصلاً.
+    // (النقطة المدموجة بالجسم — عادة أطفال شائعة — مسموحة ولا تُحتسب خطأً)
+    const ds = _dotSignature(drawn), ts = _dotSignature(best.tpl);
+    dotsOk = !(ds.above && !ts.above) && !(ds.below && !ts.below);
+    dotsMsg = !dotsOk;
+  } else {
+    const dc = _components(drawn), tc = _components(best.tpl);
+    const tplDots = tc.secs.length;
+    const drwDots = dc.secs.length;
+    if (tplDots===0){ dotsOk = drwDots<=1; }
+    else {
+      const tplAbove = tc.secs[0].cy < tc.main.cy;
+      const drwSame = dc.secs.filter(s=> (s.cy < dc.main.cy) === tplAbove).length;
+      dotsOk = drwSame>=1 && Math.abs(drwDots-tplDots)<=1;
+      dotsMsg = !dotsOk;
+    }
+  }
+  const shapeOk = best.cov>=covMin && best.prec>=precMin && aspectOk && densOk;
+  return {ok: shapeOk && dotsOk, reason: !shapeOk?'shape':(dotsMsg?'dots':'')};
+}
+
+async function evaluateWriteAnswer(){
+  if (answered) return;
+  const W = WROUNDS[WRI];
+  const res = checkWriting(W);
+
+  if (res.ok){
+    answered = true;
+    document.getElementById('wCheck').disabled = true;
+    score+=10; streak++; wrongStreak=0;
+    recordStat(true, (CL&&CL.char)||'');
+    updateRewardStats(true);
+    const msg = praiseText();
+    showFB(true, '🎉 ' + msg);
+    confetti();
+    document.querySelector('.btn-next').classList.add('show');
+    if (soundEnabled) await playPraiseAudio(msg);
+    checkBadges(()=>{});
+    return;
+  }
+
+  WTRIES++;
+  if (WTRIES < 2){
+    // محاولة أولى خاطئة: تشجيع دون خصم قلب، ونمسح اللوح ليحاول من جديد
+    const tip = res.reason==='dots' ? '💡 اِنْتَبِهْ لِلنِّقَاط — عَدَدُهَا وَمَكَانُهَا مُهِمّ!'
+              : res.reason==='empty' ? '💡 اُكْتُبْ فِي اللَّوْحِ أَوَّلاً'
+              : W.kind==='word' ? '💡 اُكْتُبِ الْحُرُوفَ مُتَّصِلَةً بِبَعْضِهَا وَبِحَجْمٍ كَبِيرٍ يَمْلَأُ اللَّوْح'
+              : '💡 اضْغَطْ "ذَكِّرْنِي بِالشَّكْلِ" وَتَأَمَّلْهُ ثُمَّ حَاوِلْ مِنْ جَدِيد';
+    const msg = encourageText();
+    showFB(false, `${msg}<br>${tip}`);
+    wClear();
+    if (soundEnabled) await playEncourageAudio(msg);
+    return;
+  }
+
+  // المحاولة الثانية خاطئة: خصم قلب + كشف الشكل الصحيح + متابعة
+  answered = true;
+  document.getElementById('wCheck').disabled = true;
+  lives=Math.max(0,lives-1); setLives(); streak=0; wrongStreak++;
+  recordStat(false, (CL&&CL.char)||'', W.target);
+  updateRewardStats(false);
+  const reveal = document.getElementById('wReveal');
+  reveal.textContent = W.target;
+  reveal.style.fontSize = _writeOverlayFontSize(W.target) + 'rem';
+  reveal.classList.add('show');
+  const msg = encourageText();
+  showFB(false, `${msg}<br>💡 هٰذَا هُوَ الشَّكْلُ الصَّحِيح — تَأَمَّلْهُ جَيِّداً`);
+  document.querySelector('.btn-next').classList.add('show');
+  if (soundEnabled) await playEncourageAudio(msg);
+}
+
+function nextWriteRound(){
+  WRI++;
+  if (WRI>=WROUNDS.length || lives===0){ showDone(); }
+  else { buildWriteRound(); window.scrollTo(0,0); }
+}
+
 /* ── START LETTER ── */
 function startConnectingLetter(L){ recordSession();
-  CL=L; CL.kind='connecting'; RI=0; score=0; lives=3; streak=0; wrongStreak=0; specialIdentifyMode=false;
+  CL=L; CL.kind='connecting'; RI=0; score=0; lives=3; streak=0; wrongStreak=0; specialIdentifyMode=false; WROUNDS=null; WRI=0;
   ROUNDS = buildRoundsForConnecting(L);
   nav('game');
   buildRound();
 }
 function startNonConnectingLetter(L){
   CURRENT_LEVEL=null;
-  CL=L; CL.kind='nonconnecting'; RI=0; score=0; lives=3; streak=0; wrongStreak=0; specialIdentifyMode=false;
+  CL=L; CL.kind='nonconnecting'; RI=0; score=0; lives=3; streak=0; wrongStreak=0; specialIdentifyMode=false; WROUNDS=null; WRI=0;
   ROUNDS = buildRoundsForNonConnecting(L);
   nav('game');
   buildRound();
 }
 function startSpecialIdentifyLetter(L){
   CURRENT_LEVEL=null;
-  CL=L; CL.kind='nonconnecting'; RI=0; score=0; lives=3; streak=0; wrongStreak=0; specialIdentifyMode=true;
+  CL=L; CL.kind='nonconnecting'; RI=0; score=0; lives=3; streak=0; wrongStreak=0; specialIdentifyMode=true; WROUNDS=null; WRI=0;
   ROUNDS = buildRoundsForSpecialIdentify(L);
   nav('game');
   buildRound();
@@ -3865,6 +4449,11 @@ function buildRound(){
   else if (R.kind==='detachcheck') buildDetachCheck(R,body);
   else if (R.kind==='specialIdentify') buildSpecialIdentify(R,body);
 
+  const _grid = body.querySelector('.igrid');
+  if (_grid){
+    _grid.classList.add('igrid-mascot-host');
+    _grid.insertAdjacentHTML('beforeend', '<div class="fb-mascot-wrap"><img id="fbMascot" class="fb-mascot" alt=""></div>');
+  }
   body.appendChild(mk('div','fb',''));
   const nb=mk('button','btn-next', RI+1<T?'التالي ←':'اعرض نتيجتي 🏆');
   nb.onclick=nextRound;
@@ -4065,7 +4654,9 @@ function nextRound(){
       while (window._currentAudio) {
         await new Promise(r => setTimeout(r, 100));
       }
-      showDone();
+      // بعد إتمام كل الجولات بنجاح تأتي مرحلة اختبار الكتابة، ثم النتيجة
+      if (lives > 0 && WROUNDS === null) startWritingStage();
+      else showDone();
     };
     waitAndShow();
   }
@@ -4074,14 +4665,19 @@ function nextRound(){
 
 /* ── DONE ── */
 function showDone(){
-  const tot=ROUNDS.length*10, pct=Math.round(score/tot*100);
-  document.getElementById('dstars').textContent=pct>=80?'⭐⭐⭐':pct>=50?'⭐⭐':'⭐';
+  const tot=(ROUNDS.length + (Array.isArray(WROUNDS)?WROUNDS.length:0))*10, pct=Math.round(score/tot*100);
+  const _starsTxt = pct>=80?'⭐⭐⭐':pct>=50?'⭐⭐':'⭐';
+  document.getElementById('dstars').innerHTML =
+    Array.from(_starsTxt).map((s,i)=>`<span style="--stdel:${(i*0.18).toFixed(2)}s">${s}</span>`).join('');
   document.getElementById('dscore').textContent=`نقاطك: ${score} من ${tot}`;
-  const titleTxt = pct>=80 ? g(`أَحْسَنْتَ يَا ${PROFILE.name}!`, `أَحْسَنْتِ يَا ${PROFILE.name}!`)
-                  : pct>=50 ? g(`جَيِّدٌ جِدّاً يَا ${PROFILE.name}!`, `جَيِّدَةٌ جِدّاً يَا ${PROFILE.name}!`)
+  const isPerfect = score===tot;
+  const titleTxt = isPerfect ? g(`أَحْسَنْتَ يَا ${PROFILE.name}!`, `أَحْسَنْتِ يَا ${PROFILE.name}!`)
+                  : pct>=50 ? g(`أَحْسَنْتَ يَا ${PROFILE.name}، وَلَكِنْ بَعْضُ الْحُرُوفِ بِحَاجَةٍ إِلَى إِعَادَة`, `أَحْسَنْتِ يَا ${PROFILE.name}، وَلَكِنْ بَعْضُ الْحُرُوفِ بِحَاجَةٍ إِلَى إِعَادَة`)
                   : g(`حَاوِلْ مَرَّةً أُخْرَى يَا ${PROFILE.name}!`, `حَاوِلِي مَرَّةً أُخْرَى يَا ${PROFILE.name}!`);
   document.getElementById('doneTitle').textContent = titleTxt;
-  document.getElementById('dmsg').textContent= g(`أَتْقَنْتَ حَرْف ${CL.name} 🎊`, `أَتْقَنْتِ حَرْف ${CL.name} 🎊`);
+  document.getElementById('dmsg').textContent = isPerfect
+    ? g(`أَتْقَنْتَ حَرْف ${CL.name} 🎊`, `أَتْقَنْتِ حَرْف ${CL.name} 🎊`)
+    : g(`اِقْتَرَبْتَ مِنْ إِتْقَانِ حَرْف ${CL.name} 💪`, `اِقْتَرَبْتِ مِنْ إِتْقَانِ حَرْف ${CL.name} 💪`);
   let _newLetterMastered = false;
   if(pct>=50){
     _newLetterMastered = !completedLetters.has(CL.char);
@@ -4089,16 +4685,16 @@ function showDone(){
   }
   nav('done');
   if(pct>=80) confetti(80);
-  // صوت إتقان الحرف
+  // صوت إتقان الحرف — يُشغَّل فقط عند الإتقان الكامل، لأن الملف الصوتي نفسه يقول "أتقنتَ الحرف"
   let _masteryAudio = Promise.resolve();
-  if (pct>=50 && soundEnabled) {
+  if (isPerfect && soundEnabled) {
     const isF = PROFILE.gender === 'female';
     _masteryAudio = playStaticMP3(isF ? 'audio/mastery/mastery_f.mp3' : 'audio/mastery/mastery_m.mp3').catch(()=>{});
   }
   if (_newLetterMastered) {
     const total = CONNECTING_LETTERS.length + NONCONNECTING_LETTERS.length;
     _masteryAudio.then(() => {
-      setTimeout(() => celebrateLetterMastery(completedLetters.size, total), 400);
+      setTimeout(() => celebrateLetterMastery(completedLetters.size, total, isPerfect), 400);
     });
   }
 }
@@ -4112,7 +4708,16 @@ function playAgain(){
 function mk(tag,cls,txt=''){ const e=document.createElement(tag); e.className=cls; if(txt) e.innerHTML=txt; return e; }
 function shuffle(a){ return [...a].sort(()=>Math.random()-.5); }
 function setLives(){ document.getElementById('lives').textContent='❤️'.repeat(lives)+'🖤'.repeat(3-lives); }
-function showFB(ok,msg){ const f=document.querySelector('.fb'); f.innerHTML=msg; f.className='fb show '+(ok?'ok':'err'); }
+function showFB(ok,msg){
+  const f=document.querySelector('.fb'); f.innerHTML=msg; f.className='fb show '+(ok?'ok':'err');
+  const m=document.getElementById('fbMascot');
+  if (m){
+    m.src = ok ? 'mascot/mascot_happy.png' : 'mascot/mascot_sad.png';
+    m.alt = ok ? 'أحسنت!' : 'حاول مرة أخرى';
+    m.className = 'fb-mascot ' + (ok ? 'show-ok' : 'show-err');
+    void m.offsetWidth; // إعادة تشغيل الحركة حتى لو تكرر نفس الوضع
+  }
+}
 function confetti(n=35){
   const cs=['#FFD93D','#52C97A','#5BC8F5','#FF6B6B','#9B5DE5','#FF9F43'];
   for(let i=0;i<n;i++){
@@ -4485,11 +5090,13 @@ function closeBadgePopup() {
 }
 
 /* ── شارة التقدم العددي (X من 28) — تظهر مع كل حرف جديد يُتقنه الطفل ── */
-function showProgressBadgePopup(count, total) {
+function showProgressBadgePopup(count, total, isPerfect) {
   const pop = document.getElementById('progressBadgePopup');
   if (!pop) return;
   document.getElementById('pbCount').textContent = count;
-  document.getElementById('pbMsg').textContent = `🎉 أنجزتَ ${count} من ${total} حرفاً! 🎉`;
+  document.getElementById('pbMsg').textContent = isPerfect
+    ? `🎉 أنجزتَ ${count} من ${total} حرفاً! 🎉`
+    : `🌟 اقتربتَ من إتقان هذا الحرف — أنت الآن عند ${count} من ${total}! 🌟`;
   const r = 52, circ = 2 * Math.PI * r;
   const fill = document.getElementById('pbRingFill');
   if (fill) {
@@ -4502,7 +5109,7 @@ function showProgressBadgePopup(count, total) {
   } else {
     pop.classList.add('show');
   }
-  if (soundEnabled) {
+  if (soundEnabled && isPerfect) {
     const isF = PROFILE.gender === 'female';
     playStaticMP3(`audio/progress/progress_${count}_${isF ? 'f' : 'm'}.mp3`).catch(()=>{});
   }
@@ -4517,8 +5124,8 @@ function closeProgressBadgePopup() {
 }
 
 /* ── احتفال إتقان حرف جديد: تكرار تصميم الشارات الحالية + شارة العدد (X من 28) ── */
-function celebrateLetterMastery(count, total) {
-  showProgressBadgePopup(count, total);
+function celebrateLetterMastery(count, total, isPerfect) {
+  showProgressBadgePopup(count, total, isPerfect);
 }
 
 /* ── شاشة البطل الكبيرة ── */
@@ -4904,6 +5511,29 @@ async function silentSubscriptionCheck(){
 document.addEventListener('visibilitychange', () => { if (!document.hidden) silentSubscriptionCheck(); });
 if (window.Capacitor?.isNativePlatform() && window.Capacitor.Plugins?.App) {
   window.Capacitor.Plugins.App.addListener('resume', silentSubscriptionCheck);
+  window.Capacitor.Plugins.App.addListener('backButton', handleHardwareBack);
+}
+/* ── زر الرجوع الفعلي في الهاتف: يتصرف مثل أزرار "رجوع" داخل التطبيق ── */
+const BACK_TARGETS = {
+  onboarding: 'login',
+  children: 'home', parent: 'home', account: 'home',
+  levelSelect: 'letters', letters: 'home',
+  done: 'letters', subscription: 'letters'
+};
+function handleHardwareBack(){
+  const overlay = document.getElementById('parentMsgOverlay');
+  if (overlay && overlay.style.display === 'flex'){ pmClose(); return; }
+  const popup = document.getElementById('progressBadgePopup');
+  if (popup && popup.classList.contains('show')){ closeProgressBadgePopup(); return; }
+  const champ = document.getElementById('championScreen');
+  if (champ && champ.classList.contains('show')){ closeChampionScreen(); return; }
+
+  const active = document.querySelector('.screen.active');
+  const id = active ? active.id : 'home';
+  if (id === 'game'){ gameBack(); return; }
+  const target = BACK_TARGETS[id];
+  if (target){ stopAllAudio(); nav(target); }
+  else { window.Capacitor.Plugins.App.exitApp(); }
 }
 /* عند العودة من الدفع — لا نُفعّل الاشتراك محلياً أبداً، فقط نعيد قراءة الحالة الحقيقية
    من Firestore (التي يكتبها الـ Webhook بعد تأكيد الدفع). قد يستغرق ثوانٍ قليلة. */
