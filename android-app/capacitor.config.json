@@ -1,5 +1,9 @@
 {
   "appId": "com.horofi.app",
   "appName": "صحّح حروفك",
-  "webDir": "www"
+  "webDir": "www",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#FFF8EC"
+  }
 }
