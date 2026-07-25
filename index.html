@@ -15,6 +15,14 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Amiri:wght@700&display=swap" rel="stylesheet">
 <style>
+/* ═══════════════════════════════════════════════════════════════
+   ★ يوم الإطلاق: احذف الكلمة  prelaunch  من وسم <body> في الأسفل.
+     عندها تختفي أزرار "قريباً" تلقائياً وتظهر أزرار التحميل الفعّالة.
+     لا حاجة لأي تعديل آخر في الصفحة.
+   ═══════════════════════════════════════════════════════════════ */
+body.prelaunch .is-live{display:none!important}
+body:not(.prelaunch) .is-soon{display:none!important}
+
 /* ═══════ رموز التصميم ═══════ */
 :root{
   /* ألوان — مطابقة لهوية التطبيق */
@@ -187,6 +195,26 @@ section{padding-block:var(--s24)}
   font-weight:700;
 }
 
+/* ═══════ حالة ما قبل الإطلاق ═══════ */
+.btn-soon{
+  background:var(--surface);color:var(--purple-d);
+  border-color:var(--purple-ink);cursor:default;
+}
+.btn-soon:hover{transform:none}
+/* لون صلب مكافئ للأبيض الشفاف 14% فوق --purple-d — ليقيسه فاحص التباين بدقة */
+.cta-final .btn-soon{background:#8158BF;color:#fff;border-color:rgba(255,255,255,.6)}
+.soon-badge{
+  display:inline-flex;align-items:center;gap:var(--s2);
+  background:var(--sun);color:#4A3B00;
+  padding:var(--s2) var(--s4);border-radius:999px;
+  font-size:var(--fs-sm);font-weight:800;
+}
+.soon-line{
+  font-size:var(--fs-sm);color:var(--muted);font-weight:700;
+  margin-top:var(--s3);
+}
+.cta-final .soon-line{color:rgba(255,255,255,.9)}
+
 /* ═══════ الأسئلة ═══════ */
 .faq{max-width:760px;margin-inline:auto}
 .faq h2{text-align:center;margin-bottom:var(--s12)}
@@ -226,7 +254,7 @@ footer{padding-block:var(--s12);border-top:1px solid var(--border);background:va
 }
 </style>
 </head>
-<body>
+<body class="prelaunch">
 
 <nav class="nav">
   <div class="wrap">
@@ -241,7 +269,8 @@ footer{padding-block:var(--s12);border-top:1px solid var(--border);background:va
       <a href="#price">الاشتراك</a>
       <a href="#faq">أسئلة</a>
     </div>
-    <a class="btn btn-primary" href="#get">حمّل التطبيق</a>
+    <a class="btn btn-primary is-live" href="#get">حمّل التطبيق</a>
+    <a class="btn btn-ghost is-soon" href="#get">قريباً</a>
   </div>
 </nav>
 
@@ -249,15 +278,18 @@ footer{padding-block:var(--s12);border-top:1px solid var(--border);background:va
 <section class="hero">
   <div class="wrap hero-grid">
     <div>
-      <span class="hero-eyebrow">تطبيق تعليمي للأطفال · بدون إعلانات</span>
+      <span class="hero-eyebrow is-live">تطبيق تعليمي للأطفال · بدون إعلانات</span>
+      <span class="soon-badge is-soon" style="margin-bottom:var(--s6)">🚀 يُطلق قريباً على Google Play</span>
       <h1>طفلك يقرأ الحروف… لكن هل يعرف <span class="hl">شكلها في كل موضع؟</span></h1>
       <p class="hero-lead">
         الحرف العربي يتغيّر شكله في بداية الكلمة ووسطها ونهايتها. "صحّح حروفك"
         يدرّب طفلك على هذا تحديداً — بالصوت والصورة، حرفاً بعد حرف.
       </p>
       <div class="hero-cta">
-        <a class="btn btn-primary" href="#get">حمّل من Google Play</a>
-        <a class="btn btn-ghost" href="#shots">شاهد التطبيق</a>
+        <a class="btn btn-primary is-live" href="https://play.google.com/store/apps/details?id=com.horofi.app"
+           target="_blank" rel="noopener">حمّل من Google Play</a>
+        <a class="btn btn-primary is-soon" href="#shots">شاهد التطبيق</a>
+        <a class="btn btn-ghost is-live" href="#shots">شاهد التطبيق</a>
       </div>
       <p class="hero-note">28 حرفاً · 3 مستويات · نطق احترافي · 4 حروف مجانية للتجربة</p>
     </div>
@@ -409,7 +441,8 @@ footer{padding-block:var(--s12);border-top:1px solid var(--border);background:va
         <li><span class="tick">✓</span><span>تقرير تقدّم مفصّل للأهل</span></li>
         <li><span class="tick">✓</span><span>إلغاء في أي وقت — تبقى مشتركاً حتى نهاية الشهر المدفوع</span></li>
       </ul>
-      <a class="btn btn-primary" href="#get" style="width:100%">ابدأ الآن</a>
+      <a class="btn btn-primary is-live" href="#get" style="width:100%">ابدأ الآن</a>
+      <span class="btn btn-soon is-soon" style="width:100%">متاح عند الإطلاق</span>
       <p class="free-note">جرّب 4 حروف كاملة مجاناً قبل أي اشتراك</p>
     </div>
   </div>
@@ -468,10 +501,17 @@ footer{padding-block:var(--s12);border-top:1px solid var(--border);background:va
 <!-- الخاتمة -->
 <section class="cta-final" id="get">
   <div class="wrap">
-    <h2>ابدأ مع طفلك اليوم</h2>
-    <p>حمّل التطبيق وجرّب أربعة حروف كاملة مجاناً</p>
-    <a class="btn btn-primary" href="https://play.google.com/store/apps/details?id=com.horofi.app"
+    <h2 class="is-live">ابدأ مع طفلك اليوم</h2>
+    <p class="is-live">حمّل التطبيق وجرّب أربعة حروف كاملة مجاناً</p>
+    <a class="btn btn-primary is-live" href="https://play.google.com/store/apps/details?id=com.horofi.app"
        target="_blank" rel="noopener">حمّل من Google Play</a>
+
+    <h2 class="is-soon">التطبيق في مراحل الاختبار الأخيرة</h2>
+    <p class="is-soon">
+      نضع اللمسات النهائية بعد ملاحظات مجموعة المختبرين، ثم يُطلق على Google Play.
+    </p>
+    <span class="btn btn-soon is-soon">🚀 قريباً على Google Play</span>
+    <p class="soon-line is-soon">تابعنا لتصلك رسالة عند الإطلاق</p>
   </div>
 </section>
 
