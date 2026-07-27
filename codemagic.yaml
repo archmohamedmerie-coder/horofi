@@ -1,0 +1,25 @@
+workflows:
+  ios-simulator-build:
+    name: iOS Simulator Build (بلا توقيع — للتأكد أن المشروع يُبنى بنجاح فقط)
+    max_build_duration: 60
+    working_directory: android-app
+    environment:
+      node: 20
+      xcode: latest
+    scripts:
+      - name: تثبيت حزم npm
+        script: npm install
+      - name: نسخ آخر نسخة من الملف الرئيسي إلى www
+        script: cp ../horofi-v11-9-29.html www/index.html
+      - name: مزامنة Capacitor مع مشروع iOS
+        script: npx cap sync ios
+      - name: تثبيت CocoaPods
+        script: cd ios/App && pod install
+      - name: بناء المشروع لمحاكي iOS (بلا توقيع)
+        script: |
+          xcodebuild build \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator'
