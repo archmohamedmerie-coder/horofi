@@ -6,6 +6,13 @@ workflows:
     integrations:
       app_store_connect: Codemagic
     environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.horofi.app
+        certificates:
+          - Horofi_Dist_Cert
+        provisioning_profiles:
+          - Horofi_AppStore_Profile
       vars:
         BUNDLE_ID: com.horofi.app
       node: 20
@@ -20,11 +27,9 @@ workflows:
         script: npx cap sync ios
       - name: تثبيت CocoaPods
         script: cd ios/App && pod install
-      - name: جلب شهادة التوزيع وملف التوقيع (تُنشأ تلقائياً إن لم تكن موجودة)
-        script: app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
-      - name: تهيئة سلسلة المفاتيح (Keychain) للشهادة
+      - name: تهيئة سلسلة المفاتيح (Keychain) للشهادة المرفوعة يدوياً
         script: keychain initialize
-      - name: تطبيق إعدادات التوقيع على مشروع Xcode
+      - name: تطبيق الشهادة وملف التوقيع المخزَّنَين على مشروع Xcode
         script: xcode-project use-profiles
       - name: بناء وتصدير IPA موقَّع
         script: |
