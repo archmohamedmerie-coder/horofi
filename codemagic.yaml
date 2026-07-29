@@ -1,4 +1,41 @@
 workflows:
+  ios-testflight:
+    name: iOS TestFlight Build (موقَّع — يُرفع تلقائياً لـTestFlight)
+    max_build_duration: 60
+    working_directory: android-app
+    integrations:
+      app_store_connect: Codemagic
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.horofi.app
+      node: 20
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: تثبيت حزم npm
+        script: npm install
+      - name: نسخ آخر نسخة من الملف الرئيسي إلى www
+        script: cp ../horofi-v11-9-29.html www/index.html
+      - name: مزامنة Capacitor مع مشروع iOS
+        script: npx cap sync ios
+      - name: جلب شهادة التوزيع وملف التوقيع تلقائياً من App Store Connect
+        script: xcode-project use-profiles
+      - name: تثبيت CocoaPods
+        script: cd ios/App && pod install
+      - name: بناء وتصدير IPA موقَّع
+        script: |
+          xcode-project build-ipa \
+            --workspace ios/App/App.xcworkspace \
+            --scheme App
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+
   ios-simulator-build:
     name: iOS Simulator Build (بلا توقيع — للتأكد أن المشروع يُبنى بنجاح فقط)
     max_build_duration: 60
