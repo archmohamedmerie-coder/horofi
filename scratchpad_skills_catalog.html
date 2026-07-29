@@ -1,0 +1,200 @@
+<title>كتالوج مهارات Claude — صحّح حروفك</title>
+<style>
+  :root{
+    --bg:#faf7f2; --panel:#ffffff; --ink:#2a2438; --ink-soft:#6b6478;
+    --line:#e6e0d8; --accent:#7c4ddc; --accent-ink:#ffffff; --accent-soft:#efe7fb;
+    --good:#2d8653; --good-soft:#e4f4ea; --warn:#c2701b; --warn-soft:#fbeddc;
+    --danger:#c23b3b; --danger-soft:#fbe6e6; --code-bg:#f1ece2;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#171320; --panel:#211c30; --ink:#f1ecfb; --ink-soft:#a89ec2;
+      --line:#352c48; --accent:#a980f0; --accent-ink:#1a1428; --accent-soft:#332a4a;
+      --good:#5fd394; --good-soft:#1c3327; --warn:#e0a355; --warn-soft:#3a2c17;
+      --danger:#f0807e; --danger-soft:#3a2020; --code-bg:#2a2438; }
+  }
+  :root[data-theme="dark"]{ --bg:#171320; --panel:#211c30; --ink:#f1ecfb; --ink-soft:#a89ec2;
+    --line:#352c48; --accent:#a980f0; --accent-ink:#1a1428; --accent-soft:#332a4a;
+    --good:#5fd394; --good-soft:#1c3327; --warn:#e0a355; --warn-soft:#3a2c17;
+    --danger:#f0807e; --danger-soft:#3a2020; --code-bg:#2a2438; }
+  :root[data-theme="light"]{ --bg:#faf7f2; --panel:#ffffff; --ink:#2a2438; --ink-soft:#6b6478;
+    --line:#e6e0d8; --accent:#7c4ddc; --accent-ink:#ffffff; --accent-soft:#efe7fb;
+    --good:#2d8653; --good-soft:#e4f4ea; --warn:#c2701b; --warn-soft:#fbeddc;
+    --danger:#c23b3b; --danger-soft:#fbe6e6; --code-bg:#f1ece2; }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink); direction:rtl;
+    font-family:Tahoma,'Segoe UI',Arial,sans-serif; line-height:1.6;
+  }
+  .wrap{ max-width:1180px; margin:0 auto; padding:32px 24px 80px; }
+  header{ margin-bottom:28px; }
+  h1{ font-size:1.7rem; margin:0 0 8px; text-wrap:balance; }
+  .lead{ color:var(--ink-soft); font-size:1rem; max-width:70ch; }
+  .kept{
+    margin-top:14px; background:var(--accent-soft); border:1px solid var(--accent);
+    border-radius:12px; padding:12px 16px; font-size:.9rem; color:var(--ink);
+  }
+  .kept b{ color:var(--accent); }
+
+  nav.toc{ display:flex; flex-wrap:wrap; gap:8px; margin:20px 0 36px; }
+  nav.toc a{
+    font-size:.85rem; padding:6px 14px; border-radius:999px; border:1px solid var(--line);
+    color:var(--ink-soft); text-decoration:none; background:var(--panel);
+  }
+  nav.toc a:hover{ border-color:var(--accent); color:var(--accent); }
+
+  section{ margin-bottom:44px; }
+  h2{ font-size:1.25rem; display:flex; align-items:center; gap:10px; margin:0 0 4px; }
+  .h2-num{
+    display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px;
+    border-radius:8px; background:var(--accent); color:var(--accent-ink); font-size:.9rem; font-weight:800;
+    flex-shrink:0;
+  }
+  .h2-note{ color:var(--ink-soft); font-size:.88rem; margin:0 0 16px; }
+
+  .tbl-scroll{ overflow-x:auto; border:1px solid var(--line); border-radius:14px; background:var(--panel); }
+  table{ width:100%; border-collapse:collapse; font-size:.88rem; min-width:640px; }
+  thead th{
+    text-align:right; padding:12px 14px; background:var(--code-bg); color:var(--ink-soft);
+    font-weight:700; font-size:.78rem; letter-spacing:.02em; white-space:nowrap; position:sticky; top:0;
+  }
+  tbody td{ padding:12px 14px; border-top:1px solid var(--line); vertical-align:top; }
+  tbody tr:hover{ background:var(--accent-soft); }
+  .name{ font-weight:700; white-space:nowrap; }
+  .name code{ background:var(--code-bg); padding:2px 7px; border-radius:6px; font-size:.85em; }
+  .why{ color:var(--ink-soft); }
+  a.lnk{ color:var(--accent); text-decoration:none; font-size:.82em; }
+  a.lnk:hover{ text-decoration:underline; }
+
+  .pill{ display:inline-block; font-size:.72rem; font-weight:700; padding:2px 9px; border-radius:999px; white-space:nowrap; }
+  .pill.official{ background:var(--good-soft); color:var(--good); }
+  .pill.community{ background:var(--warn-soft); color:var(--warn); }
+  .pill.caution{ background:var(--danger-soft); color:var(--danger); }
+
+  .caveats{ display:flex; flex-direction:column; gap:10px; margin-top:16px; }
+  .caveat{
+    background:var(--warn-soft); border-right:3px solid var(--warn); border-radius:8px;
+    padding:10px 14px; font-size:.85rem;
+  }
+  .caveat b{ color:var(--warn); }
+
+  .irrelevant{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px 20px; }
+  .irrelevant ul{ margin:0; padding-inline-start:20px; columns:2; column-gap:32px; }
+  @media (max-width:700px){ .irrelevant ul{ columns:1; } }
+  .irrelevant li{ font-size:.85rem; color:var(--ink-soft); margin-bottom:8px; break-inside:avoid; }
+  .irrelevant li b{ color:var(--ink); }
+
+  footer{ color:var(--ink-soft); font-size:.82rem; text-align:center; margin-top:60px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>كتالوج مهارات Claude Code — لصحّح حروفك ولمشاريع مستقبلية</h1>
+    <p class="lead">نتيجة بحث في دليل officialskills.sh (651 مهارة رسمية) وعدة مجموعات مجتمعية، لتحديد ما قد يفيد فعلياً — بلا أي تثبيت أو تنفيذ، قراءة ومراجعة فقط.</p>
+    <div class="kept">
+      <b>مهارات محسومة مسبقاً ومحفوظة في الذاكرة الدائمة</b> (غير مكرَّرة هنا):
+      <code>firebase-security-rules-auditor</code>، <code>stripe-best-practices</code>، <code>trailofbits/firebase-apk-scanner</code>، <code>trailofbits/differential-review</code>، <code>testmu-ai/espresso-skill</code>.
+    </div>
+  </header>
+
+  <nav class="toc">
+    <a href="#s1">① رسمية لصالح Horofi</a>
+    <a href="#s2">② رسمية لمشاريع مستقبلية</a>
+    <a href="#s3">③ مجتمعية (غير رسمية)</a>
+    <a href="#s4">④ غير ذات صلة</a>
+  </nav>
+
+  <section id="s1">
+    <h2><span class="h2-num">1</span> مهارات رسمية إضافية مفيدة لـ Horofi تحديداً</h2>
+    <p class="h2-note">من فرق الشركات نفسها (Firebase، Sentry، OpenAI، Trail of Bits...) — أعلى درجة ثقة.</p>
+    <div class="tbl-scroll">
+      <table>
+        <thead><tr><th>المهارة</th><th>الجهة</th><th>ماذا تفعل</th><th>لماذا تفيد Horofi</th></tr></thead>
+        <tbody>
+          <tr><td class="name"><code>firebase-hosting-basics</code><br><a class="lnk" href="https://officialskills.sh/firebase/skills/firebase-hosting-basics" target="_blank">officialskills.sh ↗</a></td><td>Firebase</td><td>نشر مواقع/تطبيقات ثابتة على Firebase Hosting مع SSL وredirects</td><td class="why">المشروع يملك <code>firebase.json</code> فعلياً — مرجع سريع لضبط الاستضافة</td></tr>
+          <tr><td class="name"><code>firebase-firestore-standard</code><br><a class="lnk" href="https://officialskills.sh/firebase/skills/firebase-firestore-standard" target="_blank">officialskills.sh ↗</a></td><td>Firebase</td><td>دليل كامل لـFirestore: التزويد، قواعد الأمان، SDK، الفهرسة</td><td class="why">المشروع يستخدم Firestore فعلياً (<code>firestore.rules</code> موجود) — يكمّل مهارة تدقيق القواعد المحفوظة مسبقاً</td></tr>
+          <tr><td class="name"><code>firebase-auth-basics</code><br><a class="lnk" href="https://officialskills.sh/firebase/skills/firebase-auth-basics" target="_blank">officialskills.sh ↗</a></td><td>Firebase</td><td>إعداد طرق تسجيل الدخول المتعددة وإدارة الـtokens</td><td class="why">الكود يستخدم Firebase Auth فعلياً — مفيد عند توسيع منطق تسجيل الدخول</td></tr>
+          <tr><td class="name"><code>sentry-android-sdk</code><br><a class="lnk" href="https://officialskills.sh/getsentry/skills/sentry-android-sdk" target="_blank">officialskills.sh ↗</a></td><td>Sentry</td><td>مراقبة أخطاء أندرويد: crashes، ANRs، tracing، profiling</td><td class="why">التطبيق يحتوي كوداً أصلياً (<code>HandwritingPlugin.java</code> + ML Kit) — نقطة فشل عالية الخطورة لا تظهر في Play Console</td></tr>
+          <tr><td class="name"><code>sentry-cocoa-sdk</code><br><a class="lnk" href="https://officialskills.sh/getsentry/skills/sentry-cocoa-sdk" target="_blank">officialskills.sh ↗</a></td><td>Sentry</td><td>إعداد Sentry لـiOS/macOS/watchOS</td><td class="why">مفيدة عند نضج بناء iOS عبر Codemagic — مراقبة أخطاء إنتاج App Store</td></tr>
+          <tr><td class="name"><code>sentry-sdk-setup</code><br><a class="lnk" href="https://officialskills.sh/getsentry/skills/sentry-sdk-setup" target="_blank">officialskills.sh ↗</a></td><td>Sentry</td><td>يكتشف المنصة تلقائياً ويحمّل مهارة SDK المناسبة</td><td class="why">نقطة دخول موحّدة بدل الاختيار اليدوي بين المنصات</td></tr>
+          <tr><td class="name"><code>security-best-practices</code><br><a class="lnk" href="https://officialskills.sh/openai/skills/security-best-practices" target="_blank">officialskills.sh ↗</a></td><td>OpenAI</td><td>مراجعة أمنية لكود Python/JS-TS/Go حسب OWASP</td><td class="why">Cloud Functions تحمل مفاتيح Stripe السرية — مراجعة مباشرة قبل الانتقال لوضع Live</td></tr>
+          <tr><td class="name"><code>security-threat-model</code><br><a class="lnk" href="https://officialskills.sh/openai/skills/security-threat-model" target="_blank">officialskills.sh ↗</a></td><td>OpenAI</td><td>يبني نموذج تهديدات موثّق (حدود الثقة، نقاط الدخول، مسارات الاستغلال)</td><td class="why">تطبيق أطفال + مدفوعات + Firebase = سطح هجوم يستحق نمذجة قبل الإطلاق العام</td></tr>
+          <tr><td class="name"><code>insecure-defaults</code><br><a class="lnk" href="https://officialskills.sh/trailofbits/skills/insecure-defaults" target="_blank">officialskills.sh ↗</a></td><td>Trail of Bits</td><td>يكشف حالات fail-open: مفاتيح مضمّنة، تشفير ضعيف، صلاحيات متساهلة</td><td class="why">فحص مباشر لخطر تسريب مفاتيح Stripe/Firebase عن طريق الخطأ في ملف HTML الواحد الضخم</td></tr>
+          <tr><td class="name"><code>appium-skill</code><br><a class="lnk" href="https://officialskills.sh/testmu-ai/skills/appium-skill" target="_blank">officialskills.sh ↗</a></td><td>TestMu AI</td><td>يولّد اختبارات Appium لأندرويد وiOS (Java/Python/JS)</td><td class="why">يكمّل مهارة Espresso المحفوظة (أندرويد فقط) بتغطية iOS لاحقاً</td></tr>
+          <tr><td class="name"><code>performance</code><br><a class="lnk" href="https://officialskills.sh/addyosmani/skills/performance" target="_blank">officialskills.sh ↗</a></td><td>Addy Osmani</td><td>تدقيق أداء بمقاييس Lighthouse + إصلاحات جاهزة للصق</td><td class="why">التطبيق كله واجهة ويب واحدة داخل WebView — الأداء يؤثر مباشرة على تجربة أطفال على أجهزة متوسطة</td></tr>
+          <tr><td class="name"><code>accessibility</code><br><a class="lnk" href="https://officialskills.sh/addyosmani/skills/accessibility" target="_blank">officialskills.sh ↗</a></td><td>Addy Osmani</td><td>تدقيق WCAG 2.2 (تباين، تنقل بلوحة مفاتيح، تسمية حقول)</td><td class="why">تطبيق تعليم حروف لأطفال — إتاحة الوصول قيمة حقيقية هنا لا شكلية</td></tr>
+          <tr><td class="name"><code>core-web-vitals</code><br><a class="lnk" href="https://officialskills.sh/addyosmani/skills/core-web-vitals" target="_blank">officialskills.sh ↗</a></td><td>Addy Osmani</td><td>يشخّص ويصلح LCP/INP/CLS</td><td class="why">يعالج استجابة اللمس والقفزات البصرية — مهم لواجهة كتابة/رسم تفاعلية</td></tr>
+          <tr><td class="name"><code>gif-sticker-maker</code><br><a class="lnk" href="https://officialskills.sh/MiniMax-AI/skills/gif-sticker-maker" target="_blank">officialskills.sh ↗</a></td><td>MiniMax</td><td>يحوّل صورة إلى 4 ملصقات GIF متحركة</td><td class="why">فائدة ثانوية: توليد ملصقات مكافأة متحركة لنظام الشارات — يتطلب API خارجياً مدفوعاً</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="caveats">
+      <div class="caveat"><b>تحفّظ:</b> مهارتا MiniMax (<code>android-native-dev</code> / <code>ios-application-dev</code>) تفترضان تطبيقاً أصلياً كاملاً (Kotlin/Compose أو SwiftUI) — Horofi غلاف Capacitor رقيق فقط، الفائدة محدودة جداً.</div>
+      <div class="caveat"><b>تحفّظ:</b> مهارات Expo (<code>expo-deployment</code>, <code>expo-cicd-workflows</code>...) <b>لا تنطبق إطلاقاً</b> — المشروع يستخدم Capacitor لا Expo رغم تشابه الاسم الظاهري.</div>
+    </div>
+  </section>
+
+  <section id="s2">
+    <h2><span class="h2-num">2</span> رسمية مفيدة لمشاريع مستقبلية عامة</h2>
+    <p class="h2-note">لا علاقة مباشرة بـ Horofi الآن، لكن قيمة عالية لأعمال قادمة (خصوصاً Next.js — التقنية المفضّلة لديك للمشاريع الجديدة).</p>
+    <div class="tbl-scroll">
+      <table>
+        <thead><tr><th>المهارة</th><th>الجهة</th><th>ماذا تفعل</th><th>الفائدة المستقبلية</th></tr></thead>
+        <tbody>
+          <tr><td class="name"><code>react-best-practices</code><br><a class="lnk" href="https://officialskills.sh/vercel-labs/skills/react-best-practices" target="_blank">officialskills.sh ↗</a></td><td>Vercel</td><td>64 قاعدة أداء React/Next.js (waterfalls، حجم الحزمة، server rendering)</td><td class="why">يطابق stack Next.js 14 المفضّل لديك للمشاريع الجديدة</td></tr>
+          <tr><td class="name"><code>next-upgrade</code><br><a class="lnk" href="https://officialskills.sh/vercel-labs/skills/next-upgrade" target="_blank">officialskills.sh ↗</a></td><td>Vercel</td><td>يقرأ package.json ويشغّل codemods الترقية الرسمية</td><td class="why">صيانة أي مشروع Next.js مستقبلي</td></tr>
+          <tr><td class="name"><code>coderabbitai/code-review</code><br><a class="lnk" href="https://officialskills.sh/coderabbitai/skills/code-review" target="_blank">officialskills.sh ↗</a></td><td>CodeRabbit</td><td>مراجعة كود بالذكاء الاصطناعي عبر CLI، تكرار حتى النظافة</td><td class="why">طبقة مراجعة إضافية قبل الدمج في أي مستودع</td></tr>
+          <tr><td class="name"><code>coderabbitai/autofix</code><br><a class="lnk" href="https://officialskills.sh/coderabbitai/skills/autofix" target="_blank">officialskills.sh ↗</a></td><td>CodeRabbit</td><td>يجلب ملاحظات PR غير المحلولة ويطبّق الإصلاحات</td><td class="why">يكمّل code-review بأتمتة التطبيق</td></tr>
+          <tr><td class="name"><code>gh-fix-ci</code><br><a class="lnk" href="https://officialskills.sh/openai/skills/gh-fix-ci" target="_blank">officialskills.sh ↗</a></td><td>OpenAI</td><td>يشخّص فشل GitHub Actions ويقترح إصلاحات</td><td class="why">مفيد لأي CI على GitHub Actions — تنبيه: بناء iOS الحالي عبر Codemagic لا GitHub Actions</td></tr>
+          <tr><td class="name"><code>gh-address-comments</code><br><a class="lnk" href="https://officialskills.sh/openai/skills/gh-address-comments" target="_blank">officialskills.sh ↗</a></td><td>OpenAI</td><td>يجلب تعليقات مراجعة PR ويطبّق ما تختاره</td><td class="why">سير عمل PR عام لأي مستودع</td></tr>
+          <tr><td class="name"><code>semgrep-rule-creator</code><br><a class="lnk" href="https://officialskills.sh/trailofbits/skills/semgrep-rule-creator" target="_blank">officialskills.sh ↗</a></td><td>Trail of Bits</td><td>يبني قواعد Semgrep مخصصة بمنهجية اختبار AST صارمة</td><td class="why">تدقيق أمني عام لأي مشروع كود</td></tr>
+          <tr><td class="name"><code>property-based-testing</code><br><a class="lnk" href="https://officialskills.sh/trailofbits/skills/property-based-testing" target="_blank">officialskills.sh ↗</a></td><td>Trail of Bits</td><td>يوجّه اختبارات property-based (Python/JS/Rust/Solidity)</td><td class="why">اختبار دوال معالجة/تحقّق مدخلات في أي backend مستقبلي</td></tr>
+          <tr><td class="name"><code>react-native-best-practices</code><br><a class="lnk" href="https://officialskills.sh/callstackincubator/skills/react-native-best-practices" target="_blank">officialskills.sh ↗</a></td><td>Callstack</td><td>تحسين أداء React Native (FPS، حجم الحزمة، تسريبات ذاكرة)</td><td class="why"><b>مستقبلي فقط</b> — لا ينطبق على Horofi (Capacitor ≠ React Native)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="s3">
+    <h2><span class="h2-num">3</span> مجتمعية (غير رسمية) — للاطّلاع فقط</h2>
+    <p class="h2-note">من مستودعات أفراد/مجتمع، لا فرق شركات رسمية — راجع المحتوى الفعلي قبل أي استخدام، بغض النظر عن عدد النجوم.</p>
+    <div class="tbl-scroll">
+      <table>
+        <thead><tr><th>الاسم</th><th>المصدر</th><th>الحالة</th><th>ماذا تفعل</th><th>ملاحظة ثقة</th></tr></thead>
+        <tbody>
+          <tr><td class="name">مجموعة أوامر dev/security/test/deploy<br><a class="lnk" href="https://github.com/qdhenry/Claude-Command-Suite" target="_blank">qdhenry/Claude-Command-Suite ↗</a></td><td>مجتمعي</td><td><span class="pill community">غير رسمي</span></td><td>216+ أمر سلاش + 54 sub-agent (مراجعة كود، تدقيق أمني، بناء ميزات)</td><td class="why">1.3k نجمة، 150 fork، توثيق منتظم — الأنسب لمشروع فردي واحد الملف</td></tr>
+          <tr><td class="name"><code>security-scan</code>, <code>deploy-checklist</code>, <code>git-workflow</code><br><a class="lnk" href="https://github.com/wshobson/commands" target="_blank">wshobson/commands ↗</a></td><td>مجتمعي</td><td><span class="pill community">غير رسمي</span></td><td>57 أمر إنتاجي (أمان، DevOps، مراجعة كود، Git)</td><td class="why">2.6k نجمة، 290 fork، MIT — مفيد جداً كخطوة أخيرة قبل الإطلاق العام</td></tr>
+          <tr><td class="name">/brainstorm, /write-plan, /execute-plan<br><a class="lnk" href="https://github.com/travisvn/awesome-claude-skills" target="_blank">travisvn/awesome-claude-skills ↗</a></td><td>مجتمعي (قائمة روابط)</td><td><span class="pill community">غير رسمي</span></td><td>تُبرز مستودع <code>obra/superpowers</code> كمكتبة مهارات تخطيط/تنفيذ</td><td class="why">قائمة تجميعية فقط — يجب فحص <code>obra/superpowers</code> مباشرة قبل أي استخدام، لم يُفحص هنا</td></tr>
+          <tr><td class="name">Claude Code Security Review (من Anthropic)<br><a class="lnk" href="https://github.com/hesreallyhim/awesome-claude-code" target="_blank">hesreallyhim/awesome-claude-code ↗</a></td><td>مزيج (رسمي داخل قائمة مجتمعية)</td><td><span class="pill official">أصل رسمي</span></td><td>مراجعة أمنية على PRs من Anthropic نفسها، مُكتشَفة عبر هذه القائمة المجمِّعة</td><td class="why">14.4k نجمة، توثيق نشط — لكن القائمة تحذّر صراحة أن "المهارات قد تنفّذ كوداً عشوائياً"</td></tr>
+          <tr><td class="name">PR reviewer, issue fixer, deep-research<br><a class="lnk" href="https://github.com/feiskyer/claude-code-settings" target="_blank">feiskyer/claude-code-settings ↗</a></td><td>مجتمعي</td><td><span class="pill community">غير رسمي</span></td><td>إعدادات/مهارات/sub-agents جاهزة لبدء مشروع جديد</td><td class="why">1.6k نجمة، 242 fork — قيمتها التنظيمية أعلى من أي مهارة فردية بداخلها</td></tr>
+          <tr><td class="name">فهرس تجميعي ضخم (~1400 مهارة)<br><a class="lnk" href="https://github.com/VoltAgent/awesome-agent-skills" target="_blank">VoltAgent/awesome-agent-skills ↗</a></td><td>مجتمعي (فهرس)</td><td><span class="pill caution">حذر إضافي</span></td><td>يعيد ربط officialskills.sh + إضافات مجتمعية (Redis، NVIDIA...)</td><td class="why">29.1k نجمة — حجم ضخم يستدعي نفس الحذر الذي أبديته أصلاً تجاه المجموعات الضخمة غير المفحوصة؛ لا يُنصح بالتثبيت منه مباشرة</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="s4">
+    <h2><span class="h2-num">4</span> جهات غير ذات صلة (ملخّص سريع)</h2>
+    <div class="irrelevant">
+      <ul>
+        <li><b>Microsoft</b> (100+): Azure AI/Cloud وM365 — لا علاقة بالـstack.</li>
+        <li><b>Google Workspace/Gemini</b>: Gmail/Docs/Sheets — إداري، غير متصل بالمشروع.</li>
+        <li><b>Apollo GraphQL</b> (12): المشروع لا يستخدم GraphQL.</li>
+        <li><b>Auth0</b> (12+): المشروع يستخدم Firebase Auth مباشرة.</li>
+        <li><b>Flutter</b> (22): إطار عمل مختلف تماماً (Dart)، غير قابل للنقل.</li>
+        <li><b>Netlify</b> (12): الاستضافة عبر Firebase Hosting لا Netlify.</li>
+        <li><b>Angular، Figma، MongoDB، ClickHouse، DuckDB</b>: تقنيات غير مستخدمة إطلاقاً.</li>
+        <li><b>Hugging Face، fal.ai، Replicate، Remotion</b>: توليد وسائط/نماذج AI عامة، لا صلة مباشرة.</li>
+        <li><b>Browserbase، Brave</b>: أتمتة متصفح وبحث ويب.</li>
+        <li><b>Coinbase، Binance</b>: تداول عملات رقمية — غير ذات صلة إطلاقاً.</li>
+        <li><b>Resend، Supabase، Neon، Sanity، Notion، Firecrawl</b>: بريد/قواعد بيانات/CMS غير مستخدمة.</li>
+        <li><b>Cypress، Composio، Better Auth</b>: اختبار/مصادقة/أتمتة غير مستخدمة.</li>
+        <li><b>Datadog Labs، HashiCorp</b>: مراقبة وBnfrastructure على نطاق مؤسسي أثقل من الحاجة.</li>
+        <li><b>GSAP</b>: مكتبة حركة ويب، لا استخدام حالياً في الكود.</li>
+        <li><b>Garry Tan، Ego(lite)، VoltAgent (create-)، WordPress</b>: أدوات شخصية/متخصصة غير ذات صلة.</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>جُمِع بالقراءة والمراجعة فقط — لا شيء من هذا مُثبَّت كأمر تلقائي في Claude Code.</footer>
+</div>

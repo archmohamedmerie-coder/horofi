@@ -87,10 +87,20 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 
 /* LETTER SELECT */
 #letters{padding:0;background:var(--bg)}
-.topbar{width:100%;background:var(--purple);padding:15px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.topbar{width:100%;background:var(--purple);padding:calc(15px + env(safe-area-inset-top)) 18px 15px;margin-top:calc(-1 * env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.topbar-light{width:100%;background:rgba(255,255,255,.88);backdrop-filter:blur(4px);padding:calc(12px + env(safe-area-inset-top)) 16px 12px;margin-top:calc(-1 * env(safe-area-inset-top));display:flex;align-items:center;justify-content:flex-end;position:sticky;top:0;z-index:10}
 .topbar-title{color:#fff;font-size:1.1rem;font-weight:800}
 .btn-back{background:rgba(255,255,255,.2);border:none;border-radius:11px;color:#fff;font-size:.95rem;font-weight:700;font-family:'Tajawal',sans-serif;padding:6px 13px;cursor:pointer}
-.section-label{width:100%;padding:16px 18px 4px;font-size:.95rem;font-weight:800;color:var(--purple)}
+.section-label{width:100%;padding:14px 18px 4px;font-size:.95rem;font-weight:800;color:var(--purple)}
+.section-label .sl-sub{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-top:2px}
+/* شبكة مضغوطة: ٥ أعمدة بدل ٤ وبطاقات أصغر — لإفساح مساحة قسم تمارين الكتابة
+   أسفل الصفحة دون دفع المستخدم لتمرير طويل */
+.lgrid.compact{grid-template-columns:repeat(5,1fr);gap:8px;padding:6px 14px 10px}
+.lgrid.compact .lchar{font-size:1.55rem}
+.lgrid.compact .lname{font-size:.5rem}
+.lgrid.compact .ltile{border-radius:14px}
+/* بطاقات مسار الكتابة — تمييز بصري بحافة متقطّعة تربطها بلوح الكتابة */
+.lgrid.write .ltile{border:2px dashed rgba(255,255,255,.75)}
 .lgrid{width:100%;padding:8px 14px 12px;display:grid;grid-template-columns:repeat(4,1fr);gap:11px}
 .lgrid.special{padding-bottom:28px}
 .ltile{aspect-ratio:1;border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s,box-shadow .15s;box-shadow:var(--sh);position:relative}
@@ -102,13 +112,13 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 
 /* GAME */
 #game{padding:0;justify-content:flex-start}
-.gtop{width:100%;padding:13px 16px;background:#fff;display:flex;align-items:center;gap:9px;box-shadow:0 2px 8px rgba(0,0,0,.06);position:sticky;top:0;z-index:10}
+.gtop{width:100%;padding:calc(13px + env(safe-area-inset-top)) 16px 13px;background:#fff;display:flex;align-items:center;gap:9px;box-shadow:0 2px 8px rgba(0,0,0,.06);position:fixed;top:0;left:0;right:0;z-index:10}
 .btn-back2{background:var(--border);border:none;border-radius:10px;font-family:'Tajawal',sans-serif;font-size:.95rem;font-weight:700;color:var(--ink);padding:6px 12px;cursor:pointer;flex-shrink:0}
 .pwrap{flex:1;background:var(--border);border-radius:20px;height:10px;overflow:hidden}
 .pfill{height:100%;background:linear-gradient(90deg,var(--purple),#5BC8F5);border-radius:20px;transition:width .5s ease}
 .lives{font-size:1.05rem;flex-shrink:0}
 
-.gbody{width:100%;max-width:480px;padding:16px 14px 32px;display:flex;flex-direction:column;align-items:center;gap:13px}
+.gbody{width:100%;max-width:480px;padding:78px 14px 32px;display:flex;flex-direction:column;align-items:center;gap:13px}
 .rbadge{background:var(--purple);color:#fff;border-radius:20px;padding:4px 16px;font-size:.8rem;font-weight:700}
 
 /* ═══ TREE SHOWCASE — 5 real cases: start / mid-after-connecting / mid-after-nonconnecting / end-after-connecting / end-after-nonconnecting ═══ */
@@ -180,27 +190,36 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 .fb.err{background:#fff0f0;color:#991b1b;border:2px solid var(--red)}
 @keyframes slideD{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
 /* ═══ WRITING STAGE — مرحلة اختبار الكتابة ═══ */
+/* حروف الكلمة مُفْرَدَة داخل نص السؤال — الطفل يعرف الحروف ويصلها بنفسه */
+.w-letters{
+  font-family:'Amiri','Scheherazade New',serif;
+  font-size:1.5em;letter-spacing:.12em;color:var(--purple);
+  display:inline-block;margin:0 .18em;
+}
 .write-board-wrap{width:100%;position:relative}
 .write-board{
-  width:100%;height:290px;border-radius:18px;border:3px dashed var(--purple);
-  background:
-    linear-gradient(to bottom, transparent 61.8%, rgba(155,93,229,.22) 61.8%, rgba(155,93,229,.22) calc(61.8% + 2px), transparent calc(61.8% + 2px)),
-    #fff;
-  box-shadow:var(--sh);position:relative;overflow:hidden;
+  width:100%;height:440px;border-radius:18px;border:3px dashed var(--purple);
+  background:#fff;box-shadow:var(--sh);position:relative;overflow:hidden;
 }
-.write-board canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
-.write-hint-overlay{
-  position:absolute;inset:0;display:none;align-items:center;justify-content:center;
-  background:rgba(255,255,255,.88);z-index:3;pointer-events:none;
-  font-family:'Amiri','Scheherazade New',serif;font-weight:700;color:var(--purple);
+.write-board canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair;z-index:2}
+/* شبكة النموذج المرجعي للتتبّع — رمادي شفاف، خلف لوح الرسم الشفاف تماماً */
+.trace-ref-grid{
+  position:absolute;inset:0;z-index:1;pointer-events:none;
+  display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+  align-items:center;justify-items:center;gap:2px 4px;
 }
-.write-hint-overlay.show{display:flex;animation:slideD .2s ease}
-.write-reveal-overlay{
-  position:absolute;inset:0;display:none;align-items:center;justify-content:center;
-  z-index:2;pointer-events:none;
-  font-family:'Amiri','Scheherazade New',serif;font-weight:700;color:rgba(45,134,83,.5);
+.trace-ref-grid span{
+  font-family:'Amiri','Scheherazade New',serif;font-weight:700;
+  color:rgba(150,150,150,.22);font-size:6rem;line-height:1;
 }
-.write-reveal-overlay.show{display:flex}
+.trace-word-grid{
+  position:absolute;inset:0;z-index:1;pointer-events:none;
+  display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;
+}
+.trace-word-grid span{
+  font-family:'Amiri','Scheherazade New',serif;font-weight:700;
+  color:rgba(150,150,150,.22);font-size:5.2rem;line-height:1;letter-spacing:.06em;
+}
 .write-tools{display:flex;gap:8px;width:100%;justify-content:center;flex-wrap:wrap}
 .write-tool{
   background:#fff;border:2px solid var(--border);border-radius:12px;
@@ -216,6 +235,64 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 }
 .write-check:disabled{opacity:.45;cursor:default;box-shadow:0 4px 0 var(--green-d)}
 .write-check:not(:disabled):active{transform:translateY(2px);box-shadow:0 2px 0 var(--green-d)}
+
+/* ── مرحلة تجميع الكلمة: يختار الطفل شكل كل حرف من لوحة بدل رسمه بيده ──
+   الحروف المختارة تُعرض بأشكالها التقديمية (presentation forms) متجاورة بلا فراغ،
+   فتتلاصق وصلاتها بصرياً وتبدو كلمة موصولة رغم أن كل حرف عنصر مستقل بلونه. */
+.asm-board{
+  width:100%;min-height:118px;border-radius:18px;border:3px dashed var(--purple);
+  background:#fff;box-shadow:var(--sh);display:flex;align-items:center;justify-content:center;
+  padding:10px 12px;position:relative;overflow-x:auto;overflow-y:hidden;
+}
+.asm-word{
+  direction:rtl;display:flex;align-items:center;justify-content:center;
+  font-family:'Amiri','Scheherazade New',serif;font-weight:700;
+  font-size:3rem;line-height:1.3;white-space:nowrap;letter-spacing:0;
+}
+.asm-word span{animation:popC .22s ease}
+.asm-empty{font-family:'Tajawal',sans-serif;font-size:.9rem;font-weight:700;color:var(--muted)}
+.asm-reveal{
+  font-family:'Tajawal',sans-serif;font-size:.82rem;font-weight:800;color:var(--green);
+  text-align:center;margin-top:6px;direction:rtl;
+}
+.asm-reveal .asm-word{font-size:2.2rem;color:rgba(45,134,83,.75);margin-top:2px}
+
+.asm-panel{width:100%;display:flex;flex-direction:column;gap:8px}
+.asm-row{
+  display:flex;align-items:center;gap:8px;background:#fff;
+  border:2px solid var(--border);border-radius:14px;padding:7px 9px;
+}
+.asm-row-label{
+  font-family:'Tajawal',sans-serif;font-size:1.05rem;font-weight:800;
+  color:var(--purple);min-width:28px;text-align:center;flex-shrink:0;
+}
+.asm-tiles{display:flex;gap:7px;flex:1;justify-content:center;flex-wrap:wrap}
+.asm-tile{
+  background:#F7F2FF;border:2px solid var(--border);border-radius:12px;
+  font-family:'Amiri','Scheherazade New',serif;font-size:1.85rem;font-weight:700;
+  color:var(--ink);min-width:54px;padding:1px 10px 5px;cursor:pointer;line-height:1.2;
+  transition:transform .12s,background .12s,border-color .12s;
+}
+.asm-tile:active{transform:scale(.93)}
+.asm-tile:disabled{opacity:.4;cursor:default}
+/* ذراع اتصال صريحة (نفس تقنية .leaf-glyph في شجرة الأشكال) — بنفس منسوب الحرف تماماً */
+.asm-glyph{position:relative;display:inline-block;line-height:1}
+.asm-glyph.arm-left::after,.asm-glyph.arm-right::before,.asm-glyph.arm-both::after,.asm-glyph.arm-both::before{
+  font-family:'Amiri','Scheherazade New',serif;font-size:1em;font-weight:700;color:currentColor;
+}
+.asm-glyph.arm-left::after{content:'ـ';position:absolute;left:-0.22em}
+.asm-glyph.arm-right::before{content:'ـ';position:absolute;right:-0.22em}
+.asm-glyph.arm-both::after{content:'ـ';position:absolute;left:-0.22em}
+.asm-glyph.arm-both::before{content:'ـ';position:absolute;right:-0.22em}
+/* في مرحلة التجميع تتدفّق الشخصية ضمن التخطيط بدل أن تطفو فوقه: لوح التجميع قصير
+   واللوحة تحته مليئة بالبطاقات، فالوضع الطافي (كما في الكتابة اليدوية ذات اللوح
+   الطويل) كان يحجب بطاقتين يحتاجهما الطفل بعد المحاولة الخاطئة الأولى. */
+.fb-mascot-wrap.asm-mascot{position:absolute;top:50%;left:6px;transform:translateY(-50%);z-index:2;pointer-events:none}
+.fb-mascot-wrap.trace-mascot{position:absolute;top:auto;left:auto;bottom:-96px;right:-26px;transform:none;z-index:3;pointer-events:none}
+.fb-mascot-wrap.trace-mascot .fb-mascot{width:140px}
+.fb-mascot-wrap.trace-mascot-word{position:absolute;top:50%;right:10px;left:auto;bottom:auto;transform:translateY(-50%);z-index:3;pointer-events:none}
+.fb-mascot-wrap.trace-mascot-word .fb-mascot{width:90px}
+.fb-mascot-wrap.asm-mascot .fb-mascot{width:100px}
 
 .igrid-mascot-host{position:relative}
 .fb-mascot-wrap{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:5;pointer-events:none}
@@ -265,7 +342,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 .lvl-name{font-size:1.3rem;font-weight:800;color:var(--ink)}
 .lvl-desc{font-size:.82rem;color:var(--muted);font-weight:600}
 .sound-btn{background:var(--border);border:none;border-radius:10px;font-size:1.1rem;padding:5px 9px;cursor:pointer;flex-shrink:0;line-height:1}
-.global-mute-btn{position:fixed;top:12px;left:12px;z-index:9999;background:rgba(255,255,255,.92);border:2px solid var(--border);border-radius:12px;font-size:1.2rem;padding:6px 12px;cursor:pointer;box-shadow:var(--sh);backdrop-filter:blur(4px);line-height:1}
+.global-mute-btn{position:fixed;top:calc(env(safe-area-inset-top) + 12px);left:12px;z-index:9999;background:rgba(255,255,255,.92);border:2px solid var(--border);border-radius:12px;font-size:1.2rem;padding:6px 12px;cursor:pointer;box-shadow:var(--sh);backdrop-filter:blur(4px);line-height:1}
 .sentence-flow{text-align:center;line-height:1.5;margin-top:6px;padding-top:6px;border-top:1px dashed #C9B8F0}
 .sf-intro{font-size:.78rem;font-weight:700;color:#7E57C2;margin-bottom:3px}
 .sf-main{font-family:'Scheherazade New','Noto Naskh Arabic','Traditional Arabic',serif;font-size:1.2rem;font-weight:700;color:var(--ink);background:#fff;border:2px solid #E8DCFF;border-radius:14px;padding:8px 10px;margin:4px 0;line-height:1.8}
@@ -670,7 +747,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 </div><!-- /login screen -->
 
 <div id="onboarding" class="screen">
-  <div style="width:100%;padding:12px 16px 0;display:flex;justify-content:flex-end">
+  <div class="topbar-light">
     <button class="btn-back" style="background:rgba(155,93,229,.12);color:var(--purple);border:none" onclick="stopAllAudio();nav('login')">← رجوع</button>
   </div>
   <div class="mascot-wrap">
@@ -762,7 +839,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
   <div class="word-swarm" id="wordSwarm"></div>
   <div class="progress-summary" id="progressSummary"></div>
   <button class="btn" onclick="showParentMsg()">نبدأ التعلم! ✏️</button>
-  <button class="btn2" style="margin-top:14px;max-width:220px" onclick="stopAllAudio();nav('onboarding')">✏️ تغيير الاسم</button>
+  <button class="btn2" style="margin-top:14px;max-width:220px" onclick="stopAllAudio();openEditProfile()">✏️ تغيير الاسم</button>
   <button class="btn2" style="margin-top:10px;max-width:220px" onclick="openChildren()">👧👦 الأطفال</button>
   <button class="btn2" style="margin-top:10px;max-width:220px" onclick="stopAllAudio();openAccount()">👤 حسابي</button>
   <button class="btn2" style="margin-top:10px;max-width:220px" onclick="openParentReport()">📊 تقرير الأهل</button>
@@ -841,9 +918,13 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
     </div>
   </div>
   <div class="section-label">الحروف كاملة</div>
-  <div class="lgrid" id="lgridConnecting"></div>
+  <div class="lgrid compact" id="lgridConnecting"></div>
   <div class="section-label">⚠️ تمرين إضافي: حروف لا تتصل بما بعدها</div>
-  <div class="lgrid special" id="lgridSpecial"></div>
+  <div class="lgrid special compact" id="lgridSpecial"></div>
+  <div class="section-label">✍️ تمارين الكتابة مباشرة
+    <span class="sl-sub">اختر حرفاً لتتدرّب على كتابته فوراً دون أسئلة التمييز</span>
+  </div>
+  <div class="lgrid compact write" id="lgridWrite"></div>
 </div>
 
 <div id="game" class="screen">
@@ -862,8 +943,9 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
   <div class="done-title" id="doneTitle">أحسنتَ يا نجم!</div>
   <div class="stars" id="dstars"></div>
   <div class="score-txt" id="dscore"></div>
+  <div class="done-breakdown" id="dbreakdown" style="font-size:.85rem;color:var(--muted);font-weight:700;margin-top:-8px"></div>
   <div class="done-sub" id="dmsg"></div>
-  <div class="done-btns">
+  <div class="done-btns" id="doneBtns">
     <button class="btn" onclick="playAgain()">🔄 العب مرة أخرى</button>
     <button class="btn2" onclick="stopAllAudio();nav('letters')">اختر حرفاً آخر</button>
   </div>
@@ -2564,6 +2646,29 @@ function loadChildren(){
   if (!CHILDREN.find(ch=>ch.id===ACTIVE_CHILD_ID)){
     ACTIVE_CHILD_ID = CHILDREN.length ? CHILDREN[0].id : null;
   }
+  migrateRewardsIfNeeded();
+}
+
+/* ── إعادة ضبط نظام المكافآت لمرة واحدة بعد إضافة اختباري الكتابة ──
+   يُصفَّر: النقاط، الشارات العامة، شارات كل مستوى/حرف — لكل الأطفال المحفوظين
+   محلياً، حتى لا تختلط شارات النظام القديم (15 جولة فقط) بالجديد (كتابة أيضاً).
+   يعمل مرة واحدة فقط لكل طفل بفضل علامة rewardsVersion. */
+const REWARDS_VERSION = 2;
+function migrateRewardsIfNeeded(){
+  let changed = false;
+  CHILDREN.forEach(ch=>{
+    if (!ch.stats) ch.stats = {};
+    if ((ch.stats.rewardsVersion||1) < REWARDS_VERSION){
+      ch.stats.points = 0;
+      ch.stats.earnedBadges = [];
+      ch.levelBadges = {};
+      ch.levelStats = {};
+      ch.writingBadges = {};
+      ch.stats.rewardsVersion = REWARDS_VERSION;
+      changed = true;
+    }
+  });
+  if (changed) saveChildren();
 }
 function saveChildren(){
   try{ localStorage.setItem(_chKey('horofiChildren'), JSON.stringify(CHILDREN)); }catch(e){}
@@ -2642,12 +2747,35 @@ function loadProgress(){
     if (raw){ completedLetters = new Set(JSON.parse(raw)); }
   }catch(e){}
 }
+/* هل اختار الوالد جنس الطفل صراحةً في شاشة التسجيل الحالية؟
+   (وُجد خطأ حقيقي: طفلة خُوطبت كولد — السبب أن PROFILE.gender يبدأ 'male' افتراضياً
+   ولم يكن هناك إلزام بالضغط على أحد الزرّين، فمرّ الافتراض الصامت دون أن يلاحظه أحد) */
+let _obGenderChosen = false;
 function selectGender(g){
+  _obGenderChosen = true;
   PROFILE.gender = g;
   document.getElementById('obBoy').style.borderColor = g==='male' ? 'var(--purple)' : 'var(--border)';
   document.getElementById('obBoy').style.background = g==='male' ? '#F5F0FF' : '#fff';
   document.getElementById('obGirl').style.borderColor = g==='female' ? 'var(--purple)' : 'var(--border)';
   document.getElementById('obGirl').style.background = g==='female' ? '#F5F0FF' : '#fff';
+}
+/* يُستدعى في كل مرة تُفتح فيها شاشة التسجيل من جديد (طفل جديد، أو تعديل طفل قائم)
+   حتى لا يبقى اختيار الطفل السابق ظاهراً كتمييز بصري لطفل مختلف */
+function resetGenderPicker(){
+  _obGenderChosen = false;
+  const boy = document.getElementById('obBoy'), girl = document.getElementById('obGirl');
+  if (boy){ boy.style.borderColor='var(--border)'; boy.style.background='#fff'; }
+  if (girl){ girl.style.borderColor='var(--border)'; girl.style.background='#fff'; }
+}
+/* تعديل اسم/بيانات طفل موجود بالفعل — جنسه معروف مسبقاً وصحيح، فنعرضه محدَّداً
+   بصرياً بدل تصفير الاختيار (الذي يُستخدم فقط عند إضافة طفل جديد فعلاً) */
+function openEditProfile(){
+  _obGenderChosen = true;
+  const boy = document.getElementById('obBoy'), girl = document.getElementById('obGirl');
+  const isF = PROFILE.gender === 'female';
+  if (boy){ boy.style.borderColor = !isF ? 'var(--purple)' : 'var(--border)'; boy.style.background = !isF ? '#F5F0FF' : '#fff'; }
+  if (girl){ girl.style.borderColor = isF ? 'var(--purple)' : 'var(--border)'; girl.style.background = isF ? '#F5F0FF' : '#fff'; }
+  nav('onboarding');
 }
 /* ══════════════════════════════════════════════════════
    AUTH — دخول / تسجيل / إعادة تعيين كلمة السر
@@ -2926,9 +3054,14 @@ function completeOnboarding(){
     if(countryEl){ countryEl.style.borderColor='var(--red)'; setTimeout(()=>{countryEl.style.borderColor='var(--border)';},800); }
     alert('من فضلك اختر بلدك!'); return;
   }
+  if (!_obGenderChosen){
+    const boy = document.getElementById('obBoy'), girl = document.getElementById('obGirl');
+    [boy, girl].forEach(btn=>{ if (btn){ btn.style.borderColor='var(--red)'; setTimeout(()=>{ btn.style.borderColor='var(--border)'; },800); } });
+    alert('من فضلك اختر: ولد أم بنت؟');
+    return;
+  }
   const parts = countryVal.split('|');
   PROFILE.name = nameVal;
-  if (!PROFILE.gender) PROFILE.gender = 'male';
   PROFILE.country = countryVal;
   PROFILE.nisba_m = parts[0] || '';
   PROFILE.nisba_f = parts[1] || '';
@@ -2971,9 +3104,16 @@ function encourageText(){
             `لَا بَأْسَ أَيَّتُهَا التِّلْمِيذَة، اِنْتَبِهِي لِلْخَطَأ وَصَحِّحِي فِي الْأَسْئِلَةِ التَّالِيَة 💪`);
 }
 
+/* ── إيقاف أي صوت قيد التشغيل فوراً قبل بدء صوت جديد (يمنع تداخل جملتين) ── */
+function _stopCurrentAudio() {
+  if (window._currentAudio) {
+    try { window._currentAudio.pause(); window._currentAudio.src = ''; } catch(e) {}
+    window._currentAudio = null;
+  }
+}
+
 /* ── تشغيل MP3 ثابت من مسار معيّن ── */
-function playStaticMP3(path) {
-  if (window._audioStopped) return Promise.resolve();
+function _startStaticMP3(path) {
   return new Promise(resolve => {
     const _t = setTimeout(resolve, 6000);
     const audio = new Audio(path);
@@ -2990,6 +3130,20 @@ function playStaticMP3(path) {
     audio.play().catch(done);
   });
 }
+function playStaticMP3(path) {
+  if (window._audioStopped) return Promise.resolve();
+  const hadPrevious = !!window._currentAudio;
+  _stopCurrentAudio();
+  if (!hadPrevious) return _startStaticMP3(path);
+  // ⚠️ إيقاف عنصر <audio> لم يستقرّ بعد (لا يزال يُحمَّل/يبدأ) ثم إنشاء وتشغيل
+  // عنصر جديد في نفس اللحظة يُسبّب في هذه البيئة (WebView على أندرويد) توقّفاً
+  // صامتاً شبه فوري للصوت الجديد بعد أقل من نصف ثانية — رغم أن play() ينجح
+  // ظاهرياً وحدث playing يُطلَق. أثبتّ هذا تجريبياً عبر CDP (صوت شارة "خطّاط
+  // الشكل" كان ينقطع فوراً بعد أن يوقف تشغيل صوت الجولة الأخير). مهلة قصيرة
+  // (80ms) بعد الإيقاف تكفي للتخلّص من التعارض؛ نُطبّقها فقط حين وُجد صوت سابق
+  // فعلاً كي لا نُبطئ الحالة الشائعة (بدء صوت نظيف بلا صوت سابق نشط).
+  return new Promise(resolve => setTimeout(() => _startStaticMP3(path).then(resolve), 80));
+}
 
 /* ── مصفوفة خرائط التهنئة ── */
 const PRAISE_MP3 = [
@@ -3005,9 +3159,14 @@ async function playPraiseAudio(praiseText) {
   if (!soundEnabled) return;
   const isF = PROFILE.gender === 'female';
   let tier = 0;
+  // بادئات كل مستوى تختلف بالتشكيل بين المذكر والمؤنث (مثلاً "يَالَكَ" مقابل "يَالَكِ") —
+  // يجب مطابقة النص ببادئة الجنس الصحيح وإلا يُكتشف المستوى خطأً (يبقى 0 دائماً) فيُشغَّل
+  // صوت مستوى أدنى من النص المعروض فعلياً.
   const tiers_m = ['أَحْسَنْتَ','رَائِع','مَا شَاءَ','مُذْهِل','يَالَكَ'];
-  for (let i = 0; i < tiers_m.length; i++) {
-    if (praiseText.startsWith(tiers_m[i])) { tier = i; break; }
+  const tiers_f = ['أَحْسَنْتِ','رَائِعَة','مَا شَاءَ','مُذْهِلَة','يَالَكِ'];
+  const tiers = isF ? tiers_f : tiers_m;
+  for (let i = 0; i < tiers.length; i++) {
+    if (praiseText.startsWith(tiers[i])) { tier = i; break; }
   }
   // ملف كامل بدون اسم
   const path = isF
@@ -3349,8 +3508,7 @@ function playMP3(key){
 }
 
 /* ── تشغيل MP3 مع fallback لـ ElevenLabs ── */
-async function playSentenceAudio(key, sentence){
-  if (!soundEnabled) return;
+function _startSentenceAudio(key){
   return new Promise(resolve => {
     const audio = new Audio(`audio/sentences/${key}.mp3`);
     window._currentAudio = audio;
@@ -3365,10 +3523,17 @@ async function playSentenceAudio(key, sentence){
     audio.play().catch(done);
   });
 }
+async function playSentenceAudio(key, sentence){
+  if (!soundEnabled) return;
+  const hadPrevious = !!window._currentAudio;
+  _stopCurrentAudio();
+  // نفس علاج سباق الإيقاف/التشغيل الفوري الموثّق في playStaticMP3 أعلاه
+  if (!hadPrevious) return _startSentenceAudio(key);
+  return new Promise(resolve => setTimeout(() => _startSentenceAudio(key).then(resolve), 80));
+}
 
 /* ── تشغيل نطق الكلمة المفردة (بعد الإجابة الصحيحة مباشرة، قبل صوت التهنئة) ── */
-async function playWordAudio(key){
-  if (!soundEnabled) return;
+function _startWordAudio(key){
   return new Promise(resolve => {
     const audio = new Audio(`audio/words/${key}.mp3`);
     window._currentAudio = audio;
@@ -3383,6 +3548,14 @@ async function playWordAudio(key){
     audio.play().catch(done);
   });
 }
+async function playWordAudio(key){
+  if (!soundEnabled) return;
+  const hadPrevious = !!window._currentAudio;
+  _stopCurrentAudio();
+  // نفس علاج سباق الإيقاف/التشغيل الفوري الموثّق في playStaticMP3 أعلاه
+  if (!hadPrevious) return _startWordAudio(key);
+  return new Promise(resolve => setTimeout(() => _startWordAudio(key).then(resolve), 80));
+}
 
 
 
@@ -3393,7 +3566,7 @@ function nav(id){
   window.scrollTo(0,0);
   // إخفاء زر كتم الصوت العام في هذه الشاشات فقط (يبقى ظاهراً في بقية الشاشات)
   const gm = document.getElementById('globalMuteBtn');
-  const hideMuteBtnScreens = ['login', 'home', 'letters', 'levelSelect', 'subscription', 'parent', 'onboarding', 'game'];
+  const hideMuteBtnScreens = ['login', 'home', 'letters', 'levelSelect', 'subscription', 'parent', 'onboarding', 'game', 'done'];
   if (gm) gm.style.display = hideMuteBtnScreens.includes(id) ? 'none' : '';
   // إعادة بناء الشاشات الديناميكية كي يُحدَّث العداد والشارات
   if (id === 'home') buildHome();
@@ -3519,7 +3692,8 @@ let isSubscribed = false;
 function buildLetterGrid(){
   const gc=document.getElementById('lgridConnecting');
   const gs=document.getElementById('lgridSpecial');
-  gc.innerHTML=''; gs.innerHTML='';
+  const gw=document.getElementById('lgridWrite');
+  gc.innerHTML=''; gs.innerHTML=''; if (gw) gw.innerHTML='';
 
   const allByChar = {};
   CONNECTING_LETTERS.forEach(L=>{ allByChar[L.char] = {L, kind:'connecting'}; });
@@ -3556,6 +3730,24 @@ function buildLetterGrid(){
     t.innerHTML=`${badge}${lockEl}<div class="lchar">${L.char}</div><div class="lname">${L.name}</div>`;
     t.onclick = free ? (()=>startNonConnectingLetter(L)) : (()=>showSubscriptionPage());
     gs.appendChild(t);
+  });
+
+  // ── المسار الثاني: دخول مباشر لتمارين الكتابة بلا جولات التمييز الـ١٥ ──
+  // بلا شارة ✅ عمداً: الإتقان يُمنح فقط عبر المسار الكامل (تمييز + كتابة)،
+  // فإظهارها هنا يوحي بأن هذا المسار وحده يُتقن الحرف.
+  if (gw) ALPHABET_ORDER.forEach(ch=>{
+    const entry = allByChar[ch];
+    if (!entry) return;
+    const L = entry.L;
+    const free = isLetterFree(L.char);
+    const t=mk('div','ltile');
+    if (!free) t.classList.add('locked');
+    t.style.background=L.color;
+    t.style.boxShadow=`0 5px 0 ${L.shadow}`;
+    const lockEl = free ? '' : `<div class="ltile-lock">🔒</div>`;
+    t.innerHTML=`${lockEl}<div class="lchar">${L.char}</div><div class="lname">${L.name}</div>`;
+    t.onclick = free ? (()=>startWritingOnly(L)) : (()=>showSubscriptionPage());
+    gw.appendChild(t);
   });
 }
 
@@ -3696,16 +3888,37 @@ let WRI = 0;          // مؤشر سؤال الكتابة الحالي
 let WTRIES = 0;       // محاولات السؤال الحالي (محاولتان قبل احتساب الخطأ)
 let _wStrokes = [];   // ضربات الرسم الحالية [[{x,y},...],...]
 let _wCanvas = null, _wCtx = null;
+let _writeGlyphTotal = 0, _writeGlyphCorrect = 0, _writeWordTotal = 0, _writeWordCorrect = 0;
+let _aSelected = [];  // حروف مرحلة التجميع المختارة حتى الآن [{ch, form, cp}]
+
+/* ألوان مرحلة التجميع — لون مختلف لكل حرف في الكلمة كي يرى الطفل أنها حروف
+   منفصلة اتصلت، لا شكلاً واحداً. مختارة لتباين واضح على خلفية بيضاء. */
+const ASM_COLORS = ['#7B3FD4','#1F8A4C','#D4780F','#1D6FC4','#C43B3B','#00868B'];
+/* نفس تقنية أذرع الاتصال المستخدمة في "شجرة أشكال الحرف" (.leaf-glyph.arm-*) —
+   ذراع صريحة إضافية بدل الاعتماد على ذيل الغليف الجاهز وحده، كي يميّز الطفل
+   الاتصال بوضوح. الاتجاه يتبع اتجاه القراءة RTL: بداية تتصل بما يليها (يسار)،
+   نهاية تتصل بما قبلها (يمين)، وسط تتصل بالاثنين، والمنفصل بلا ذراع. */
+const ASM_ARM_CLASS = {ini:'arm-left', med:'arm-both', fin:'arm-right', iso:''};
+
+/* الشكل الصحيح لكل حرف داخل الكلمة — نفس منطق getNaturalForm المستخدم في جولات
+   التمييز، فالإجابة المتوقّعة هنا مطابقة تماماً لما تعلّمه الطفل هناك. */
+function _assembleExpected(letters){
+  return letters.map((ch,i)=>{
+    const form = getNaturalForm(letters, i);
+    const f = ARFORMS[ch] || {};
+    return { ch, form, cp: (f[form] !== undefined ? f[form] : f.iso) };
+  });
+}
 
 /* أسئلة أشكال الحرف: التسمية التربوية + الشكل المستهدف مع بدائل للحروف غير المتصلة.
    لكل سؤال نطابق ضد صيغتين: الغليف المضغوط + الصيغة الممدودة بالكشيدة (ـبـ) —
    لأن الطفل يكتب الوصلات ممدودة طبيعياً وكلاهما صحيح. */
 const WRITE_FORM_QUESTIONS = [
-  {label:'فِي بِدَايَةِ الْكَلِمَة',                          pick:f=>f.ini||f.iso, kash:(ch,f)=> f.c? ch+'ـ' : ch},
-  {label:'فِي وَسَطِ الْكَلِمَة بَعْدَ حَرْفٍ مُتَّصِل',        pick:f=>f.med||f.fin||f.iso, kash:(ch,f)=> f.c? 'ـ'+ch+'ـ' : 'ـ'+ch},
-  {label:'فِي وَسَطِ الْكَلِمَة بَعْدَ حَرْفٍ غَيْرِ مُتَّصِل', pick:f=>f.ini||f.iso, kash:(ch,f)=> f.c? ch+'ـ' : ch},
-  {label:'فِي نِهَايَةِ الْكَلِمَة بَعْدَ حَرْفٍ مُتَّصِل',     pick:f=>f.fin||f.iso, kash:(ch,f)=> 'ـ'+ch},
-  {label:'فِي نِهَايَةِ الْكَلِمَة بَعْدَ حَرْفٍ غَيْرِ مُتَّصِل', pick:f=>f.iso, kash:(ch,f)=> ch},
+  {pos:'ini',   label:'فِي بِدَايَةِ الْكَلِمَة',                          pick:f=>f.ini||f.iso, kash:(ch,f)=> f.c? ch+'ـ' : ch},
+  {pos:'med_c', label:'فِي وَسَطِ الْكَلِمَة بَعْدَ حَرْفٍ مُتَّصِل',        pick:f=>f.med||f.fin||f.iso, kash:(ch,f)=> f.c? 'ـ'+ch+'ـ' : 'ـ'+ch},
+  {pos:'med_n', label:'فِي وَسَطِ الْكَلِمَة بَعْدَ حَرْفٍ غَيْرِ مُتَّصِل', pick:f=>f.ini||f.iso, kash:(ch,f)=> f.c? ch+'ـ' : ch},
+  {pos:'fin_c', label:'فِي نِهَايَةِ الْكَلِمَة بَعْدَ حَرْفٍ مُتَّصِل',     pick:f=>f.fin||f.iso, kash:(ch,f)=> 'ـ'+ch},
+  {pos:'fin_n', label:'فِي نِهَايَةِ الْكَلِمَة بَعْدَ حَرْفٍ غَيْرِ مُتَّصِل', pick:f=>f.iso, kash:(ch,f)=> ch},
 ];
 
 function buildWritingRounds(){
@@ -3722,14 +3935,24 @@ function buildWritingRounds(){
     if (dedupe && seen.has(kash)) return;
     seen.add(kash);
     // target = الصيغة الممدودة (أوضح للعرض في التلميح/الكشف)، variants = كل المقبول
-    rounds.push({kind:'glyph', label:q.label, target:kash, variants:[kash, glyph]});
+    rounds.push({kind:'glyph', pos:q.pos, label:q.label, target:kash, variants:[kash, glyph]});
   });
-  // 2) خمس كلمات من كلمات الجولات (بدون تشكيل — الطفل يكتب الحروف فقط)
+  // 2) خمس كلمات من كلمات الجولات (بدون تشكيل — الطفل يكتب الحروف فقط)، مقسّمة
+  //    إلى مرحلتين متتاليتين منفصلتين: ٣ تجميع (يختار شكل كل حرف من لوحة بطاقات)
+  //    ثم ٢ كتابة يدوية. التجميع يسبق الكتابة عمداً: يعزل مهارة "أي شكل يناسب هذا
+  //    الموضع؟" عن مهارة "كيف أرسمه بيدي؟" — والطفل الذي يعرف الشكل ولم تنضج يده
+  //    كان يُحاسَب سابقاً على الاثنين معاً.
+  //    نُسنِد الكلمات الأقصر لمرحلة التجميع لأن عدد بطاقات اللوحة = مجموع أشكال
+  //    حروف الكلمة، فكلمة من ٥ حروف قد تُنتج ٢٠ بطاقة مزدحمة على شاشة هاتف.
   const wordSet = new Map();
   (ROUNDS||[]).forEach(R=>{
     if (R.letters && R.letters.length) wordSet.set(R.letters.join(''), R.letters);
   });
-  shuffle([...wordSet.values()]).slice(0,5).forEach(ls=>{
+  const picked = shuffle([...wordSet.values()]).slice(0,5).sort((a,b)=>a.length-b.length);
+  picked.slice(0,3).forEach(ls=>{
+    rounds.push({kind:'assemble', target:ls.join(''), letters:ls});
+  });
+  picked.slice(3).forEach(ls=>{
     rounds.push({kind:'word', target:ls.join(''), letters:ls});
   });
   return rounds;
@@ -3738,58 +3961,201 @@ function buildWritingRounds(){
 function startWritingStage(){
   WROUNDS = buildWritingRounds();
   WRI = 0;
+  // عدّادات إتقان الكتابة لهذا الحرف — تُستخدم لشارتي "خطّاط الشكل" و"كاتب الكلمات"
+  // (منفصلة تماماً عن نظام الشارات القائم كي لا نُغيّر أي منطق يعمل بالفعل)
+  _writeGlyphTotal = WROUNDS.filter(w=>w.kind==='glyph').length;
+  // التجميع والكتابة اليدوية كلاهما "كلمة" لأغراض شارة كاتب الكلمات — يبقى المجموع
+  // ٥ كما كان قبل إضافة مرحلة التجميع فلا تتغيّر صعوبة الشارة
+  _writeWordTotal  = WROUNDS.filter(w=>w.kind==='word'||w.kind==='assemble').length;
+  _writeGlyphCorrect = 0;
+  _writeWordCorrect  = 0;
   if (!WROUNDS.length){ showDone(); return; }
+  // الآن تُستدعى هذه الدالة من زر في شاشة "النتيجة" (done) وليس تلقائياً من داخل شاشة
+  // اللعبة كما كان سابقاً — يجب الانتقال صراحةً لشاشة اللعبة قبل بناء أول سؤال كتابة
+  nav('game');
   buildWriteRound();
   window.scrollTo(0,0);
 }
+
+/* ── سؤال تجميع الكلمة (يسبق الكتابة اليدوية) ──
+   نفس سؤال "اكتب الكلمة موصولة"، لكن بدل الرسم يختار الطفل شكل كل حرف من لوحة
+   تضم كل الأشكال الممكنة لحروف الكلمة. ميزته الجوهرية: التحقق مقارنة رموز
+   مباشرة (صواب/خطأ قاطع) بلا أي غموض تعرّف — بعكس الكتابة اليدوية. */
+function buildAssembleRound(W){
+  _aSelected = [];
+  const body = document.getElementById('gbody');
+  body.innerHTML = '';
+
+  body.appendChild(mk('div','rbadge',`✍️ اِخْتِبَارُ الْكِتَابَة — ${WRI+1} مِنْ ${WROUNDS.length}`));
+  body.appendChild(mk('div','tlabel',
+    `✍️ اُكْتُبْ كَلِمَةَ <strong class="w-letters">${W.letters.join(' ')}</strong> مَوْصُولَة`));
+
+  const board = mk('div','asm-board',
+    `<div class="asm-word" id="asmWord"></div>
+     <div class="asm-empty" id="asmEmpty">اِضْغَطْ عَلَى شَكْلِ كُلِّ حَرْفٍ لِتُكَوِّنَ الْكَلِمَة</div>
+     <div class="fb-mascot-wrap asm-mascot"><img id="fbMascot" class="fb-mascot" alt=""></div>`);
+  body.appendChild(board);
+
+  // صف لكل حرف بترتيب أول ظهوره في الكلمة، وأشكاله مخلوطة كي لا يُخمّن الطفل
+  // الإجابة من ترتيب البطاقات بدل معرفة الشكل
+  const panel = mk('div','asm-panel');
+  const seenCh = [];
+  W.letters.forEach(ch=>{ if (!seenCh.includes(ch)) seenCh.push(ch); });
+  seenCh.forEach(ch=>{
+    const f = ARFORMS[ch] || {};
+    const forms = shuffle(['ini','med','fin','iso'].filter(k=> f[k] !== undefined));
+    const row = mk('div','asm-row');
+    row.appendChild(mk('div','asm-row-label', ch));
+    const tiles = mk('div','asm-tiles');
+    forms.forEach(form=>{
+      const b = document.createElement('button');
+      b.className = 'asm-tile';
+      const arm = ASM_ARM_CLASS[form] || '';
+      b.innerHTML = `<span class="asm-glyph ${arm}">${String.fromCodePoint(f[form])}</span>`;
+      b.onclick = ()=> aTap(ch, form, f[form]);
+      tiles.appendChild(b);
+    });
+    row.appendChild(tiles);
+    panel.appendChild(row);
+  });
+  body.appendChild(panel);
+
+  const tools = mk('div','write-tools');
+  tools.innerHTML = `
+    <button class="write-tool" onclick="aUndo()">↩️ تراجع</button>
+    <button class="write-tool" onclick="aClear()">🧽 مسح</button>
+    <button class="write-tool" onclick="wReplayWord()">🔊 اسمع الكلمة</button>`;
+  body.appendChild(tools);
+
+  const check = mk('button','write-check','تحقّق ✓');
+  check.id = 'wCheck';
+  check.disabled = true;
+  check.onclick = ()=>evaluateAssembleAnswer();
+  body.appendChild(check);
+
+  body.appendChild(mk('div','fb',''));
+  const nb = mk('button','btn-next', WRI+1<WROUNDS.length ? 'التالي ←' : 'اعرض نتيجتي 🏆');
+  nb.onclick = nextWriteRound;
+  body.appendChild(nb);
+
+  aRender();
+  playWriteQuestionAudio(W);
+}
+
+function aRender(){
+  const el = document.getElementById('asmWord');
+  const empty = document.getElementById('asmEmpty');
+  if (!el) return;
+  el.innerHTML = _aSelected.map((s,i)=>
+    `<span style="color:${ASM_COLORS[i % ASM_COLORS.length]}">${String.fromCodePoint(s.cp)}</span>`
+  ).join('');
+  if (empty) empty.style.display = _aSelected.length ? 'none' : '';
+  const chk = document.getElementById('wCheck');
+  if (chk) chk.disabled = answered || _aSelected.length === 0;
+}
+function aTap(ch, form, cp){
+  if (answered) return;
+  const W = WROUNDS[WRI];
+  if (_aSelected.length >= W.letters.length) return; // لا نتجاوز عدد حروف الكلمة
+  _aSelected.push({ch, form, cp});
+  aRender();
+}
+function aUndo(){ if (answered) return; _aSelected.pop(); aRender(); }
+function aClear(){ if (answered) return; _aSelected = []; aRender(); }
 
 function buildWriteRound(){
   answered = false;
   WTRIES = 0;
   _wStrokes = [];
   const W = WROUNDS[WRI];
+  if (W.kind === 'assemble'){ buildAssembleRound(W); return; }
+  buildTraceRound(W);
+}
+
+/* ── جولة التتبّع (تدريب لا اختبار) ──
+   جرّبنا طويلاً تحقيقاً هندسياً/ML Kit لصحة شكل الحرف والكلمة المكتوبين، وثبت
+   عبر كل هذه الجلسة (471 عيّنة خط أطفال حقيقية + اختبارات حيّة متكررة) أن كلا
+   الفحصين يرفضان خطأً حروفاً صحيحة كثيرة أو يقبلان أشكالاً خاطئة تماماً —
+   لا يوجد ضبط عتبات يحل المشكلة جذرياً. الحل: نجعل هذه الجولة تدريب تتبّع لا
+   اختبار: الشكل/الكلمة الصحيحة ظاهرة دائماً بلون رمادي شفاف مكرَّرة على اللوح
+   والطفل يقلّدها فوقها بإصبعه — فالنسخ الموجَّه نفسه هو ما يبني مهارة اليد،
+   ومعرفة الشكل الصحيح تُختبَر فعلاً في جولتَي التمييز والتجميع. كل محاولة
+   تُحتسب صحيحة بمجرد أن الطفل رسم شيئاً فعلياً (_hasTraced). */
+function buildTraceRound(W){
   const body = document.getElementById('gbody');
   body.innerHTML = '';
 
   body.appendChild(mk('div','rbadge',`✍️ اِخْتِبَارُ الْكِتَابَة — ${WRI+1} مِنْ ${WROUNDS.length}`));
 
   const qTxt = W.kind==='glyph'
-    ? `✍️ اُكْتُبْ شَكْلَ حَرْفِ <strong>${CL.name}</strong> ${W.label}`
-    : `✍️ اُكْتُبْ كَلِمَةَ <strong>${W.target}</strong>`;
+    ? `✍️ تَتَبَّعْ شَكْلَ حَرْفِ <strong>${CL.name}</strong> ${W.label}`
+    : `✍️ تَتَبَّعْ كَلِمَةَ <strong class="w-letters">${W.letters.join(' ')}</strong> مَوْصُولَة`;
   body.appendChild(mk('div','tlabel',qTxt));
 
-  // لوح الرسم
+  // لوح الرسم — النموذج المرجعي (رمادي شفاف) مكرَّر خلف قماشة الرسم الشفافة
+  const refHTML = W.kind==='glyph'
+    ? `<div class="trace-ref-grid">${Array(9).fill(0).map(()=>`<span>${W.target}</span>`).join('')}</div>`
+    : `<div class="trace-word-grid">${Array(4).fill(0).map(()=>`<span>${W.target}</span>`).join('')}</div>`;
   const wrap = mk('div','write-board-wrap');
-  wrap.innerHTML = `
-    <div class="write-board">
-      <canvas id="wCanvas"></canvas>
-      <div class="write-hint-overlay" id="wHint"></div>
-      <div class="write-reveal-overlay" id="wReveal"></div>
-    </div>`;
+  const mascotHTML = '<div class="fb-mascot-wrap trace-mascot-word"><img id="fbMascot" class="fb-mascot" alt=""></div>';
+  wrap.innerHTML = W.kind==='word'
+    ? `<div class="write-board">
+        ${refHTML}
+        <canvas id="wCanvas"></canvas>
+        ${mascotHTML}
+      </div>`
+    : `<div class="write-board">
+        ${refHTML}
+        <canvas id="wCanvas"></canvas>
+      </div>
+      <div class="fb-mascot-wrap trace-mascot"><img id="fbMascot" class="fb-mascot" alt=""></div>`;
   body.appendChild(wrap);
 
-  // الأدوات
   const tools = mk('div','write-tools');
   tools.innerHTML = `
     <button class="write-tool" onclick="wUndo()">↩️ تراجع</button>
     <button class="write-tool" onclick="wClear()">🧽 مسح</button>
-    <button class="write-tool" onclick="wShowHint()">👁 ذكّرني بالشكل</button>
+    ${W.kind==='word' ? `<button class="write-tool" onclick="wReplayWord()">🔊 اسمع الكلمة</button>` : ''}
   `;
   body.appendChild(tools);
 
   const check = mk('button','write-check','تحقّق ✓');
   check.id = 'wCheck';
   check.disabled = true;
-  check.onclick = ()=>evaluateWriteAnswer();
+  check.onclick = ()=>evaluateTraceAnswer();
   body.appendChild(check);
 
-  body.appendChild(mk('div','fb-mascot-wrap','<img id="fbMascot" class="fb-mascot" alt="">'));
   body.appendChild(mk('div','fb',''));
   const nb = mk('button','btn-next', WRI+1<WROUNDS.length ? 'التالي ←' : 'اعرض نتيجتي 🏆');
   nb.onclick = nextWriteRound;
   body.appendChild(nb);
 
   initWriteCanvas();
+  playWriteQuestionAudio(W);
+}
+
+/* ── صوت سؤال الكتابة ──
+   الأشكال: ملف واحد لكل حرف×موضع.
+   التتبّع اليدوي للكلمة: جملة عامة "تتبّع..." ثم نطق الكلمة (word_prompt.mp3).
+   التجميع بالنقر: جملة عامة منفصلة "اُكتب..." (assemble_prompt.mp3) — نص الشاشة
+   في هذه الجولة لم يتغيّر (لا تزال "اُكْتُبْ كَلِمَةَ...")، فلا يصحّ مشاركة نفس
+   ملف صوت التتبّع معها (كانا يتشاركانه سابقاً قبل أن يتغيّر نص التتبّع فقط). */
+async function playWriteQuestionAudio(W){
+  if (!soundEnabled) return;
+  if (W.kind === 'glyph'){
+    await playStaticMP3(`audio/write/${CL.char}_${W.pos}.mp3`).catch(()=>{});
+  } else if (W.kind === 'assemble'){
+    await playStaticMP3('audio/write/assemble_prompt.mp3').catch(()=>{});
+    await playWordAudio(W.target).catch(()=>{});
+  } else {
+    await playStaticMP3('audio/write/word_prompt.mp3').catch(()=>{});
+    await playWordAudio(W.target).catch(()=>{});
+  }
+}
+function wReplayWord(){
+  if (!soundEnabled) return;
+  const W = WROUNDS[WRI];
+  playWordAudio(W.target).catch(()=>{});
 }
 
 function initWriteCanvas(){
@@ -3806,9 +4172,10 @@ function initWriteCanvas(){
   _wCtx.lineWidth = Math.max(6, rect.width * 0.028);
 
   let drawing = false, cur = null;
+  const _wStartT = Date.now();
   const pos = e => {
     const r = _wCanvas.getBoundingClientRect();
-    return {x: e.clientX - r.left, y: e.clientY - r.top};
+    return {x: e.clientX - r.left, y: e.clientY - r.top, t: Date.now()-_wStartT};
   };
   _wCanvas.addEventListener('pointerdown', e=>{
     if (answered) return;
@@ -3863,247 +4230,120 @@ function wRedraw(){
 }
 function wUndo(){ if (answered) return; _wStrokes.pop(); wRedraw(); document.getElementById('wCheck').disabled = _wStrokes.length===0; }
 function wClear(){ if (answered) return; _wStrokes = []; wRedraw(); document.getElementById('wCheck').disabled = true; }
-/* حجم عرض متناسب مع طول النص (شكل مفرد كبير جداً، كلمة كاملة أصغر) */
-function _writeOverlayFontSize(text){
-  if (text.length<=1) return 9;
-  if (text.length<=3) return 6.5;
-  return 5;
-}
-function wShowHint(){
-  const W = WROUNDS[WRI];
-  const h = document.getElementById('wHint');
-  h.textContent = W.target;
-  h.style.fontSize = _writeOverlayFontSize(W.target) + 'rem';
-  h.classList.add('show');
-  setTimeout(()=>h.classList.remove('show'), 1600);
-}
 
-/* ── التقييم الهندسي المتسامح ── */
-function _maskFromCanvas(cnv, size){
-  // يقصّ محتوى الرسم إلى مربعه المحيط ثم يوحّده في شبكة size×size مع هامش
-  const ctx = cnv.getContext('2d');
-  const {width:w, height:h} = cnv;
-  const img = ctx.getImageData(0,0,w,h).data;
-  let minX=w, minY=h, maxX=-1, maxY=-1;
-  for (let y=0;y<h;y++) for (let x=0;x<w;x++){
-    if (img[(y*w+x)*4+3] > 40){
-      if (x<minX)minX=x; if (x>maxX)maxX=x;
-      if (y<minY)minY=y; if (y>maxY)maxY=y;
-    }
-  }
-  if (maxX<0) return null; // فارغ
-  const bw=maxX-minX+1, bh=maxY-minY+1;
-  const out = document.createElement('canvas');
-  out.width=size; out.height=size;
-  const octx = out.getContext('2d');
-  const m = size*0.08, box=size-2*m;
-  const sc = Math.min(box/bw, box/bh);
-  octx.drawImage(cnv, minX,minY,bw,bh, (size-bw*sc)/2, (size-bh*sc)/2, bw*sc, bh*sc);
-  const od = octx.getImageData(0,0,size,size).data;
-  const mask = new Uint8Array(size*size);
-  let count=0;
-  for (let i=0;i<size*size;i++){ if (od[i*4+3]>40){ mask[i]=1; count++; } }
-  return {mask, count, w:size, aspect:bw/bh};
-}
-
-function _renderTargetCanvas(text, dilate, fontFamily){
-  const cnv = document.createElement('canvas');
-  cnv.width=700; cnv.height=440;
-  const ctx = cnv.getContext('2d');
-  const fpx = text.length===1 ? 240 : Math.min(200, Math.floor(560/(text.length*0.62)));
-  ctx.font = `700 ${fpx}px ${fontFamily || "Amiri, 'Scheherazade New', serif"}`;
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.direction='rtl';
-  ctx.fillStyle='#000';
-  ctx.fillText(text, 350, 230);
-  if (dilate){
-    ctx.strokeStyle='#000';
-    ctx.lineWidth = fpx * (text.length===1 ? 0.30 : 0.22);
-    ctx.lineJoin='round';
-    ctx.strokeText(text, 350, 230);
-  }
-  return cnv;
-}
-/* خطوط القوالب: خط الطفل قد يشبه النسخ أو الخط المبسّط — نطابق ضد الاثنين ونأخذ الأفضل */
-const _WRITE_TPL_FONTS = ["Amiri, 'Scheherazade New', serif", "Tajawal, sans-serif"];
-
-/* بصمة النقاط للكلمة: هل توجد نقاط فوق الجسم؟ وهل توجد تحته؟ (منطق منيع أمام دمج الطفل للنقاط) */
-function _dotSignature(m){
-  const c = _components(m);
-  let above=false, below=false;
-  c.secs.forEach(s=>{ if (s.cy < c.main.cy) above=true; else below=true; });
-  return {above, below};
-}
-
-function _drawStrokesCanvas(widthMul){
-  const r = _wCanvas.getBoundingClientRect();
-  const cnv = document.createElement('canvas');
-  cnv.width=Math.round(r.width); cnv.height=Math.round(r.height);
-  const ctx = cnv.getContext('2d');
-  ctx.lineCap='round'; ctx.lineJoin='round';
-  ctx.strokeStyle='#000'; ctx.fillStyle='#000';
-  const lw = Math.max(6, r.width*0.028) * widthMul;
-  ctx.lineWidth = lw;
-  _wStrokes.forEach(s=>{
-    if (s.length===1){ ctx.beginPath(); ctx.arc(s[0].x,s[0].y,lw*0.55,0,Math.PI*2); ctx.fill(); return; }
-    ctx.beginPath(); ctx.moveTo(s[0].x,s[0].y);
-    for (let i=1;i<s.length;i++) ctx.lineTo(s[i].x,s[i].y);
-    ctx.stroke();
-  });
-  return cnv;
-}
-
-function _components(m){
-  // مكوّنات متصلة: الأكبر = جسم الحرف/الكلمة.
-  // "النقطة" = مكوّن صغير في البعدين معاً — أما جزء حرف كتبه الطفل منفصلاً
-  // (عادة شائعة عند الأطفال) فيُعامل كجزء من الجسم ولا يُحتسب نقطة.
-  const {mask,w}=m, seen=new Uint8Array(w*w), comps=[];
-  for (let i=0;i<w*w;i++){
-    if (!mask[i]||seen[i]) continue;
-    const stack=[i]; seen[i]=1;
-    let area=0, sy=0, n=0, minX=w, maxX=0, minY=w, maxY=0;
-    while (stack.length){
-      const p=stack.pop(); area++;
-      const y=(p/w)|0, x=p%w; sy+=y; n++;
-      if (x<minX)minX=x; if (x>maxX)maxX=x;
-      if (y<minY)minY=y; if (y>maxY)maxY=y;
-      [[x+1,y],[x-1,y],[x,y+1],[x,y-1]].forEach(([nx,ny])=>{
-        if (nx<0||ny<0||nx>=w||ny>=w) return;
-        const q=ny*w+nx;
-        if (mask[q]&&!seen[q]){ seen[q]=1; stack.push(q); }
-      });
-    }
-    comps.push({area, cy:sy/n, bw:maxX-minX+1, bh:maxY-minY+1});
-  }
-  comps.sort((a,b)=>b.area-a.area);
-  const main=comps[0];
-  const dotMax = w*0.24; // النقطة صغيرة في العرض والارتفاع معاً
-  const secs=comps.slice(1).filter(c=>c.area>=8 && c.bw<=dotMax && c.bh<=dotMax);
-  return {main, secs};
-}
-
-function _overlap(a, bDil){
-  let hit=0;
-  for (let i=0;i<a.mask.length;i++) if (a.mask[i]&&bDil.mask[i]) hit++;
-  return a.count ? hit/a.count : 0;
-}
-
-function checkWriting(W){
-  const SIZE=200;
-  const drawn    = _maskFromCanvas(_drawStrokesCanvas(1),   SIZE);
-  // تمديد أكبر لضربات الطفل الرفيعة — الغليف المرجعي خط تقويمي سميك (calligraphic)،
-  // فحاجة تغطيته يتطلّب هامشاً واسعاً حول خط الطفل الرفيع وإلا سيُرفض كل شيء تقريباً.
-  const drawnDil = _maskFromCanvas(_drawStrokesCanvas(9),   SIZE);
-  if (!drawn || drawn.count<120) return {ok:false, reason:'empty'};
-
-  const isWord = W.kind==='word';
-  // نطابق ضد كل صيغة مقبولة (ممدودة بالكشيدة / غليف مضغوط) وكل خط، ونعتمد أفضل نتيجة
-  const fonts = isWord ? _WRITE_TPL_FONTS : [_WRITE_TPL_FONTS[0]];
-  const variants = W.variants && W.variants.length ? W.variants : [W.target];
-  let best = null;
-  variants.forEach(variant=>{
-    fonts.forEach(fam=>{
-      const tpl    = _maskFromCanvas(_renderTargetCanvas(variant,false,fam), SIZE);
-      const tplDil = _maskFromCanvas(_renderTargetCanvas(variant,true ,fam), SIZE);
-      if (!tpl) return;
-      const cov  = _overlap(tpl,   drawnDil); // كم من الشكل المستهدف غطّته الكتابة
-      const prec = _overlap(drawn, tplDil);   // كم من الكتابة داخل حدود الشكل
-      if (!best || cov+prec > best.cov+best.prec) best = {cov, prec, tpl};
-    });
-  });
-  if (!best) return {ok:true}; // تعذّر رسم القالب — لا نعاقب الطفل
-
-  const covMin  = isWord ? 0.60 : 0.50;
-  const precMin = isWord ? 0.52 : 0.45;
-  // تناسب الأبعاد: الكلمات أفقية ممتدة — نشدّد عليها أكثر من الحرف المفرد
-  const ar = drawn.aspect/best.tpl.aspect;
-  const aspectOk = isWord ? (ar>0.45 && ar<2.2) : (ar>0.33 && ar<3.0);
-  // كثافة الحبر: الخربشة المصمتة تملأ اللوح بحبر أضعاف الكتابة الحقيقية
-  const dens = drawn.count / best.tpl.count;
-  const densOk = dens <= 2.6 && dens >= 0.10;
-
-  let dotsOk = true, dotsMsg = false;
-  if (isWord){
-    // بصمة النقاط: نرفض فقط إذا رسم الطفل نقاطاً في جهةٍ لا نقاط فيها أصلاً.
-    // (النقطة المدموجة بالجسم — عادة أطفال شائعة — مسموحة ولا تُحتسب خطأً)
-    const ds = _dotSignature(drawn), ts = _dotSignature(best.tpl);
-    dotsOk = !(ds.above && !ts.above) && !(ds.below && !ts.below);
-    dotsMsg = !dotsOk;
-  } else {
-    const dc = _components(drawn), tc = _components(best.tpl);
-    const tplDots = tc.secs.length;
-    const drwDots = dc.secs.length;
-    if (tplDots===0){ dotsOk = drwDots<=1; }
-    else {
-      const tplAbove = tc.secs[0].cy < tc.main.cy;
-      const drwSame = dc.secs.filter(s=> (s.cy < dc.main.cy) === tplAbove).length;
-      dotsOk = drwSame>=1 && Math.abs(drwDots-tplDots)<=1;
-      dotsMsg = !dotsOk;
-    }
-  }
-  const shapeOk = best.cov>=covMin && best.prec>=precMin && aspectOk && densOk;
-  return {ok: shapeOk && dotsOk, reason: !shapeOk?'shape':(dotsMsg?'dots':'')};
-}
-
-async function evaluateWriteAnswer(){
+/* تحقّق مرحلة التجميع — مقارنة رموز مباشرة، صواب أو خطأ قاطع بلا عتبات ولا تخمين.
+   يتبع نفس سياسة الكتابة اليدوية: محاولتان، ثم خصم قلب وكشف الإجابة والانتقال. */
+async function evaluateAssembleAnswer(){
   if (answered) return;
   const W = WROUNDS[WRI];
-  const res = checkWriting(W);
+  const expected = _assembleExpected(W.letters);
+  const ok = _aSelected.length === expected.length
+             && expected.every((e,i)=> _aSelected[i].cp === e.cp);
 
-  if (res.ok){
+  if (ok){
     answered = true;
     document.getElementById('wCheck').disabled = true;
-    score+=10; streak++; wrongStreak=0;
+    score+=15; streak++; wrongStreak=0;
+    _writeWordCorrect++;
     recordStat(true, (CL&&CL.char)||'');
     updateRewardStats(true);
     const msg = praiseText();
     showFB(true, '🎉 ' + msg);
     confetti();
-    document.querySelector('.btn-next').classList.add('show');
+    document.querySelector('.btn-next').classList.remove('show');
     if (soundEnabled) await playPraiseAudio(msg);
-    checkBadges(()=>{});
+    checkBadges(()=> document.querySelector('.btn-next').classList.add('show'));
     return;
   }
 
   WTRIES++;
   if (WTRIES < 2){
-    // محاولة أولى خاطئة: تشجيع دون خصم قلب، ونمسح اللوح ليحاول من جديد
-    const tip = res.reason==='dots' ? '💡 اِنْتَبِهْ لِلنِّقَاط — عَدَدُهَا وَمَكَانُهَا مُهِمّ!'
-              : res.reason==='empty' ? '💡 اُكْتُبْ فِي اللَّوْحِ أَوَّلاً'
-              : W.kind==='word' ? '💡 اُكْتُبِ الْحُرُوفَ مُتَّصِلَةً بِبَعْضِهَا وَبِحَجْمٍ كَبِيرٍ يَمْلَأُ اللَّوْح'
-              : '💡 اضْغَطْ "ذَكِّرْنِي بِالشَّكْلِ" وَتَأَمَّلْهُ ثُمَّ حَاوِلْ مِنْ جَدِيد';
+    // محاولة أولى خاطئة: تشجيع دون خصم قلب، ونُفرِغ اللوح ليعيد البناء من جديد
     const msg = encourageText();
-    showFB(false, `${msg}<br>${tip}`);
-    wClear();
+    showFB(false, `${msg}<br>💡 اِنْتَبِهْ لِشَكْلِ الْحَرْفِ فِي أَوَّلِ الْكَلِمَةِ وَوَسَطِهَا وَآخِرِهَا`);
+    _aSelected = [];
+    aRender();
     if (soundEnabled) await playEncourageAudio(msg);
     return;
   }
 
-  // المحاولة الثانية خاطئة: خصم قلب + كشف الشكل الصحيح + متابعة
   answered = true;
   document.getElementById('wCheck').disabled = true;
   lives=Math.max(0,lives-1); setLives(); streak=0; wrongStreak++;
   recordStat(false, (CL&&CL.char)||'', W.target);
   updateRewardStats(false);
-  const reveal = document.getElementById('wReveal');
-  reveal.textContent = W.target;
-  reveal.style.fontSize = _writeOverlayFontSize(W.target) + 'rem';
-  reveal.classList.add('show');
+  const correctHTML = expected.map((e,i)=>
+    `<span style="color:${ASM_COLORS[i % ASM_COLORS.length]}">${String.fromCodePoint(e.cp)}</span>`).join('');
+  const rev = mk('div','asm-reveal',
+    `هٰذِهِ هِيَ الْكَلِمَةُ الصَّحِيحَة<div class="asm-word">${correctHTML}</div>`);
+  const bd = document.querySelector('.asm-board');
+  if (bd) bd.insertAdjacentElement('afterend', rev);
   const msg = encourageText();
-  showFB(false, `${msg}<br>💡 هٰذَا هُوَ الشَّكْلُ الصَّحِيح — تَأَمَّلْهُ جَيِّداً`);
-  document.querySelector('.btn-next').classList.add('show');
+  showFB(false, `${msg}<br>💡 تَأَمَّلِ الْكَلِمَةَ الصَّحِيحَةَ جَيِّداً`);
+  document.querySelector('.btn-next').classList.remove('show');
   if (soundEnabled) await playEncourageAudio(msg);
+  document.querySelector('.btn-next').classList.add('show');
+}
+
+/* بوابة الجهد: يقسّم اللوح إلى نفس شبكة النموذج المرجعي (3×3 للحرف، عمود من 4
+   للكلمة) ويشترط لمسة واحدة فعلية على الأقل داخل كل خلية — أي أن الطفل مرّ على
+   كل نسخة من الشكل/الكلمة المكرَّرة، بصرف النظر عن دقة التتبّع. لا حكم على الشكل. */
+function _hasTracedAllCells(strokes, cols, rows){
+  if (!_wCanvas) return false;
+  const r = _wCanvas.getBoundingClientRect();
+  if (!r.width || !r.height) return false;
+  const cw = r.width/cols, ch = r.height/rows;
+  const hit = new Array(cols*rows).fill(false);
+  (strokes||[]).forEach(s=> s.forEach(p=>{
+    const c = Math.min(cols-1, Math.max(0, Math.floor(p.x/cw)));
+    const rr = Math.min(rows-1, Math.max(0, Math.floor(p.y/ch)));
+    hit[rr*cols+c] = true;
+  }));
+  return hit.every(Boolean);
+}
+
+async function evaluateTraceAnswer(){
+  if (answered) return;
+  const W = WROUNDS[WRI];
+  const cols = W.kind==='glyph' ? 3 : 1;
+  const rows = W.kind==='glyph' ? 3 : 4;
+  if (!_hasTracedAllCells(_wStrokes, cols, rows)){
+    showFB(false, '💡 تَتَبَّعْ كُلَّ نُسَخِ الشَّكْلِ الظَّاهِرَةِ عَلَى اللَّوْح');
+    return;
+  }
+  // جولة تدريب تتبّع: كل محاولة فيها رسم فعلي تُحتسب صحيحة دائماً
+  answered = true;
+  document.getElementById('wCheck').disabled = true;
+  score+=15; streak++; wrongStreak=0;
+  if (W.kind==='glyph') _writeGlyphCorrect++; else _writeWordCorrect++;
+  recordStat(true, (CL&&CL.char)||'');
+  updateRewardStats(true);
+  const msg = praiseText();
+  showFB(true, '🎉 ' + msg);
+  confetti();
+  document.querySelector('.btn-next').classList.remove('show');
+  if (soundEnabled) await playPraiseAudio(msg);
+  checkBadges(()=> document.querySelector('.btn-next').classList.add('show'));
 }
 
 function nextWriteRound(){
   WRI++;
-  if (WRI>=WROUNDS.length || lives===0){ showDone(); }
+  if (WRI>=WROUNDS.length || lives===0){
+    // نفحص شارتي الكتابة فقط إن أُنهيت المرحلة فعلاً (لا عند فقدان القلوب في المنتصف)
+    if (WRI>=WROUNDS.length && lives>0) checkWritingBadges(()=>showDone());
+    else showDone();
+  }
   else { buildWriteRound(); window.scrollTo(0,0); }
 }
 
 /* ── START LETTER ── */
+/* true = دخل الطفل من المسار المباشر (تمارين كتابة فقط بلا جولات التمييز الـ١٥).
+   يؤثّر على حساب النتيجة النهائية ومنح الإتقان في showDone. */
+let WRITING_ONLY = false;
+
 function startConnectingLetter(L){ recordSession();
   CL=L; CL.kind='connecting'; RI=0; score=0; lives=3; streak=0; wrongStreak=0; specialIdentifyMode=false; WROUNDS=null; WRI=0;
+  WRITING_ONLY = false;
   ROUNDS = buildRoundsForConnecting(L);
   nav('game');
   buildRound();
@@ -4111,6 +4351,7 @@ function startConnectingLetter(L){ recordSession();
 function startNonConnectingLetter(L){
   CURRENT_LEVEL=null;
   CL=L; CL.kind='nonconnecting'; RI=0; score=0; lives=3; streak=0; wrongStreak=0; specialIdentifyMode=false; WROUNDS=null; WRI=0;
+  WRITING_ONLY = false;
   ROUNDS = buildRoundsForNonConnecting(L);
   nav('game');
   buildRound();
@@ -4118,9 +4359,23 @@ function startNonConnectingLetter(L){
 function startSpecialIdentifyLetter(L){
   CURRENT_LEVEL=null;
   CL=L; CL.kind='nonconnecting'; RI=0; score=0; lives=3; streak=0; wrongStreak=0; specialIdentifyMode=true; WROUNDS=null; WRI=0;
+  WRITING_ONLY = false;
   ROUNDS = buildRoundsForSpecialIdentify(L);
   nav('game');
   buildRound();
+}
+
+/* ── المسار الثاني: تمارين الكتابة مباشرة من صفحة الحروف ──
+   نولّد جولات التمييز في الخلفية دون عرضها لأن buildWritingRounds يشتق كلماته
+   الخمس منها (ROUNDS)؛ بدونها كانت مرحلة الكلمات ستخرج فارغة تماماً. */
+function startWritingOnly(L){ recordSession();
+  CURRENT_LEVEL=null;
+  const nonConnecting = !!(ARFORMS[L.char] && ARFORMS[L.char].c === false);
+  CL=L; CL.kind = nonConnecting ? 'nonconnecting' : 'connecting';
+  RI=0; score=0; lives=3; streak=0; wrongStreak=0; specialIdentifyMode=false; WROUNDS=null; WRI=0;
+  WRITING_ONLY = true;
+  ROUNDS = nonConnecting ? buildRoundsForNonConnecting(L) : buildRoundsForConnecting(L);
+  startWritingStage();
 }
 
 /* ── TREE SHOWCASE — 5 real cases for connecting letters, 2 cases for non-connecting ── */
@@ -4317,6 +4572,7 @@ function addNewChild(){
   // نُفرّغ حقول التسجيل
   const nameEl = document.getElementById('obName'); if (nameEl) nameEl.value='';
   const cEl = document.getElementById('obCountry'); if (cEl) cEl.value='';
+  resetGenderPicker(); // طفل جديد فعلاً — يجب اختيار جنسه صراحةً، لا وراثة اختيار سابق
   nav('onboarding');
 }
 function openParentReport(){
@@ -4654,8 +4910,9 @@ function nextRound(){
       while (window._currentAudio) {
         await new Promise(r => setTimeout(r, 100));
       }
-      // بعد إتمام كل الجولات بنجاح تأتي مرحلة اختبار الكتابة، ثم النتيجة
-      if (lives > 0 && WROUNDS === null) startWritingStage();
+      // بعد إتمام جولات التمييز تظهر نتيجتها أولاً (شاشة منفصلة، بلا أي ادّعاء إتقان)،
+      // ثم يضغط الطفل ليبدأ مرحلة الكتابة — لا انتقال تلقائي مباشر بعد الآن
+      if (lives > 0 && WROUNDS === null) showRound1Result();
       else showDone();
     };
     waitAndShow();
@@ -4663,33 +4920,119 @@ function nextRound(){
   else{ buildRound(); window.scrollTo(0,0); }
 }
 
+/* ── نتيجة جولة التمييز (المرحلة الأولى) — شاشة منفصلة، لا تدّعي إتقاناً أبداً ──
+   لأن مرحلتَي الكتابة (الأشكال والكلمات) لم تبدآ بعد؛ زر واحد فقط للمتابعة إليهما. */
+function showRound1Result(){
+  const tot = ROUNDS.length*10;
+  const pct = Math.round(score/tot*100);
+  const _starsTxt = pct>=80?'⭐⭐⭐':pct>=50?'⭐⭐':'⭐';
+  document.getElementById('dstars').innerHTML =
+    Array.from(_starsTxt).map((s,i)=>`<span style="--stdel:${(i*0.18).toFixed(2)}s">${s}</span>`).join('');
+  document.getElementById('dscore').textContent = `نقاطك: ${score} من ${tot}`;
+  const bd = document.getElementById('dbreakdown');
+  if (bd){ bd.textContent = ''; bd.style.display = 'none'; }
+  document.getElementById('doneTitle').textContent =
+    g(`أَحْسَنْتَ يَا ${PROFILE.name}!`, `أَحْسَنْتِ يَا ${PROFILE.name}!`);
+  document.getElementById('dmsg').textContent =
+    g(`أَنْهَيْتَ جُزْءَ التَّمْيِيز، بَقِيَ اخْتِبَارُ الْكِتَابَة ✍️`,
+      `أَنْهَيْتِ جُزْءَ التَّمْيِيز، بَقِيَ اخْتِبَارُ الْكِتَابَة ✍️`);
+  const btns = document.getElementById('doneBtns');
+  if (btns){
+    btns.innerHTML = `<button class="btn" onclick="startWritingStage()">✍️ ابدأ اختبار الكتابة</button>`;
+  }
+  nav('done');
+  if (pct>=80) confetti(80);
+  if (soundEnabled) {
+    const isF = PROFILE.gender === 'female';
+    playStaticMP3(isF ? 'audio/results/round1_done_f.mp3' : 'audio/results/round1_done_m.mp3').catch(()=>{});
+  }
+}
+
 /* ── DONE ── */
 function showDone(){
-  const tot=(ROUNDS.length + (Array.isArray(WROUNDS)?WROUNDS.length:0))*10, pct=Math.round(score/tot*100);
+  // إعادة الأزرار لوضعها الطبيعي (قد تكون استُبدلت بزر "ابدأ اختبار الكتابة" في showRound1Result)
+  const btns = document.getElementById('doneBtns');
+  if (btns){
+    btns.innerHTML = `
+      <button class="btn" onclick="playAgain()">🔄 العب مرة أخرى</button>
+      <button class="btn2" onclick="stopAllAudio();nav('letters')">اختر حرفاً آخر</button>`;
+  }
+  // جولات الاختيار من متعدد بـ10 نقاط، وجولات الكتابة بـ15 (أصعب) — راجع evaluateTraceAnswer.
+  // في المسار المباشر لم يلعب الطفل جولات التمييز أصلاً (وُلِّدت كمصدر كلمات فقط)،
+  // فاحتسابها في المجموع كان سيُظهر نتيجة مثالية وكأنها ناقصة (مثال: 150 من 300).
+  const tot = (WRITING_ONLY ? 0 : ROUNDS.length*10) + (Array.isArray(WROUNDS)?WROUNDS.length:0)*15;
+  const pct = Math.round(score/tot*100);
   const _starsTxt = pct>=80?'⭐⭐⭐':pct>=50?'⭐⭐':'⭐';
   document.getElementById('dstars').innerHTML =
     Array.from(_starsTxt).map((s,i)=>`<span style="--stdel:${(i*0.18).toFixed(2)}s">${s}</span>`).join('');
   document.getElementById('dscore').textContent=`نقاطك: ${score} من ${tot}`;
+  // تفصيل الإنجاز: تمييز + كتابة (مُشتقّ حسابياً من score دون لمس أي كود تسجيل نقاط قائم)
+  const bd = document.getElementById('dbreakdown');
+  if (bd){
+    if (Array.isArray(WROUNDS) && WROUNDS.length>0){
+      const writeCorrect = _writeGlyphCorrect + _writeWordCorrect;
+      const writeTotal = _writeGlyphTotal + _writeWordTotal;
+      if (WRITING_ONLY){
+        bd.textContent = `✍️ كتابة: ${writeCorrect}/${writeTotal}`;
+      } else {
+        const mcCorrect = Math.round((score - writeCorrect*15) / 10);
+        bd.textContent = `✅ تمييز: ${mcCorrect}/${ROUNDS.length}  ·  ✍️ كتابة: ${writeCorrect}/${writeTotal}`;
+      }
+      bd.style.display = 'block';
+    } else {
+      bd.textContent = '';
+      bd.style.display = 'none';
+    }
+  }
   const isPerfect = score===tot;
   const titleTxt = isPerfect ? g(`أَحْسَنْتَ يَا ${PROFILE.name}!`, `أَحْسَنْتِ يَا ${PROFILE.name}!`)
-                  : pct>=50 ? g(`أَحْسَنْتَ يَا ${PROFILE.name}، وَلَكِنْ بَعْضُ الْحُرُوفِ بِحَاجَةٍ إِلَى إِعَادَة`, `أَحْسَنْتِ يَا ${PROFILE.name}، وَلَكِنْ بَعْضُ الْحُرُوفِ بِحَاجَةٍ إِلَى إِعَادَة`)
+                  : pct>=50 ? g(`أَحْسَنْتَ يَا ${PROFILE.name}، وَلَكِنْ بَعْضُ الْأَسْئِلَةِ بِحَاجَةٍ إِلَى إِعَادَة`, `أَحْسَنْتِ يَا ${PROFILE.name}، وَلَكِنْ بَعْضُ الْأَسْئِلَةِ بِحَاجَةٍ إِلَى إِعَادَة`)
                   : g(`حَاوِلْ مَرَّةً أُخْرَى يَا ${PROFILE.name}!`, `حَاوِلِي مَرَّةً أُخْرَى يَا ${PROFILE.name}!`);
   document.getElementById('doneTitle').textContent = titleTxt;
-  document.getElementById('dmsg').textContent = isPerfect
-    ? g(`أَتْقَنْتَ حَرْف ${CL.name} 🎊`, `أَتْقَنْتِ حَرْف ${CL.name} 🎊`)
-    : g(`اِقْتَرَبْتَ مِنْ إِتْقَانِ حَرْف ${CL.name} 💪`, `اِقْتَرَبْتِ مِنْ إِتْقَانِ حَرْف ${CL.name} 💪`);
+  // في المسار المباشر لا نَدَّعي إتقان الحرف مهما كانت النتيجة — الطفل تدرّب على
+  // الكتابة فقط ولم يمرّ بجولات التمييز، والإتقان في هذا التطبيق يعني المرحلتين معاً.
+  // ⚠️ لا نقول "بإتقان" حتى في حالة isPerfect: جولتا الشكل/الكلمة صارتا تدريب
+  // تتبّع مضمون النجاح دائماً (بلا أي تحقّق من دقة الرسم)، فـisPerfect هنا يعكس
+  // غالباً دقة التجميع فقط لا مهارة الكتابة اليدوية — وصف "إتقان" غير صحيح.
+  document.getElementById('dmsg').textContent = WRITING_ONLY
+    ? (isPerfect ? g(`تَدَرَّبْتَ عَلَى كِتَابَةِ حَرْف ${CL.name}! ✍️`, `تَدَرَّبْتِ عَلَى كِتَابَةِ حَرْف ${CL.name}! ✍️`)
+                 : g(`تَدَرَّبْتَ عَلَى كِتَابَةِ حَرْف ${CL.name}، وَاصِلْ 💪`, `تَدَرَّبْتِ عَلَى كِتَابَةِ حَرْف ${CL.name}، وَاصِلِي 💪`))
+    : (isPerfect
+        ? g(`أَتْقَنْتَ حَرْف ${CL.name} 🎊`, `أَتْقَنْتِ حَرْف ${CL.name} 🎊`)
+        : g(`اِقْتَرَبْتَ مِنْ إِتْقَانِ حَرْف ${CL.name} 💪`, `اِقْتَرَبْتِ مِنْ إِتْقَانِ حَرْف ${CL.name} 💪`));
   let _newLetterMastered = false;
-  if(pct>=50){
+  if(pct>=50 && !WRITING_ONLY){
     _newLetterMastered = !completedLetters.has(CL.char);
     completedLetters.add(CL.char); saveProgress();
   }
   nav('done');
   if(pct>=80) confetti(80);
-  // صوت إتقان الحرف — يُشغَّل فقط عند الإتقان الكامل، لأن الملف الصوتي نفسه يقول "أتقنتَ الحرف"
-  let _masteryAudio = Promise.resolve();
-  if (isPerfect && soundEnabled) {
-    const isF = PROFILE.gender === 'female';
-    _masteryAudio = playStaticMP3(isF ? 'audio/mastery/mastery_f.mp3' : 'audio/mastery/mastery_m.mp3').catch(()=>{});
+  const isF = PROFILE.gender === 'female';
+  let _masteryAudio;
+  if (WRITING_ONLY){
+    // المسار المباشر: كل الأصوات المسجّلة لهذه الشاشة تتحدث عن "إتقان الحرف"
+    // (mastery_* و close_*) وهو ادّعاء لا يصحّ هنا، فنكتفي بصوت العنوان المطابق
+    // لنصّه حرفياً ونتجنّب سطر الإتقان. (يمكن لاحقاً تسجيل سطر خاص بالتدرّب.)
+    if (soundEnabled && !isPerfect){
+      const titleAudio = pct>=50 ? (isF?'audio/results/partial_f.mp3':'audio/results/partial_m.mp3')
+                                 : (isF?'audio/results/retry_f.mp3':'audio/results/retry_m.mp3');
+      _masteryAudio = playStaticMP3(titleAudio).catch(()=>{});
+    } else {
+      _masteryAudio = Promise.resolve();
+    }
+  } else if (isPerfect){
+    // صوت إتقان الحرف — الملف الصوتي نفسه يقول "أتقنتَ الحرف" (يطابق dmsg)
+    _masteryAudio = soundEnabled ? playStaticMP3(isF?'audio/mastery/mastery_f.mp3':'audio/mastery/mastery_m.mp3').catch(()=>{}) : Promise.resolve();
+  } else if (soundEnabled) {
+    // صوت العنوان (نجاح جزئي/حاول مجدداً) ثم صوت "اقتربتَ من الإتقان" — يطابقان نص الشاشة حرفياً
+    const titleAudio = pct>=50 ? (isF?'audio/results/partial_f.mp3':'audio/results/partial_m.mp3')
+                                : (isF?'audio/results/retry_f.mp3':'audio/results/retry_m.mp3');
+    _masteryAudio = (async ()=>{
+      await playStaticMP3(titleAudio).catch(()=>{});
+      await playStaticMP3(isF?'audio/results/close_f.mp3':'audio/results/close_m.mp3').catch(()=>{});
+    })();
+  } else {
+    _masteryAudio = Promise.resolve();
   }
   if (_newLetterMastered) {
     const total = CONNECTING_LETTERS.length + NONCONNECTING_LETTERS.length;
@@ -4699,7 +5042,9 @@ function showDone(){
   }
 }
 function playAgain(){
-  if(CL.kind==='connecting') startConnectingLetter(CL);
+  // "العب مرة أخرى" يُعيد نفس المسار الذي جاء منه الطفل، لا المسار الكامل دائماً
+  if(WRITING_ONLY) startWritingOnly(CL);
+  else if(CL.kind==='connecting') startConnectingLetter(CL);
   else if(specialIdentifyMode) startSpecialIdentifyLetter(CL);
   else startNonConnectingLetter(CL);
 }
@@ -4847,7 +5192,7 @@ auth.onAuthStateChanged(function(user){
     loadSubscription(); // يربط مستمع Firestore الحقيقي بعد معرفة uid
     var hasProfile = loadProfile();
     if (hasProfile && PROFILE.name){ loadProgress(); buildHome(); nav('home'); }
-    else { nav('onboarding'); }
+    else { resetGenderPicker(); nav('onboarding'); }
   } else {
     CURRENT_UID = null;
     if (_subscriptionUnsub) { _subscriptionUnsub(); _subscriptionUnsub = null; }
@@ -4933,6 +5278,19 @@ function badgeSVG(icon, color, size=80) {
     hundred: `<svg width="${w}" height="${h}" viewBox="0 0 80 80">
       <circle cx="40" cy="40" r="38" fill="${color}22" stroke="${color}" stroke-width="3"/>
       <text x="40" y="48" text-anchor="middle" font-size="24" fill="${color}" font-weight="900" font-family="monospace">١٠٠</text>
+    </svg>`,
+
+    pen: `<svg width="${w}" height="${h}" viewBox="0 0 80 80">
+      <circle cx="40" cy="40" r="38" fill="${color}22" stroke="${color}" stroke-width="3"/>
+      <path d="M24 56 L48 32 L56 40 L32 64 L20 66 Z" fill="${color}"/>
+      <path d="M48 32 L56 24 L64 32 L56 40 Z" fill="${color}" opacity=".7"/>
+      <path d="M22 60 L24 56 L28 58 Z" fill="${color}88"/>
+    </svg>`,
+
+    quill: `<svg width="${w}" height="${h}" viewBox="0 0 80 80">
+      <circle cx="40" cy="40" r="38" fill="${color}22" stroke="${color}" stroke-width="3"/>
+      <path d="M50 18 C36 24 28 40 26 60 L34 60 C38 44 46 30 58 22 Z" fill="${color}"/>
+      <line x1="34" y1="60" x2="24" y2="66" stroke="${color}" stroke-width="4" stroke-linecap="round"/>
     </svg>`,
   };
   return svgs[icon] || svgs['star'];
@@ -5056,6 +5414,68 @@ function checkBadges(doneCallback) {
   }
 }
 
+/* ══════════════════════════════════════════════════════════
+   شارتا مرحلة الكتابة — منفصلتان تماماً عن نظام BADGES القائم
+   (بلا أي تعديل عليه) كي لا نُخاطر بأي شيء يعمل بالفعل.
+   تُطبَّقان على الحروف الـ28 كافة دون استثناء (بخلاف نظام
+   الشارات لكل مستوى الذي يعتمد على CURRENT_LEVEL ولا يُغطّي
+   الحروف غير المتصلة الستة — هذه الشارتان لا تحتاج ذلك أصلاً
+   لأن مرحلة الكتابة نفسها تُبنى من CL.char مباشرة لكل الحروف).
+   ══════════════════════════════════════════════════════════ */
+const WRITING_BADGES = {
+  glyph_master: { id:'glyph_master', icon:'pen',   color:'#9B5DE5', points:20 },
+  word_master:  { id:'word_master',  icon:'quill', color:'#2D8653', points:30 },
+};
+function _writingBadgesFor(ch, char){
+  if (!ch.writingBadges) ch.writingBadges = {};
+  if (!ch.writingBadges[char]) ch.writingBadges[char] = [];
+  return ch.writingBadges[char];
+}
+function checkWritingBadges(doneCallback){
+  const ch = activeChild();
+  const char = CL && CL.char;
+  if (!ch || !char){ if (doneCallback) doneCallback(); return; }
+
+  const earned = _writingBadgesFor(ch, char);
+  const queue = [];
+
+  if (_writeGlyphTotal>0 && _writeGlyphCorrect===_writeGlyphTotal && !earned.includes('glyph_master')){
+    earned.push('glyph_master');
+    const meta = WRITING_BADGES.glyph_master;
+    addPoints(ch, meta.points);
+    queue.push(Object.assign({}, meta, {
+      name: 'خطّاط الشكل',
+      desc: g(`كتبتَ شكل حرف ${CL.name} بنفسك في كل مواضعه! +${meta.points} نقطة!`,
+              `كتبتِ شكل حرف ${CL.name} بنفسكِ في كل مواضعه! +${meta.points} نقطة!`),
+      audioPath: `audio/badges/glyph_master_${char}_${PROFILE.gender==='female'?'f':'m'}.mp3`
+    }));
+  }
+  if (_writeWordTotal>0 && _writeWordCorrect===_writeWordTotal && !earned.includes('word_master')){
+    earned.push('word_master');
+    const meta = WRITING_BADGES.word_master;
+    addPoints(ch, meta.points);
+    queue.push(Object.assign({}, meta, {
+      name: 'كاتب الكلمات',
+      desc: g(`كتبتَ كلمات كاملة بحرف ${CL.name} بنفسك! +${meta.points} نقطة!`,
+              `كتبتِ كلمات كاملة بحرف ${CL.name} بنفسكِ! +${meta.points} نقطة!`),
+      audioPath: `audio/badges/word_master_${char}_${PROFILE.gender==='female'?'f':'m'}.mp3`
+    }));
+  }
+  saveChildren();
+
+  if (queue.length){
+    const showNext = () => {
+      const b = queue.shift();
+      if (!b){ if (doneCallback) doneCallback(); return; }
+      window._badgeDoneCallback = queue.length ? showNext : (doneCallback || null);
+      setTimeout(()=> showBadgePopup(b, {showPoints:false}), 600); // النقاط مُدرجة أصلاً في desc أعلاه
+    };
+    showNext();
+  } else {
+    if (doneCallback) doneCallback();
+  }
+}
+
 /* ── عرض الشارة المنبثقة ── */
 function showBadgePopup(badge, opts) {
   opts = opts || {};
@@ -5069,9 +5489,11 @@ function showBadgePopup(badge, opts) {
     pop.querySelector('.bb-desc').textContent += ` +${badge.points} نقطة!`;
   }
   pop.classList.add('show');
-  // صوت الشارة
+  // صوت الشارة — يستخدم مساراً مخصصاً إن مُرِّر (لشارات الكتابة لكل حرف/جنس)، وإلا المسار الافتراضي كما كان
   if (soundEnabled) {
-    playStaticMP3(`audio/badges/${badge.id}.mp3`).catch(()=>{});
+    // audioPath يُوضَع على كائن الشارة نفسه (badge.audioPath) في شارتَي الكتابة
+    // المخصّصتَين لكل حرف/جنس — وليس على opts
+    playStaticMP3(badge.audioPath || opts.audioPath || `audio/badges/${badge.id}.mp3`).catch(()=>{});
   }
   confetti(50);
 }
@@ -5130,9 +5552,21 @@ function celebrateLetterMastery(count, total, isPerfect) {
 
 /* ── شاشة البطل الكبيرة ── */
 function showChampionScreen() {
+  // النص مُذكَّر/مؤنث ومطابق حرفياً لملف الصوت audio/results/champion_m|f.mp3
+  const title = document.getElementById('chTitle');
+  const sub = document.getElementById('chSub');
+  if (title) title.textContent = g('بُطُلُ حُرُوفِي!', 'بَطَلَةُ حُرُوفِي!');
+  if (sub) sub.textContent = g(
+    'أَتْقَنْتَ جَمِيعَ الْحُرُوفِ الثَّمَانِيَةَ وَالْعِشْرِينَ — أَنْتَ بَطَلٌ حَقِيقِيٌّ يَسْتَحِقُّ كُلَّ الْإِعْجَاب!',
+    'أَتْقَنْتِ جَمِيعَ الْحُرُوفِ الثَّمَانِيَةَ وَالْعِشْرِينَ — أَنْتِ بَطَلَةٌ حَقِيقِيَّةٌ تَسْتَحِقُّ كُلَّ الْإِعْجَاب!'
+  );
   document.getElementById('championScreen')?.classList.add('show');
   confetti(80);
   setTimeout(() => confetti(80), 600);
+  if (soundEnabled) {
+    const isF = PROFILE.gender === 'female';
+    playStaticMP3(isF ? 'audio/results/champion_f.mp3' : 'audio/results/champion_m.mp3').catch(()=>{});
+  }
 }
 function closeChampionScreen() {
   document.getElementById('championScreen')?.classList.remove('show');
@@ -5513,6 +5947,7 @@ if (window.Capacitor?.isNativePlatform() && window.Capacitor.Plugins?.App) {
   window.Capacitor.Plugins.App.addListener('resume', silentSubscriptionCheck);
   window.Capacitor.Plugins.App.addListener('backButton', handleHardwareBack);
 }
+
 /* ── زر الرجوع الفعلي في الهاتف: يتصرف مثل أزرار "رجوع" داخل التطبيق ── */
 const BACK_TARGETS = {
   onboarding: 'login',
@@ -5620,8 +6055,8 @@ async function checkSubscriptionReturn(){
 <!-- شاشة بطل حروفي -->
 <div id="championScreen" class="champion-screen">
   <div style="font-size:80px">👑</div>
-  <div class="ch-title">بطل حروفي!</div>
-  <div class="ch-sub">أتقنت جميع الحروف الـ 28 — أنت بطل حقيقي يستحق كل الإعجاب!</div>
+  <div class="ch-title" id="chTitle">بطل حروفي!</div>
+  <div class="ch-sub" id="chSub">أتقنت جميع الحروف الـ 28 — أنت بطل حقيقي يستحق كل الإعجاب!</div>
   <button class="ch-close" onclick="closeChampionScreen()">شكراً! 🌟</button>
 </div>
 

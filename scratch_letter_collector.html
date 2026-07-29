@@ -1,0 +1,353 @@
+<title>جامع عينات الكتابة — صحّح حروفك</title>
+<style>
+  :root{
+    --bg:#faf7f2; --panel:#ffffff; --ink:#2a2438; --ink-soft:#6b6478;
+    --line:#e6e0d8; --accent:#7c4ddc; --accent-ink:#ffffff;
+    --accent-soft:#efe7fb; --good:#2d8653; --warn:#c2701b; --danger:#c23b3b;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#171320; --panel:#211c30; --ink:#f1ecfb; --ink-soft:#a89ec2;
+      --line:#352c48; --accent:#a980f0; --accent-ink:#1a1428; --accent-soft:#332a4a;
+      --good:#5fd394; --warn:#e0a355; --danger:#f0807e; }
+  }
+  :root[data-theme="dark"]{ --bg:#171320; --panel:#211c30; --ink:#f1ecfb; --ink-soft:#a89ec2;
+    --line:#352c48; --accent:#a980f0; --accent-ink:#1a1428; --accent-soft:#332a4a;
+    --good:#5fd394; --warn:#e0a355; --danger:#f0807e; }
+  :root[data-theme="light"]{ --bg:#faf7f2; --panel:#ffffff; --ink:#2a2438; --ink-soft:#6b6478;
+    --line:#e6e0d8; --accent:#7c4ddc; --accent-ink:#ffffff; --accent-soft:#efe7fb;
+    --good:#2d8653; --warn:#c2701b; --danger:#c23b3b; }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:Tahoma,'Segoe UI',Arial,sans-serif;
+    direction:rtl; min-height:100vh; display:flex; flex-direction:column;
+  }
+  .topbar{
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    padding:12px 20px; background:var(--panel); border-bottom:1px solid var(--line);
+  }
+  .prog{ font-variant-numeric:tabular-nums; font-size:.95rem; color:var(--ink-soft); }
+  .prog b{ color:var(--ink); }
+  .target-label{ font-size:1.15rem; font-weight:700; flex:1; min-width:200px; }
+  .target-label .pos{ color:var(--accent); }
+  select{
+    font-family:inherit; font-size:.95rem; padding:6px 10px; border-radius:8px;
+    border:1px solid var(--line); background:var(--bg); color:var(--ink);
+  }
+  label.toggle{ display:flex; align-items:center; gap:6px; font-size:.9rem; color:var(--ink-soft); cursor:pointer; user-select:none; }
+
+  .main{ flex:1; display:flex; gap:16px; padding:16px 20px; min-height:0; }
+  .board-wrap{
+    flex:1; display:flex; flex-direction:column; gap:10px; min-width:0;
+  }
+  .board{
+    position:relative; flex:1; background:var(--panel); border:2px dashed var(--line);
+    border-radius:16px; overflow:hidden; min-height:340px; touch-action:none; cursor:crosshair;
+  }
+  .board canvas{ position:absolute; inset:0; width:100%; height:100%; }
+  #refCanvas{ pointer-events:none; opacity:.22; }
+
+  .tools{ display:flex; gap:8px; flex-wrap:wrap; }
+  button{
+    font-family:inherit; font-size:.95rem; font-weight:600; padding:10px 16px;
+    border-radius:10px; border:1px solid var(--line); background:var(--panel);
+    color:var(--ink); cursor:pointer;
+  }
+  button:hover{ border-color:var(--accent); }
+  button:active{ transform:translateY(1px); }
+  button.primary{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); flex:1; min-width:160px; }
+  button.ghost{ background:transparent; }
+  button.danger{ color:var(--danger); }
+
+  .side{ width:260px; flex-shrink:0; display:flex; flex-direction:column; gap:12px; }
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px; }
+  .card h3{ margin:0 0 8px; font-size:.85rem; color:var(--ink-soft); font-weight:700; letter-spacing:.02em; }
+  .stat{ font-size:1.6rem; font-weight:800; font-variant-numeric:tabular-nums; }
+  .stat small{ font-size:.85rem; font-weight:600; color:var(--ink-soft); }
+  kbd{ background:var(--accent-soft); color:var(--accent); border-radius:6px; padding:1px 7px; font-size:.85em; font-family:inherit; }
+  .hint-list{ font-size:.85rem; color:var(--ink-soft); display:flex; flex-direction:column; gap:6px; }
+  .hint-list div{ display:flex; justify-content:space-between; gap:8px; }
+
+  .sample-row{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:6px 10px;
+    font-size:.85rem;
+  }
+  .sample-row .sdel{
+    width:24px; height:24px; padding:0; border-radius:6px; font-size:.9rem; line-height:1;
+    color:var(--danger); border-color:var(--line); flex-shrink:0;
+  }
+  .sample-row .sdel:hover{ background:var(--danger); color:#fff; border-color:var(--danger); }
+  .sample-empty{ font-size:.85rem; color:var(--ink-soft); }
+
+  .toast{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--good); color:#fff; padding:10px 20px; border-radius:10px;
+    font-weight:700; opacity:0; transition:opacity .18s, transform .18s; pointer-events:none;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+
+<div class="topbar">
+  <div class="target-label" id="targetLabel">...</div>
+  <select id="jumpSelect"></select>
+  <label class="toggle"><input type="checkbox" id="refToggle" checked> إظهار الشكل المرجعي خفيفاً</label>
+  <div class="prog" id="prog"></div>
+</div>
+
+<div class="main">
+  <div class="board-wrap">
+    <div class="board" id="board">
+      <canvas id="refCanvas"></canvas>
+      <canvas id="drawCanvas"></canvas>
+    </div>
+    <div class="tools">
+      <button class="ghost" id="btnUndo">↩️ تراجع <kbd>Z</kbd></button>
+      <button class="ghost" id="btnClear">🧽 مسح <kbd>X</kbd></button>
+      <button class="ghost" id="btnPrev">◀ السابق <kbd>←</kbd></button>
+      <button class="primary" id="btnSaveNext">✅ حفظ والتالي <kbd>Space</kbd></button>
+      <button class="ghost" id="btnSaveAgain">➕ حفظ نسخة أخرى لنفس الشكل <kbd>S</kbd></button>
+      <button class="ghost" id="btnSkip">تخطَّ بلا حفظ <kbd>→</kbd></button>
+    </div>
+  </div>
+  <div class="side">
+    <div class="card">
+      <h3>إجمالي العيّنات المحفوظة</h3>
+      <div class="stat" id="totalSamples">0</div>
+    </div>
+    <div class="card">
+      <h3>هذا الشكل</h3>
+      <div class="stat" id="thisShapeCount">0</div>
+      <small>نسخة محفوظة له</small>
+    </div>
+    <div class="card">
+      <h3>عيّنات هذا الشكل <small style="font-weight:400">(اضغط × للحذف)</small></h3>
+      <div id="shapeSampleList" style="display:flex; flex-direction:column; gap:6px;"></div>
+    </div>
+    <div class="card">
+      <h3>تصدير</h3>
+      <button class="primary" id="btnExport" style="width:100%">⬇️ تنزيل JSON</button>
+      <div style="height:8px"></div>
+      <button class="ghost" id="btnClearAll" style="width:100%; color:var(--danger)">مسح كل العيّنات المحفوظة</button>
+    </div>
+    <div class="card hint-list">
+      <div><span>حفظ + تالي</span><kbd>Space</kbd></div>
+      <div><span>حفظ نسخة أخرى</span><kbd>S</kbd></div>
+      <div><span>تراجع</span><kbd>Z</kbd></div>
+      <div><span>مسح اللوح</span><kbd>X</kbd></div>
+      <div><span>تنقّل</span><kbd>← →</kbd></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* بيانات مطابقة تماماً لِما يستخدمه التطبيق الأصلي — سُحبت من الجلسة الحيّة */
+const ARFORMS = {"ا":{"iso":65165,"fin":65166,"c":false},"ب":{"iso":65167,"ini":65169,"med":65170,"fin":65168,"c":true},"ت":{"iso":65173,"ini":65175,"med":65176,"fin":65174,"c":true},"ث":{"iso":65177,"ini":65179,"med":65180,"fin":65178,"c":true},"ج":{"iso":65181,"ini":65183,"med":65184,"fin":65182,"c":true},"ح":{"iso":65185,"ini":65187,"med":65188,"fin":65186,"c":true},"خ":{"iso":65189,"ini":65191,"med":65192,"fin":65190,"c":true},"د":{"iso":65193,"fin":65194,"c":false},"ذ":{"iso":65195,"fin":65196,"c":false},"ر":{"iso":65197,"fin":65198,"c":false},"ز":{"iso":65199,"fin":65200,"c":false},"س":{"iso":65201,"ini":65203,"med":65204,"fin":65202,"c":true},"ش":{"iso":65205,"ini":65207,"med":65208,"fin":65206,"c":true},"ص":{"iso":65209,"ini":65211,"med":65212,"fin":65210,"c":true},"ض":{"iso":65213,"ini":65215,"med":65216,"fin":65214,"c":true},"ط":{"iso":65217,"ini":65219,"med":65220,"fin":65218,"c":true},"ظ":{"iso":65221,"ini":65223,"med":65224,"fin":65222,"c":true},"ع":{"iso":65225,"ini":65227,"med":65228,"fin":65226,"c":true},"غ":{"iso":65229,"ini":65231,"med":65232,"fin":65230,"c":true},"ف":{"iso":65233,"ini":65235,"med":65236,"fin":65234,"c":true},"ق":{"iso":65237,"ini":65239,"med":65240,"fin":65238,"c":true},"ك":{"iso":65241,"ini":65243,"med":65244,"fin":65242,"c":true},"ل":{"iso":65245,"ini":65247,"med":65248,"fin":65246,"c":true},"م":{"iso":65249,"ini":65251,"med":65252,"fin":65250,"c":true},"ن":{"iso":65253,"ini":65255,"med":65256,"fin":65254,"c":true},"ه":{"iso":65257,"ini":65259,"med":65260,"fin":65258,"c":true},"و":{"iso":65261,"fin":65262,"c":false},"ي":{"iso":65265,"ini":65267,"med":65268,"fin":65266,"c":true},"ة":{"iso":65171,"fin":65172,"c":false},"ء":{"iso":65152,"c":false},"ى":{"iso":65263,"fin":65264,"c":false},"أ":{"iso":65155,"fin":65156,"c":false},"إ":{"iso":65159,"fin":65160,"c":false}};
+
+const WRITE_FORM_QUESTIONS = [
+  {pos:'ini',   label:'في بداية الكلمة',                          pick:f=>f.ini||f.iso, kash:(ch,f)=> f.c? ch+'ـ' : ch},
+  {pos:'med_c', label:'في وسط الكلمة بعد حرف متصل',        pick:f=>f.med||f.fin||f.iso, kash:(ch,f)=> f.c? 'ـ'+ch+'ـ' : 'ـ'+ch},
+  {pos:'med_n', label:'في وسط الكلمة بعد حرف غير متصل', pick:f=>f.ini||f.iso, kash:(ch,f)=> f.c? ch+'ـ' : ch},
+  {pos:'fin_c', label:'في نهاية الكلمة بعد حرف متصل',     pick:f=>f.fin||f.iso, kash:(ch,f)=> 'ـ'+ch},
+  {pos:'fin_n', label:'في نهاية الكلمة بعد حرف غير متصل', pick:f=>f.iso, kash:(ch,f)=> ch},
+];
+
+function buildQueueForChar(ch){
+  const f = ARFORMS[ch] || {};
+  const out = []; const seen = new Set();
+  WRITE_FORM_QUESTIONS.forEach(q=>{
+    const cp = q.pick(f);
+    if (!cp) return;
+    const glyph = String.fromCodePoint(cp);
+    const kash = q.kash(ch, f);
+    const dedupe = f.c === false;
+    if (dedupe && seen.has(kash)) return;
+    seen.add(kash);
+    out.push({ch, pos:q.pos, label:q.label, target:kash, variants:[kash, glyph]});
+  });
+  return out;
+}
+
+let QUEUE = [];
+Object.keys(ARFORMS).forEach(ch=>{ QUEUE = QUEUE.concat(buildQueueForChar(ch)); });
+
+let idx = 0;
+let samples = JSON.parse(localStorage.getItem('horofi_samples')||'[]');
+let strokes = []; let curStroke = null; let drawing = false;
+
+const board = document.getElementById('board');
+const dCanvas = document.getElementById('drawCanvas');
+const rCanvas = document.getElementById('refCanvas');
+const dCtx = dCanvas.getContext('2d');
+const rCtx = rCanvas.getContext('2d');
+const targetLabel = document.getElementById('targetLabel');
+const progEl = document.getElementById('prog');
+const totalEl = document.getElementById('totalSamples');
+const thisShapeEl = document.getElementById('thisShapeCount');
+const jumpSelect = document.getElementById('jumpSelect');
+const refToggle = document.getElementById('refToggle');
+
+function sizeCanvases(){
+  const r = board.getBoundingClientRect();
+  [dCanvas, rCanvas].forEach(c=>{ c.width = Math.round(r.width); c.height = Math.round(r.height); });
+  redrawRef();
+  redrawStrokes();
+}
+window.addEventListener('resize', sizeCanvases);
+
+function redrawRef(){
+  rCtx.clearRect(0,0,rCanvas.width,rCanvas.height);
+  if (!refToggle.checked) return;
+  const item = QUEUE[idx];
+  const fam = "'Amiri','Traditional Arabic','Arial',serif";
+  const fpx = Math.min(rCanvas.height*0.6, rCanvas.width*0.5);
+  rCtx.font = `700 ${fpx}px ${fam}`;
+  rCtx.textAlign = 'center'; rCtx.textBaseline = 'middle'; rCtx.direction = 'rtl';
+  rCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--ink');
+  rCtx.fillText(item.target, rCanvas.width/2, rCanvas.height/2);
+}
+
+function redrawStrokes(){
+  dCtx.clearRect(0,0,dCanvas.width,dCanvas.height);
+  dCtx.lineCap='round'; dCtx.lineJoin='round';
+  dCtx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent');
+  dCtx.lineWidth = Math.max(6, dCanvas.width*0.02);
+  strokes.forEach(s=>{
+    if (s.length===1){ dCtx.beginPath(); dCtx.arc(s[0].x,s[0].y,dCtx.lineWidth*0.55,0,Math.PI*2); dCtx.fillStyle=dCtx.strokeStyle; dCtx.fill(); return; }
+    dCtx.beginPath(); dCtx.moveTo(s[0].x,s[0].y);
+    for (let i=1;i<s.length;i++) dCtx.lineTo(s[i].x,s[i].y);
+    dCtx.stroke();
+  });
+}
+
+function ptFromEvent(e){
+  const r = dCanvas.getBoundingClientRect();
+  return { x: e.clientX-r.left, y: e.clientY-r.top, t: Math.round(performance.now()) };
+}
+board.addEventListener('pointerdown', e=>{
+  board.setPointerCapture(e.pointerId);
+  drawing = true; curStroke = [ptFromEvent(e)]; strokes.push(curStroke); redrawStrokes();
+});
+board.addEventListener('pointermove', e=>{
+  if (!drawing) return;
+  curStroke.push(ptFromEvent(e)); redrawStrokes();
+});
+function endStroke(){ drawing=false; curStroke=null; }
+board.addEventListener('pointerup', endStroke);
+board.addEventListener('pointercancel', endStroke);
+board.addEventListener('pointerleave', ()=>{ if(drawing) endStroke(); });
+
+function clearBoard(){ strokes = []; redrawStrokes(); }
+function undo(){ strokes.pop(); redrawStrokes(); }
+
+function updateUI(){
+  const item = QUEUE[idx];
+  targetLabel.innerHTML = `حرف <b>${item.ch}</b> — <span class="pos">${item.label}</span> — الشكل: <b style="font-family:'Amiri','Traditional Arabic',serif;font-size:1.4em">${item.target}</b>`;
+  progEl.innerHTML = `<b>${idx+1}</b> / ${QUEUE.length}`;
+  totalEl.textContent = samples.length;
+  const sameShape = samples.filter(s=>s.ch===item.ch && s.pos===item.pos).length;
+  thisShapeEl.textContent = sameShape;
+  jumpSelect.value = idx;
+  redrawRef();
+  renderShapeSamples();
+}
+
+/* قائمة العيّنات المحفوظة لهذا الشكل تحديداً، مع زر حذف لكل واحدة */
+function renderShapeSamples(){
+  const item = QUEUE[idx];
+  const list = document.getElementById('shapeSampleList');
+  list.innerHTML = '';
+  let found = false;
+  samples.forEach((s, globalI)=>{
+    if (s.ch!==item.ch || s.pos!==item.pos) return;
+    found = true;
+    const row = document.createElement('div');
+    row.className = 'sample-row';
+    const time = new Date(s.ts).toLocaleTimeString('ar', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    row.innerHTML = `<span>عيّنة — ${time}</span>`;
+    const del = document.createElement('button');
+    del.className = 'sdel'; del.textContent = '×'; del.title = 'حذف هذه العيّنة';
+    del.onclick = ()=> deleteSampleByGlobalIndex(globalI);
+    row.appendChild(del);
+    list.appendChild(row);
+  });
+  if (!found) list.innerHTML = '<div class="sample-empty">لا عيّنات محفوظة لهذا الشكل بعد</div>';
+}
+
+function deleteSampleByGlobalIndex(i){
+  samples.splice(i, 1);
+  localStorage.setItem('horofi_samples', JSON.stringify(samples));
+  toastMsg('تم حذف العيّنة 🗑️', true);
+  updateUI();
+}
+
+function goTo(newIdx, clearBoardToo){
+  idx = ((newIdx % QUEUE.length)+QUEUE.length) % QUEUE.length;
+  if (clearBoardToo!==false) clearBoard();
+  updateUI();
+}
+
+function saveSample(){
+  if (!strokes.length || strokes.every(s=>s.length<2)){
+    toastMsg('ارسم شيئاً أولاً', true); return false;
+  }
+  const item = QUEUE[idx];
+  samples.push({ ch:item.ch, pos:item.pos, target:item.target, variants:item.variants, strokes: JSON.parse(JSON.stringify(strokes)), ts: Date.now() });
+  localStorage.setItem('horofi_samples', JSON.stringify(samples));
+  toastMsg('تم الحفظ ✓');
+  return true;
+}
+
+let toastTimer=null;
+function toastMsg(msg, isWarn){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = isWarn ? 'var(--warn)' : 'var(--good)';
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 900);
+}
+
+document.getElementById('btnUndo').onclick = undo;
+document.getElementById('btnClear').onclick = clearBoard;
+document.getElementById('btnPrev').onclick = ()=> goTo(idx-1);
+document.getElementById('btnSkip').onclick = ()=> goTo(idx+1);
+document.getElementById('btnSaveNext').onclick = ()=>{ if(saveSample()) goTo(idx+1); };
+document.getElementById('btnSaveAgain').onclick = ()=>{ if(saveSample()) clearBoard(); updateUI(); };
+document.getElementById('btnClearAll').onclick = ()=>{
+  if (!confirm('مسح كل العيّنات المحفوظة نهائياً؟')) return;
+  samples = []; localStorage.setItem('horofi_samples','[]'); updateUI();
+};
+document.getElementById('btnExport').onclick = ()=>{
+  const blob = new Blob([JSON.stringify(samples,null,0)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'horofi_samples.json';
+  document.body.appendChild(a); a.click(); a.remove();
+};
+refToggle.addEventListener('change', redrawRef);
+
+document.addEventListener('keydown', e=>{
+  if (e.target.tagName==='SELECT') return;
+  if (e.code==='Space'){ e.preventDefault(); if(saveSample()) goTo(idx+1); }
+  else if (e.key==='s' || e.key==='S'){ if(saveSample()){ clearBoard(); updateUI(); } }
+  else if (e.key==='z' || e.key==='Z'){ undo(); }
+  else if (e.key==='x' || e.key==='X'){ clearBoard(); }
+  else if (e.key==='ArrowLeft'){ goTo(idx-1); }
+  else if (e.key==='ArrowRight'){ goTo(idx+1); }
+});
+
+QUEUE.forEach((item,i)=>{
+  const opt = document.createElement('option');
+  opt.value = i; opt.textContent = `${i+1}. ${item.ch} — ${item.label}`;
+  jumpSelect.appendChild(opt);
+});
+jumpSelect.addEventListener('change', ()=> goTo(parseInt(jumpSelect.value,10)));
+
+sizeCanvases();
+updateUI();
+window.addEventListener('resize', ()=>{ sizeCanvases(); redrawStrokes(); });
+</script>
