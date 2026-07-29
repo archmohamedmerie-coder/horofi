@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "486313718635",
+    "project_id": "horofi",
+    "storage_bucket": "horofi.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:486313718635:android:4d50683b72937f6ce8522e",
+        "android_client_info": {
+          "package_name": "com.horofi.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAU6SPqWUNz-dNyb6oFAKmE3Z8zn8nd43Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
