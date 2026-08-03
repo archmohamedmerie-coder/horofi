@@ -1,6 +1,93 @@
-# ملف تسليم — صحّح حروفك (28 يوليو 2026)
+# ملف تسليم — صحّح حروفك (29 يوليو 2026)
 
-## ⚠️ الأحدث: الأشرطة العلوية اللاصقة كانت تنزلق خلف شريط حالة أندرويد عند التمرير (28.07.2026)
+## ⚠️ الأحدث: إعداد iOS الموقَّع + بدء تسليم App Store + Git/Firebase (29.07.2026)
+
+### Git وFirebase (منجَز بالكامل)
+- المشروع الآن يُحفَظ فعلياً على GitHub (`archmohamedmerie-coder/horofi`, فرع `main`) —
+  عادة العمل صارت: بعد كل تعديل مهم، commit ثم push (بعد موافقة المستخدم).
+  **لا تترك تعديلات غير محفوظة لفترة طويلة.**
+- `horofi-release.keystore` و`keystore.properties` منسوخان احتياطياً على Google Drive
+  للمستخدم (مجلد خاص غير مُشارَك) — إن فُقد الجهاز الحالي، النسخة الاحتياطية موجودة.
+- **Firebase Crashlytics + Analytics** مفعَّلان في مشروع أندرويد (`google-services.json`
+  مُضاف، تبعيات Gradle مُضافة، تحقّقتُ حيّاً أن التطبيق يعمل بلا أعطال). لا توجد
+  أحداث تحليلات مخصّصة بعد (فقط الافتراضية التلقائية) — مهمة منفصلة لاحقاً.
+- إصلاحات UX أخيرة على تمارين الكتابة: الشخصية الكرتونية أُعيد تموضعها 3 مرات
+  حسب طلبات دقيقة (حرف مفرد: أسفل اللوح يمين، كلمة: داخل اللوح يمين، تجميع: داخل
+  لوح الكلمة يسار) — كل التفاصيل بالحجم/الموضع بالبكسل موجودة في CSS الحالي، لا
+  حاجة لإعادة القراءة إلا لو طُلب تغييرها مجدداً.
+
+### iOS: بناء موقَّع ناجح أخيراً عبر Codemagic (بعد جلسة تصحيح طويلة جداً)
+بعد عشرات المحاولات الفاشلة (راجع commits `9942..23067ce` في `codemagic.yaml` و
+`project.pbxproj` لتفاصيل كل محاولة)، **نجح البناء الموقَّع ووصل فعلياً لـApp
+Store Connect**. الدروس الحاسمة التي استغرقت وقتاً طويلاً لاكتشافها:
+
+1. **`keychain initialize` كان يمسح الشهادة المستوردة تلقائياً** — عندما تكون
+   `environment.ios_signing.certificates/provisioning_profiles` معرَّفة في
+   `codemagic.yaml`، Codemagic يستورد الشهادة تلقائياً لسلسلة مفاتيح خاصة به قبل
+   أي سكربت. استدعاء `keychain initialize` يدوياً بعد ذلك **يُنشئ سلسلة فارغة
+   ويستبدلها بها** — فتضيع الشهادة. **الحل: لا تستخدم `keychain initialize` إطلاقاً
+   عندما تعتمد على `ios_signing.certificates` المرجعية.** هذا كان السبب الجذري
+   الحقيقي وراء خطأ "No … signing certificate … with a private key was found"
+   المتكرر — لم يكن أبداً خطأ في الشهادة نفسها (جُرِّبت 3 شهادات مختلفة بلا فائدة
+   قبل اكتشاف هذا).
+2. **لا تخلط بين وضعَي التوقيع**: `ios_signing.distribution_type + bundle_identifier`
+   (تلقائي بالكامل) و`ios_signing.certificates + provisioning_profiles` (يدوي
+   بالشهادات المخزَّنة) **متعارضان** — Codemagic يرفض ملف YAML إن وُجدا معاً.
+3. **إنشاء شهادة عبر CLI (`app-store-connect fetch-signing-files --create`)
+   غير موثوق** — فشل مراراً بخطأ "Cannot save Signing Certificates without
+   certificate private key" بصرف النظر عن حالة الحساب. **البديل الموثوق**: زر
+   **"Generate certificate"** داخل واجهة Codemagic نفسها (Settings → Code signing
+   identities → iOS certificates) — يُنشئ Codemagic المفتاح الخاص ويحتفظ به
+   داخلياً من البداية للنهاية، مضمون التطابق دائماً.
+4. عند تكرار محاولات إنشاء الشهادات، **تُصبح صفحة "Certificates" في Apple
+   Developer Portal مليئة بشهادات متشابهة الاسم** — عمود **"CREATED BY"** هو
+   الطريقة الوحيدة الموثوقة للتمييز بينها (يدوياً = من شخص، تلقائياً = من API Key).
+   ⚠️ **لا تُلغِ (Revoke) شهادة من هناك إلا بعد التأكّد التام من العمود** — حدث
+   خطأ سابق بإلغاء الشهادة الصحيحة بالخطأ مع الخطأ.
+5. **الإعداد الحالي النهائي العامل**: `codemagic.yaml` (workflow `ios-testflight`)
+   يستخدم `ios_signing.certificates: [Horofi_Dist_Cert_v3]` و
+   `provisioning_profiles: [Horofi_AppStore_Profile]` (كلاهما من إنشاء Codemagic
+   نفسه)، بلا `keychain initialize`، مع `xcode-project use-profiles` ثم
+   `xcode-project build-ipa`. `project.pbxproj` للهدف Release مضبوط يدوياً على
+   `CODE_SIGN_STYLE = Manual` (لم يعد هذا التعديل هو الحل الفعلي كما تبيّن لاحقاً،
+   لكن إبقاؤه غير ضار).
+6. **مفتاح API لـApp Store Connect**: اسمه في Codemagic "Codemagic-Admin"، صلاحية
+   **Admin** (ليس App Manager — الأدنى قد يمنع إنشاء الشهادات). Team ID: `D4DJFFY3GX`.
+
+### تسليم App Store Connect — الحالة الحالية (غير مكتمل)
+البناء الموقَّع (رقم 1، نسخة 1.0) مرفوع بنجاح لـApp Store Connect. المُنجَز من
+نموذج التسليم:
+- Werbetexte / Beschreibung / Schlüsselwörter: مُعبّأة (نص جاهز في محادثة الجلسة
+  إن احتجت إعادة استخدامه لنسخة مستقبلية).
+- Support-URL / Marketing-URL: `https://archmohamedmerie-coder.github.io/horofi/`
+- Copyright: `© 2026 صحّح حروفك` (مطابق لتذييل صفحة الهبوط، وليس اقتراحي الأول).
+- Datenschutz-URL: `https://archmohamedmerie-coder.github.io/horofi/privacy.html`
+- Kategorie: Bildung. Preis: Gratis. Export Compliance: تشفير قياسي فقط،
+  فرنسا = Nein (لتفادي متطلّبات توثيق إضافية). Veröffentlichung: يدوي (Manuell).
+- Altersfreigaben: كل الأسئلة (Kindersicherung، Internetzugriff، إلخ) = NEIN.
+- Anmeldeinformationen: تسجيل دخول مطلوب فعلياً (المستخدم أدخل بيانات تجريبية).
+- **In-App-Käufe**: لا يوجد Stripe داخل نسخة iOS إطلاقاً — تم تجاهل هذا القسم بأمان.
+
+⚠️ **غير مكتمل بعد**:
+- بعض حقول Altersfreigaben (الخطوات 2-7) لم تُكمَل بعد.
+- صور الشاشات (Screenshots): وُلِّدت 6 صور (3 iPhone 6.5" @1242×2688 + 3 iPad 13"
+  @2064×2752) من لقطات محاكي قديمة محفوظة في scratchpad (سكربت Pillow بسيط:
+  `resize.py`/`resize_ipad.py` في مجلد scratchpad الجلسة يُعيد قصّها/توسيطها بخلفية
+  #FFF9F0). **المستخدم طلب 3 لقطات إضافية** (تمرين الاختيار من متعدد، صفحة
+  مستوى مبتدئ/متوسط/متقدم، الصفحة الرئيسية بالشعار وشبكة الكلمات) **بكلا
+  البُعدين** — لم تُنجَز بعد لأن **المحاكي عَلِق في حالة "offline" ولم يستجب**
+  حتى بعد `adb kill-server`/`emu kill`. **نقطة الاستئناف**: أنهِ عملية المحاكي
+  القديمة تماماً (قد تحتاج Task Manager يدوياً إن رفض adb)، شغّل AVD "Pixel_8"
+  من جديد، ثبّت `app-debug.apk` (موجود بالفعل مبنياً في
+  `android-app/android/app/build/outputs/apk/debug/`)، انتقل عبر CDP لهذه
+  الشاشات الثلاث، التقط لقطات، ثم شغّل نفس سكربتَي resize.py.
+- App-Informationen: Rechte-Informationen (حقوق المحتوى) وRechte-Fragen الأخرى
+  لم تُؤكَّد بعد.
+- Kontaktinformationen: رقم الهاتف كان فارغاً آخر مرة.
+- زر "Zur Prüfung hinzufügen" (الإرسال النهائي للمراجعة) **لم يُضغَط بعد عمداً** —
+  قرار المستخدم النهائي فقط.
+
+## ⚠️ (سابقاً) الأشرطة العلوية اللاصقة كانت تنزلق خلف شريط حالة أندرويد عند التمرير (28.07.2026)
 
 المستخدم لاحظ في لقطة حيّة (صفحة "تقرير الأهل") أن الشريط البنفسجي العلوي يبدأ
 من الحافة العليا تماماً بلا أي فجوة لشريط حالة الهاتف (الساعة/الواي فاي/البطارية).
