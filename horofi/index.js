@@ -80,13 +80,57 @@ exports.stripeWebhook = onRequest(
       try {
         const snap = await db.collection("users").where("stripeCustomerId", "==", customerId).limit(1).get();
         if (!snap.empty) {
-          await snap.docs[0].ref.set({ subscribed: false }, { merge: true });
+          await snap.docs[0].ref.set({ subscribed: false, paymentStatus: "canceled" }, { merge: true });
           logger.info(`⛔ تم إلغاء الاشتراك فعلياً للعميل ${customerId}`);
         } else {
           logger.warn(`⚠️ لم يُعثر على مستخدم مرتبط بالعميل ${customerId}`);
         }
       } catch (err) {
         logger.error("خطأ في تحديث حالة الإلغاء:", err);
+        res.status(500).send("Firestore write failed");
+        return;
+      }
+    }
+
+    // فشل تحصيل دفعة تجديد (بطاقة منتهية/رصيد غير كافٍ...). لا نُلغي الاشتراك هنا فوراً —
+    // Stripe يعيد المحاولة تلقائياً (Smart Retries) ثم يُرسل customer.subscription.deleted
+    // لاحقاً إن استمر الفشل. هذا الحدث فقط يُسجّل الحالة كي تكون مرئية (دعم/تنبيه مستقبلي)
+    // بدل أن يبقى المستخدم "مُفعَّلاً" بصمت دون أي أثر لفشل الدفع.
+    if (event.type === "invoice.payment_failed") {
+      const invoice = event.data.object;
+      const customerId = invoice.customer;
+      try {
+        const snap = await db.collection("users").where("stripeCustomerId", "==", customerId).limit(1).get();
+        if (!snap.empty) {
+          await snap.docs[0].ref.set(
+            { paymentStatus: "failed", lastPaymentFailedAt: admin.firestore.FieldValue.serverTimestamp() },
+            { merge: true }
+          );
+          logger.warn(`⚠️ فشل تحصيل دفعة للعميل ${customerId}`);
+        } else {
+          logger.warn(`⚠️ لم يُعثر على مستخدم مرتبط بالعميل ${customerId} (invoice.payment_failed)`);
+        }
+      } catch (err) {
+        logger.error("خطأ في تسجيل فشل الدفع:", err);
+        res.status(500).send("Firestore write failed");
+        return;
+      }
+    }
+
+    // أي تغيير آخر في حالة الاشتراك (past_due، trialing، active بعد تعافي من فشل دفع...) —
+    // نُسجّل الحالة الحالية دوماً كمرجع، دون التأثير على subscribed (يبقى فقط بيد
+    // checkout.session.completed و customer.subscription.deleted كما كان).
+    if (event.type === "customer.subscription.updated") {
+      const sub = event.data.object;
+      const customerId = sub.customer;
+      try {
+        const snap = await db.collection("users").where("stripeCustomerId", "==", customerId).limit(1).get();
+        if (!snap.empty) {
+          await snap.docs[0].ref.set({ paymentStatus: sub.status }, { merge: true });
+          logger.info(`ℹ️ حالة اشتراك العميل ${customerId} أصبحت: ${sub.status}`);
+        }
+      } catch (err) {
+        logger.error("خطأ في تحديث حالة الاشتراك:", err);
         res.status(500).send("Firestore write failed");
         return;
       }
