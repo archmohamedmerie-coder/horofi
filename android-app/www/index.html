@@ -2673,8 +2673,62 @@ function migrateRewardsIfNeeded(){
 function saveChildren(){
   try{ localStorage.setItem(_chKey('horofiChildren'), JSON.stringify(CHILDREN)); }catch(e){}
   try{ if (ACTIVE_CHILD_ID) localStorage.setItem(_chKey('horofiActiveChild'), ACTIVE_CHILD_ID); }catch(e){}
+  syncChildrenToCloud();
 }
 function activeChild(){ return CHILDREN.find(ch=>ch.id===ACTIVE_CHILD_ID) || null; }
+
+/* ══════════════════════════════════
+   مزامنة بيانات الأطفال (الاسم، التقدّم، الشارات) مع Firestore
+   ────────────────────────────────
+   localStorage يبقى المصدر السريع للقراءة/الكتابة الفورية كما كان دائماً؛
+   Firestore نسخة احتياطية سحابية فقط، كي لا يُفقَد تقدّم الطفل نهائياً عند
+   حذف التطبيق أو تغيير الجهاز. راجع قواعد الأمان في firestore.rules —
+   هذا الحقل هو الوحيد المسموح للعميل بكتابته مباشرة على وثيقة users/{uid}؛
+   حقول الاشتراك تبقى محمية بالكامل (Cloud Function فقط).
+   ══════════════════════════════════ */
+let _childrenSyncTimer = null;
+function syncChildrenToCloud(){
+  if (!CURRENT_UID) return;
+  clearTimeout(_childrenSyncTimer);
+  _childrenSyncTimer = setTimeout(()=>{
+    db.collection('users').doc(CURRENT_UID).set({
+      childrenData: CHILDREN,
+      childrenUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, {merge:true}).catch(err=>console.warn('تعذّرت مزامنة بيانات الأطفال سحابياً:', err.message));
+  }, 2000);
+}
+
+/* تُستدعى مرة واحدة عند تسجيل الدخول، قبل قراءة loadProfile() المحلية —
+   تُقارن النسخة المحلية بالسحابية وتقرّر أيّهما تعتمد:
+   - جهاز جديد/تطبيق مُعاد تثبيته (لا بيانات محلية) ويوجد نسخة سحابية → تُستعاد من السحابة.
+   - أول مرة تُفعَّل فيها هذه الميزة (بيانات محلية قديمة، لا نسخة سحابية بعد) → تُرفَع للسحابة كما هي.
+   - كلاهما موجود → الجهاز الحالي هو الأحدث فعلياً (يُستخدَم الآن)، فتبقى بياناته
+     المحلية كما هي وتُعاد كتابتها فوق النسخة السحابية لتوحيد المصدرين. */
+async function pullChildrenFromCloud(){
+  if (!CURRENT_UID) return;
+  let localRaw = null;
+  try{ localRaw = localStorage.getItem(_chKey('horofiChildren')); }catch(e){}
+  const hasLocal = !!(localRaw && JSON.parse(localRaw).length);
+
+  let cloudChildren = null;
+  try{
+    const doc = await db.collection('users').doc(CURRENT_UID).get();
+    if (doc.exists && Array.isArray(doc.data().childrenData) && doc.data().childrenData.length){
+      cloudChildren = doc.data().childrenData;
+    }
+  }catch(e){ console.warn('تعذّر جلب بيانات الأطفال من السحابة:', e.message); return; }
+
+  if (!hasLocal && cloudChildren){
+    try{ localStorage.setItem(_chKey('horofiChildren'), JSON.stringify(cloudChildren)); }catch(e){}
+  } else if (hasLocal){
+    // الجهاز الحالي يبقى المرجع؛ نُعيد رفعه فوراً (بلا انتظار) لتوحيد النسخة السحابية معه
+    CHILDREN = JSON.parse(localRaw);
+    db.collection('users').doc(CURRENT_UID).set({
+      childrenData: CHILDREN,
+      childrenUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, {merge:true}).catch(err=>console.warn('تعذّرت مزامنة بيانات الأطفال سحابياً:', err.message));
+  }
+}
 
 /* إنشاء طفل جديد من بيانات PROFILE الحالية وتنشيطه */
 function createChildFromProfile(){
@@ -3000,6 +3054,7 @@ function deleteAccount(){
   try{ localStorage.removeItem('horofiActiveChild_'+uid); }catch(e){}
   try{ localStorage.removeItem('horofiProfile'); }catch(e){}
   try{ localStorage.removeItem('horofiProgress'); }catch(e){}
+  db.collection('users').doc(uid).delete().catch(function(){});
   user.delete()
     .then(function(){
       CURRENT_UID = null; stopAllAudio(); showLoginTab(); nav('login');
@@ -5186,10 +5241,11 @@ buildHome();
 buildLetterGrid();
 
 /* ── Firebase Auth State — تسجيل دخول تلقائي ── */
-auth.onAuthStateChanged(function(user){
+auth.onAuthStateChanged(async function(user){
   if (user){
     CURRENT_UID = user.uid;
     loadSubscription(); // يربط مستمع Firestore الحقيقي بعد معرفة uid
+    await pullChildrenFromCloud(); // يستعيد بيانات الأطفال من السحابة إن كان هذا جهازاً جديداً
     var hasProfile = loadProfile();
     if (hasProfile && PROFILE.name){ loadProgress(); buildHome(); nav('home'); }
     else { resetGenderPicker(); nav('onboarding'); }

@@ -2,11 +2,26 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{uid} {
-      // كل مستخدم يقرأ فقط وثيقته الخاصة، ولا يستطيع الكتابة إطلاقاً —
-      // التفعيل الوحيد المسموح به يأتي من Cloud Function عبر Admin SDK
-      // (Admin SDK يتجاوز قواعد الأمان هذه بالكامل).
+      // كل مستخدم يقرأ فقط وثيقته الخاصة.
       allow read: if request.auth != null && request.auth.uid == uid;
-      allow write: if false;
+
+      // حقول الاشتراك (subscribed, stripeCustomerId, subscribedAt, stripeSessionId)
+      // محمية بالكامل — التفعيل الوحيد المسموح به يأتي من Cloud Function عبر Admin SDK
+      // (Admin SDK يتجاوز قواعد الأمان هذه بالكامل). العميل مسموح له فقط بكتابة
+      // نسخة احتياطية سحابية من بيانات أطفاله (childrenData) — راجع pullChildrenFromCloud/
+      // syncChildrenToCloud في horofi-v11-9-29.html.
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['childrenData', 'childrenUpdatedAt']);
+
+      allow update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['childrenData', 'childrenUpdatedAt'])
+        && (!('subscribed' in resource.data) || request.resource.data.subscribed == resource.data.subscribed)
+        && (!('stripeCustomerId' in resource.data) || request.resource.data.stripeCustomerId == resource.data.stripeCustomerId)
+        && (!('subscribedAt' in resource.data) || request.resource.data.subscribedAt == resource.data.subscribedAt)
+        && (!('stripeSessionId' in resource.data) || request.resource.data.stripeSessionId == resource.data.stripeSessionId);
+
+      // حذف الحساب: المستخدم يملك حذف وثيقته بالكامل (طلب "حذف الحساب نهائياً" في الواجهة).
+      allow delete: if request.auth != null && request.auth.uid == uid;
     }
   }
 }
