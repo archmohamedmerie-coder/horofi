@@ -968,6 +968,32 @@ const functionsApi = firebase.functions();
 let CURRENT_UID = null;
 let _subscriptionUnsub = null; // إلغاء الاستماع السابق عند تبديل المستخدم
 
+/* ══════════════════════════════════
+   معالج أخطاء JS عام — لا يوجد أي معالج مماثل قبل هذا، فأي استثناء غير
+   متوقّع كان يسقط بصمت (لا سجلّ، لا تنبيه للمستخدم، الشاشة تبقى على
+   حالتها الأخيرة دون تفسير). يرسل التفاصيل لـFirebase Crashlytics على
+   الجوّال (يتراجع لـconsole.error فقط في متصفح عادي بلا Capacitor).
+   ══════════════════════════════════ */
+function _reportJsError(label, err){
+  try{
+    const detail = (err && err.message) ? err.message : String(err);
+    const stack = (err && err.stack) ? '\n' + err.stack : '';
+    const msg = (label + ': ' + detail + stack).slice(0, 1900);
+    const CapCrashlytics = window.Capacitor?.Plugins?.FirebaseCrashlytics;
+    if (window.Capacitor?.isNativePlatform() && CapCrashlytics) {
+      CapCrashlytics.recordException({ message: msg }).catch(()=>{});
+    } else {
+      console.error('[' + label + ']', err);
+    }
+  }catch(e){}
+}
+window.addEventListener('error', function(event){
+  _reportJsError('window.onerror', event.error || event.message);
+});
+window.addEventListener('unhandledrejection', function(event){
+  _reportJsError('unhandledrejection', event.reason);
+});
+
 /* ═══ Authoritative Unicode Arabic Presentation Forms-B table ═══ */
 const ARFORMS = {
   'ا': {iso:0xFE8D, fin:0xFE8E, c:false},

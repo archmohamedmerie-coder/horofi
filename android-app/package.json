@@ -8,6 +8,7 @@
     "open": "npx cap open android"
   },
   "dependencies": {
+    "@capacitor-firebase/crashlytics": "^6.3.1",
     "@capacitor/android": "^6.1.0",
     "@capacitor/app": "^6.0.3",
     "@capacitor/browser": "^6.0.6",
