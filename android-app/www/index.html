@@ -743,6 +743,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
       </button>
     </div><!-- /resetForm -->
 
+    <button onclick="openPrivacyPolicy()" style="display:block;width:100%;padding:8px;margin-top:8px;background:transparent;color:#888;border:none;font-size:.8rem;font-weight:700;font-family:'Tajawal',sans-serif;cursor:pointer;text-decoration:underline">
+      سياسة الخصوصية
+    </button>
+
   </div><!-- /card -->
 </div><!-- /login screen -->
 
@@ -3030,9 +3034,20 @@ function buildAccountScreen(){
   btnWrap.innerHTML = `
     ${isSubscribed ? `<button class="btn2" style="max-width:280px;width:100%" id="manageSubBtn" onclick="openBillingPortal()">💳 إدارة / إلغاء الاشتراك</button>` : ''}
     <button class="btn2" style="max-width:280px;width:100%" onclick="changeMyPassword()">🔑 تغيير كلمة السر</button>
+    <button class="btn2" style="max-width:280px;width:100%" onclick="openPrivacyPolicy()">📄 سياسة الخصوصية</button>
     <button class="btn2" style="max-width:280px;width:100%;background:#fff0f0;color:#c73030;border:2px solid #ffcccc" onclick="deleteAccount()">🗑️ حذف الحساب نهائياً</button>
   `;
   body.appendChild(btnWrap);
+}
+/* ── فتح سياسة الخصوصية (مطلوبة بشكل ظاهر داخل التطبيق نفسه، لا فقط في صفحة المتجر — Apple Guideline 5.1.1) ── */
+const PRIVACY_POLICY_URL = 'https://archmohamedmerie-coder.github.io/horofi/privacy.html';
+function openPrivacyPolicy(){
+  const CapBrowser = window.Capacitor?.Plugins?.Browser;
+  if (window.Capacitor?.isNativePlatform() && CapBrowser) {
+    CapBrowser.open({ url: PRIVACY_POLICY_URL });
+  } else {
+    window.open(PRIVACY_POLICY_URL, '_blank', 'noopener,noreferrer');
+  }
 }
 /* ── فتح بوابة إدارة/إلغاء الاشتراك من Stripe ── */
 async function openBillingPortal(){
