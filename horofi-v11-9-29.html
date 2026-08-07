@@ -2827,34 +2827,28 @@ function loadProgress(){
     if (raw){ completedLetters = new Set(JSON.parse(raw)); }
   }catch(e){}
 }
-/* هل اختار الوالد جنس الطفل صراحةً في شاشة التسجيل الحالية؟
-   (وُجد خطأ حقيقي: طفلة خُوطبت كولد — السبب أن PROFILE.gender يبدأ 'male' افتراضياً
-   ولم يكن هناك إلزام بالضغط على أحد الزرّين، فمرّ الافتراض الصامت دون أن يلاحظه أحد) */
-let _obGenderChosen = false;
+/* اختيار جنس الطفل — يُستخدَم فقط لضبط صيغة المخاطبة والصوت بالعربية (مذكّر/مؤنث)،
+   وهو اختياري تماماً: يبدأ بقيمة افتراضية ظاهرة بصرياً (لا صامتة) يمكن للوالد
+   تغييرها بضغطة، بلا أي إلزام بالمتابعة (طُلب هذا صراحة من Apple — راجع
+   Guideline 5.1.1(v): لا يجوز إلزام المستخدم بمعلومة شخصية غير ضرورية لعمل
+   التطبيق الأساسي؛ يجب أن تبقى اختيارية إن طُلبت). الفرق عن الخطأ القديم
+   (طفلة خُوطبت كولد): هنا الافتراض *ظاهر ومرئي* دائماً على الزر، لا خفياً. */
 function selectGender(g){
-  _obGenderChosen = true;
   PROFILE.gender = g;
   document.getElementById('obBoy').style.borderColor = g==='male' ? 'var(--purple)' : 'var(--border)';
   document.getElementById('obBoy').style.background = g==='male' ? '#F5F0FF' : '#fff';
   document.getElementById('obGirl').style.borderColor = g==='female' ? 'var(--purple)' : 'var(--border)';
   document.getElementById('obGirl').style.background = g==='female' ? '#F5F0FF' : '#fff';
 }
-/* يُستدعى في كل مرة تُفتح فيها شاشة التسجيل من جديد (طفل جديد، أو تعديل طفل قائم)
-   حتى لا يبقى اختيار الطفل السابق ظاهراً كتمييز بصري لطفل مختلف */
+/* يُستدعى في كل مرة تُفتح فيها شاشة التسجيل من جديد (طفل جديد، أو تعديل طفل قائم) —
+   يعرض دائماً اختياراً افتراضياً مرئياً ("ولد") قابلاً للتغيير، لا حالة فارغة. */
 function resetGenderPicker(){
-  _obGenderChosen = false;
-  const boy = document.getElementById('obBoy'), girl = document.getElementById('obGirl');
-  if (boy){ boy.style.borderColor='var(--border)'; boy.style.background='#fff'; }
-  if (girl){ girl.style.borderColor='var(--border)'; girl.style.background='#fff'; }
+  selectGender('male');
 }
 /* تعديل اسم/بيانات طفل موجود بالفعل — جنسه معروف مسبقاً وصحيح، فنعرضه محدَّداً
    بصرياً بدل تصفير الاختيار (الذي يُستخدم فقط عند إضافة طفل جديد فعلاً) */
 function openEditProfile(){
-  _obGenderChosen = true;
-  const boy = document.getElementById('obBoy'), girl = document.getElementById('obGirl');
-  const isF = PROFILE.gender === 'female';
-  if (boy){ boy.style.borderColor = !isF ? 'var(--purple)' : 'var(--border)'; boy.style.background = !isF ? '#F5F0FF' : '#fff'; }
-  if (girl){ girl.style.borderColor = isF ? 'var(--purple)' : 'var(--border)'; girl.style.background = isF ? '#F5F0FF' : '#fff'; }
+  selectGender(PROFILE.gender === 'female' ? 'female' : 'male');
   nav('onboarding');
 }
 /* ══════════════════════════════════════════════════════
@@ -3134,12 +3128,6 @@ function completeOnboarding(){
   if (!countryVal){
     if(countryEl){ countryEl.style.borderColor='var(--red)'; setTimeout(()=>{countryEl.style.borderColor='var(--border)';},800); }
     alert('من فضلك اختر بلدك!'); return;
-  }
-  if (!_obGenderChosen){
-    const boy = document.getElementById('obBoy'), girl = document.getElementById('obGirl');
-    [boy, girl].forEach(btn=>{ if (btn){ btn.style.borderColor='var(--red)'; setTimeout(()=>{ btn.style.borderColor='var(--border)'; },800); } });
-    alert('من فضلك اختر: ولد أم بنت؟');
-    return;
   }
   const parts = countryVal.split('|');
   PROFILE.name = nameVal;
@@ -5993,8 +5981,17 @@ function isLetterFree(char){
   if (isSubscribed) return true;
   return FREE_LETTERS.includes(char);
 }
+/* Apple لا يسمح بشراء محتوى رقمي خارج التطبيق (خارج In-App Purchase) — راجع
+   Guideline 2.1(b)/3.1.1. لا يوجد بعد مسار شراء حقيقي عبر Apple لهذا التطبيق،
+   فنُخفي الشراء بالكامل على iOS بدل مخالفة القاعدة، ونعرض رسالة صريحة بدلاً
+   من زر مكسور. أندرويد لا يتأثر إطلاقاً (يستمر عبر Stripe كما هو). */
 function showSubscriptionPage(){
   stopAllAudio();
+  const isIOS = window.Capacitor?.getPlatform() === 'ios';
+  const buyBtns = document.getElementById('subBuyButtons');
+  const iosNotice = document.getElementById('subIosNotice');
+  if (buyBtns) buyBtns.style.display = isIOS ? 'none' : '';
+  if (iosNotice) iosNotice.style.display = isIOS ? '' : 'none';
   nav('subscription');
 }
 const STRIPE_URL = 'https://buy.stripe.com/test_cNiaEX4Uu7AQgAv1gMbo400';
@@ -6098,13 +6095,18 @@ async function checkSubscriptionReturn(){
         <li>✅ دعم صوتي كامل</li>
       </ul>
       <div class="sub-price">2 يورو / شهر</div>
-      <button class="sub-web-btn" style="margin-top:4px" onclick="activateSubscription()">
-        <span>🔒 اشترك الآن عبر موقعنا الآمن</span>
-        <span class="sub-web-sub">دفع مشفّر بالكامل عبر Stripe — يفتح في المتصفح</span>
-      </button>
-      <div class="sub-secure-note">🛡️ ستعود تلقائياً إلى التطبيق فور إتمام الدفع</div>
-      <button class="btn2" style="width:100%;margin-top:6px;font-size:.88rem" onclick="checkSubscriptionReturn()">لقد دفعتُ، تحقّق يدوياً ✅</button>
-      <div id="subCheckMsg" style="min-height:18px;font-size:.85rem;text-align:center;margin-top:6px"></div>
+      <div id="subBuyButtons">
+        <button class="sub-web-btn" style="margin-top:4px" onclick="activateSubscription()">
+          <span>🔒 اشترك الآن عبر موقعنا الآمن</span>
+          <span class="sub-web-sub">دفع مشفّر بالكامل عبر Stripe — يفتح في المتصفح</span>
+        </button>
+        <div class="sub-secure-note">🛡️ ستعود تلقائياً إلى التطبيق فور إتمام الدفع</div>
+        <button class="btn2" style="width:100%;margin-top:6px;font-size:.88rem" onclick="checkSubscriptionReturn()">لقد دفعتُ، تحقّق يدوياً ✅</button>
+        <div id="subCheckMsg" style="min-height:18px;font-size:.85rem;text-align:center;margin-top:6px"></div>
+      </div>
+      <div id="subIosNotice" style="display:none;background:#F5F0FF;border-radius:14px;padding:16px;text-align:center;margin-top:4px;font-weight:700;color:var(--purple)">
+        الاشتراك غير متاح حالياً على iOS — يعمل فريقنا على توفيره قريباً.
+      </div>
       <button class="login-link" onclick="stopAllAudio();nav('letters')">العودة للحروف المجانية</button>
     </div>
   </div>
