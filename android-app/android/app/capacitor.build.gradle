@@ -12,6 +12,7 @@ dependencies {
     implementation project(':capacitor-firebase-crashlytics')
     implementation project(':capacitor-app')
     implementation project(':capacitor-browser')
+    implementation project(':squareetlabs-capacitor-subscriptions')
 
 }
 

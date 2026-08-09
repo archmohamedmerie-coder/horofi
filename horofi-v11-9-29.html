@@ -5997,19 +5997,74 @@ function isLetterFree(char){
   return FREE_LETTERS.includes(char);
 }
 /* Apple لا يسمح بشراء محتوى رقمي خارج التطبيق (خارج In-App Purchase) — راجع
-   Guideline 2.1(b)/3.1.1. لا يوجد بعد مسار شراء حقيقي عبر Apple لهذا التطبيق،
-   فنُخفي الشراء بالكامل على iOS بدل مخالفة القاعدة، ونعرض رسالة صريحة بدلاً
-   من زر مكسور. أندرويد لا يتأثر إطلاقاً (يستمر عبر Stripe كما هو). */
+   Guideline 2.1(b)/3.1.1. على iOS نستخدم StoreKit 2 عبر @squareetlabs/capacitor-subscriptions
+   (اشترِ من purchaseIOSSubscription أدناه)، بسعر مختلف عن أندرويد (2.99€ بدل 2€) تعويضاً
+   لعمولة آبل. أندرويد لا يتأثر إطلاقاً (يستمر عبر Stripe كما هو). */
+const APPLE_SUBSCRIPTION_PRODUCT_ID = 'com.Horofi.monthly2eur';
 function showSubscriptionPage(){
   stopAllAudio();
   const isIOS = window.Capacitor?.getPlatform() === 'ios';
   const buyBtns = document.getElementById('subBuyButtons');
   const iosNotice = document.getElementById('subIosNotice');
+  const priceLabel = document.getElementById('subPriceLabel');
   if (buyBtns) buyBtns.style.display = isIOS ? 'none' : '';
   if (iosNotice) iosNotice.style.display = isIOS ? '' : 'none';
+  if (priceLabel) priceLabel.textContent = isIOS ? '2.99 يورو / شهر' : '2 يورو / شهر';
   nav('subscription');
 }
-const STRIPE_URL = 'https://buy.stripe.com/test_cNiaEX4Uu7AQgAv1gMbo400';
+/* ── الشراء الفعلي على iOS عبر StoreKit 2 ── */
+async function purchaseIOSSubscription(){
+  const Sub = window.Capacitor?.Plugins?.Subscriptions;
+  const btn = document.getElementById('subIosBuyBtn');
+  const msgEl = document.getElementById('subIosMsg');
+  if (!Sub){ if (msgEl){ msgEl.style.color='#e53935'; msgEl.textContent='تعذّر الوصول لمتجر آبل'; } return; }
+  if (btn){ btn.disabled = true; btn.querySelector('span').textContent = '⏳ جارٍ المعالجة...'; }
+  if (msgEl){ msgEl.style.color='#888'; msgEl.textContent=''; }
+  try{
+    const res = await Sub.purchaseProduct({ productIdentifier: APPLE_SUBSCRIPTION_PRODUCT_ID });
+    if (res.responseCode === 3){ if (msgEl) msgEl.textContent = 'تم إلغاء عملية الشراء'; return; }
+    if (res.responseCode === 4){ if (msgEl){ msgEl.textContent = 'بانتظار موافقة ولي الأمر (Ask to Buy)'; } return; }
+    if (res.responseCode !== 0){ throw new Error('فشل الشراء (كود ' + res.responseCode + ')'); }
+    await confirmAppleTransactionWithServer();
+  }catch(err){
+    if (msgEl){ msgEl.style.color='#e53935'; msgEl.textContent='تعذّر إتمام الشراء: ' + (err.message||err); }
+  }finally{
+    if (btn){ btn.disabled = false; btn.querySelector('span').textContent = '🔒 اشترك الآن'; }
+  }
+}
+/* لا نُفعّل الاشتراك محلياً أبداً — نرسل transactionId فقط، والخادم يتحقق منه
+   حقيقةً عبر App Store Server API قبل كتابة subscribed:true (مطابق لمنطق Stripe). */
+async function confirmAppleTransactionWithServer(){
+  const Sub = window.Capacitor?.Plugins?.Subscriptions;
+  const msgEl = document.getElementById('subIosMsg');
+  const tx = await Sub.getLatestTransaction({ productIdentifier: APPLE_SUBSCRIPTION_PRODUCT_ID });
+  if (tx.responseCode !== 0 || !tx.data || !tx.data.transactionId){
+    throw new Error('لم يُعثر على معاملة صالحة');
+  }
+  if (msgEl){ msgEl.style.color='#888'; msgEl.textContent='⏳ جارٍ التحقق من الخادم...'; }
+  const call = functionsApi.httpsCallable('verifyAppleSubscription');
+  const result = await call({ transactionId: tx.data.transactionId });
+  if (result.data && result.data.subscribed){
+    isSubscribed = true;
+    try { localStorage.setItem('horofiSubscribed', '1'); } catch(e){}
+    buildLetterGrid();
+    nav('letters');
+  } else {
+    throw new Error('لم يتأكد الخادم من الاشتراك بعد');
+  }
+}
+/* StoreKit 2 لا يملك "استعادة" منفصلة — استعلام أحدث معاملة لهذا المنتج يعكس
+   تلقائياً مشتريات حساب Apple ID الحالي، فنعيد استخدام نفس مسار التحقق. */
+async function restoreIOSPurchases(){
+  const msgEl = document.getElementById('subIosMsg');
+  if (msgEl){ msgEl.style.color='#888'; msgEl.textContent='⏳ جارٍ التحقق من مشتريات سابقة...'; }
+  try{
+    await confirmAppleTransactionWithServer();
+  }catch(err){
+    if (msgEl){ msgEl.style.color='#e53935'; msgEl.textContent='لم نجد اشتراكاً سابقاً على هذا الحساب'; }
+  }
+}
+const STRIPE_URL = 'https://buy.stripe.com/aFa28r2MQdUuassdcK3F600';
 function activateSubscription(){
   const url = CURRENT_UID
     ? `${STRIPE_URL}?client_reference_id=${encodeURIComponent(CURRENT_UID)}`
@@ -6106,10 +6161,12 @@ async function checkSubscriptionReturn(){
       <ul class="sub-features">
         <li>✅ جميع الحروف الـ 28 بلا حدود</li>
         <li>✅ جميع المستويات (مبتدئ، متوسط، متقدم)</li>
+        <li>✅ تمارين الكتابة اليدوية لكل حرف</li>
+        <li>✅ ألعاب تمييز الحروف التفاعلية</li>
         <li>✅ تقارير تقدم الأطفال</li>
         <li>✅ دعم صوتي كامل</li>
       </ul>
-      <div class="sub-price">2 يورو / شهر</div>
+      <div class="sub-price" id="subPriceLabel">2 يورو / شهر</div>
       <div id="subBuyButtons">
         <button class="sub-web-btn" style="margin-top:4px" onclick="activateSubscription()">
           <span>🔒 اشترك الآن عبر موقعنا الآمن</span>
@@ -6119,8 +6176,13 @@ async function checkSubscriptionReturn(){
         <button class="btn2" style="width:100%;margin-top:6px;font-size:.88rem" onclick="checkSubscriptionReturn()">لقد دفعتُ، تحقّق يدوياً ✅</button>
         <div id="subCheckMsg" style="min-height:18px;font-size:.85rem;text-align:center;margin-top:6px"></div>
       </div>
-      <div id="subIosNotice" style="display:none;background:#F5F0FF;border-radius:14px;padding:16px;text-align:center;margin-top:4px;font-weight:700;color:var(--purple)">
-        الاشتراك غير متاح حالياً على iOS — يعمل فريقنا على توفيره قريباً.
+      <div id="subIosNotice" style="display:none">
+        <button class="sub-web-btn" id="subIosBuyBtn" style="margin-top:4px" onclick="purchaseIOSSubscription()">
+          <span>🔒 اشترك الآن</span>
+          <span class="sub-web-sub">شراء آمن عبر App Store</span>
+        </button>
+        <button class="btn2" style="width:100%;margin-top:6px;font-size:.88rem" onclick="restoreIOSPurchases()">استعادة مشترياتي السابقة</button>
+        <div id="subIosMsg" style="min-height:18px;font-size:.85rem;text-align:center;margin-top:6px"></div>
       </div>
       <button class="login-link" onclick="stopAllAudio();nav('letters')">العودة للحروف المجانية</button>
     </div>
@@ -6163,16 +6225,11 @@ async function checkSubscriptionReturn(){
 <div id="parentMsgOverlay" style="display:none">
   <div id="parentMsgBox">
     <div class="pm-logo">📚</div>
-    <div class="pm-title">الأهل الكرام</div>
+    <div class="pm-title">أهلنا الكرام</div>
     <div class="pm-body">
       <p>
-        لقد قمنا بوضع <strong>أخطاء مقصودة</strong> في بعض الكلمات،
-        وأحياناً <strong>حركات خاطئة</strong> على الكلمات،
-        وذلك <strong>لتحفيزكم على تصحيحها مع أبنائكم</strong>.
-      </p>
-      <p>
-        هذا يُعطينا مؤشراً على أنكم تُتابعون
-        <strong>الخطة التعليمية</strong> للطفل.
+        لقد قمنا بوضع <strong>أخطاء مقصودة</strong> في حركات كلمات محدودة جداً،
+        <strong>لتحفيزكم على تصحيحها مع أبنائكم</strong> عندما يعودون إليكم لسؤالكم.
       </p>
     </div>
     <!-- قسم الملاحظات والتقييم -->
