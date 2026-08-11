@@ -3488,8 +3488,7 @@ function toggleSound(){
     stopAllAudio(); // يوقف الصوت فوراً ويحل الـ promise المعلّقة
     lockAnswers(false);
     // إظهار زر التالي فوراً إذا كنا في شاشة اللعب
-    const nb = document.querySelector('.btn-next');
-    if (nb) nb.classList.add('show');
+    revealNextBtn();
   }
   updateSoundBtn();
 }
@@ -3525,7 +3524,7 @@ function runSentenceFlow(R){
   let _btnShown = false;
   const showBtn = () => {
     if (window._safeTimer){ clearTimeout(window._safeTimer); window._safeTimer = null; }
-    if (!_btnShown){ _btnShown = true; if (nb) nb.classList.add('show'); }
+    if (!_btnShown){ _btnShown = true; revealNextBtn(); }
   };
   // ضمان إظهار الزر بعد 20 ث على أبعد تقدير (فقط كحماية من عطل صوتي، وليس ضمن المسار الطبيعي)
   window._safeTimer = setTimeout(() => { showBtn(); }, 20000);
@@ -4336,7 +4335,7 @@ async function evaluateAssembleAnswer(){
     confetti();
     document.querySelector('.btn-next').classList.remove('show');
     if (soundEnabled) await playPraiseAudio(msg);
-    checkBadges(()=> document.querySelector('.btn-next').classList.add('show'));
+    checkBadges(()=> revealNextBtn());
     return;
   }
 
@@ -4366,7 +4365,7 @@ async function evaluateAssembleAnswer(){
   showFB(false, `${msg}<br>💡 تَأَمَّلِ الْكَلِمَةَ الصَّحِيحَةَ جَيِّداً`);
   document.querySelector('.btn-next').classList.remove('show');
   if (soundEnabled) await playEncourageAudio(msg);
-  document.querySelector('.btn-next').classList.add('show');
+  revealNextBtn();
 }
 
 /* بوابة الجهد: يقسّم اللوح إلى نفس شبكة النموذج المرجعي (3×3 للحرف، عمود من 4
@@ -4407,7 +4406,7 @@ async function evaluateTraceAnswer(){
   confetti();
   document.querySelector('.btn-next').classList.remove('show');
   if (soundEnabled) await playPraiseAudio(msg);
-  checkBadges(()=> document.querySelector('.btn-next').classList.add('show'));
+  checkBadges(()=> revealNextBtn());
 }
 
 function nextWriteRound(){
@@ -4874,7 +4873,7 @@ function buildIdentify(R,body){
         highlightTreeForRound(R, opt.form);
         const msg=encourageText(); showFB(false,`${msg}<br>💡 ${R.tip}`); await playEncourageAudio(msg);
       }
-      if(__pendingSentence){ const _r=__pendingSentence; __pendingSentence=null; runSentenceFlow(_r); } else { document.querySelector('.btn-next').classList.add('show'); }
+      if(__pendingSentence){ const _r=__pendingSentence; __pendingSentence=null; runSentenceFlow(_r); } else { revealNextBtn(); }
     };
     grid.appendChild(c);
   });
@@ -4926,7 +4925,7 @@ function buildSpecialIdentify(R,body){
         grid.querySelectorAll('.icard').forEach(el=>{ if(el!==c) el.classList.add('reveal'); });
         const msg=encourageText(); showFB(false,`${msg}<br>💡 ${R.tip}`); await playEncourageAudio(msg);
       }
-      if(__pendingSentence){ const _r=__pendingSentence; __pendingSentence=null; runSentenceFlow(_r); } else { document.querySelector('.btn-next').classList.add('show'); }
+      if(__pendingSentence){ const _r=__pendingSentence; __pendingSentence=null; runSentenceFlow(_r); } else { revealNextBtn(); }
     };
     grid.appendChild(c);
   });
@@ -4975,7 +4974,7 @@ function renderTwoOptionGrid(correctWord, wrongWord, tip, body, hlLetters, hlTar
         grid.querySelectorAll('.icard').forEach(el=>{ if(el!==c) el.classList.add('reveal'); });
         const msg=encourageText(); showFB(false,`${msg}<br>💡 ${tip}`); await playEncourageAudio(msg);
       }
-      if(__pendingSentence){ const _r=__pendingSentence; __pendingSentence=null; runSentenceFlow(_r); } else { document.querySelector('.btn-next').classList.add('show'); }
+      if(__pendingSentence){ const _r=__pendingSentence; __pendingSentence=null; runSentenceFlow(_r); } else { revealNextBtn(); }
     };
     grid.appendChild(c);
   });
@@ -5146,6 +5145,14 @@ function showFB(ok,msg){
     m.className = 'fb-mascot ' + (ok ? 'show-ok' : 'show-err');
     void m.offsetWidth; // إعادة تشغيل الحركة حتى لو تكرر نفس الوضع
   }
+}
+/* يُستدعى فور ظهور زر "التالي" — يُمرّر الشاشة تلقائياً كي يظل الزر ظاهراً
+   دون أن يحتاج الطفل لتذكّر سحب الشاشة لأعلى بنفسه. */
+function revealNextBtn(){
+  const nb = document.querySelector('.btn-next');
+  if (!nb) return;
+  nb.classList.add('show');
+  nb.scrollIntoView({behavior:'smooth', block:'end', inline:'nearest'});
 }
 function confetti(n=35){
   const cs=['#FFD93D','#52C97A','#5BC8F5','#FF6B6B','#9B5DE5','#FF9F43'];
@@ -6009,7 +6016,7 @@ function showSubscriptionPage(){
   const priceLabel = document.getElementById('subPriceLabel');
   if (buyBtns) buyBtns.style.display = isIOS ? 'none' : '';
   if (iosNotice) iosNotice.style.display = isIOS ? '' : 'none';
-  if (priceLabel) priceLabel.textContent = isIOS ? '2.99 يورو / شهر' : '2 يورو / شهر';
+  if (priceLabel) priceLabel.textContent = isIOS ? '2.99 يورو / شهر' : '1.99 يورو / شهر';
   nav('subscription');
 }
 /* ── الشراء الفعلي على iOS عبر StoreKit 2 ── */
@@ -6166,7 +6173,7 @@ async function checkSubscriptionReturn(){
         <li>✅ تقارير تقدم الأطفال</li>
         <li>✅ دعم صوتي كامل</li>
       </ul>
-      <div class="sub-price" id="subPriceLabel">2 يورو / شهر</div>
+      <div class="sub-price" id="subPriceLabel">1.99 يورو / شهر</div>
       <div id="subBuyButtons">
         <button class="sub-web-btn" style="margin-top:4px" onclick="activateSubscription()">
           <span>🔒 اشترك الآن عبر موقعنا الآمن</span>
