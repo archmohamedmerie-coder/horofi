@@ -1,0 +1,129 @@
+diff --git a/node_modules/@squareetlabs/capacitor-subscriptions/android/build.gradle b/node_modules/@squareetlabs/capacitor-subscriptions/android/build.gradle
+index bed8416..522de1c 100644
+--- a/node_modules/@squareetlabs/capacitor-subscriptions/android/build.gradle
++++ b/node_modules/@squareetlabs/capacitor-subscriptions/android/build.gradle
+@@ -53,7 +53,7 @@ dependencies {
+     implementation fileTree(dir: 'libs', include: ['*.jar'])
+     implementation project(':capacitor-android')
+     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+-    implementation 'com.android.billingclient:billing:7.1.1'
++    implementation 'com.android.billingclient:billing:9.1.0'
+     implementation 'com.google.android.gms:play-services-ads-identifier:18.2.0'
+     testImplementation "junit:junit:$junitVersion"
+     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+diff --git a/node_modules/@squareetlabs/capacitor-subscriptions/android/src/main/java/com/squareetlabs/capacitor/subscriptions/Subscriptions.java b/node_modules/@squareetlabs/capacitor-subscriptions/android/src/main/java/com/squareetlabs/capacitor/subscriptions/Subscriptions.java
+index ecbb082..172673b 100644
+--- a/node_modules/@squareetlabs/capacitor-subscriptions/android/src/main/java/com/squareetlabs/capacitor/subscriptions/Subscriptions.java
++++ b/node_modules/@squareetlabs/capacitor-subscriptions/android/src/main/java/com/squareetlabs/capacitor/subscriptions/Subscriptions.java
+@@ -10,9 +10,7 @@ import com.android.billingclient.api.BillingFlowParams;
+ import com.android.billingclient.api.BillingResult;
+ import com.android.billingclient.api.ProductDetails;
+ import com.android.billingclient.api.Purchase;
+-import com.android.billingclient.api.PurchaseHistoryRecord;
+ import com.android.billingclient.api.QueryProductDetailsParams;
+-import com.android.billingclient.api.QueryPurchaseHistoryParams;
+ import com.android.billingclient.api.QueryPurchasesParams;
+ import com.getcapacitor.JSObject;
+ import com.getcapacitor.Logger;
+@@ -103,7 +101,7 @@ public class Subscriptions {
+ 
+                         try {
+ 
+-                            ProductDetails productDetails = productDetailsList.get(0);
++                            ProductDetails productDetails = productDetailsList.getProductDetailsList().get(0);
+                             String productId = productDetails.getProductId();
+                             String title = productDetails.getTitle();
+                             String desc = productDetails.getDescription();
+@@ -159,57 +157,46 @@ public class Subscriptions {
+ 
+         if (billingClientIsConnected == 1) {
+ 
+-            QueryPurchaseHistoryParams queryPurchaseHistoryParams =
+-                    QueryPurchaseHistoryParams.newBuilder()
++            // queryPurchaseHistoryAsync/QueryPurchaseHistoryParams were removed in Play Billing
++            // Library 8 — queryPurchasesAsync is the replacement, but it only reflects the
++            // account's current (not past/expired) purchases for this product type.
++            QueryPurchasesParams queryPurchasesParams =
++                    QueryPurchasesParams.newBuilder()
+                             .setProductType(BillingClient.ProductType.SUBS)
+                             .build();
+ 
++            billingClient.queryPurchasesAsync(queryPurchasesParams, (BillingResult billingResult, List<Purchase> list) -> {
+ 
+-            billingClient.queryPurchaseHistoryAsync(queryPurchaseHistoryParams, (BillingResult billingResult, List<PurchaseHistoryRecord> list) -> {
+-
+-                // Try to loop through the list until we find a purchase history record associated with the passed in productIdentifier.
+-                // If we do, then set found to true to break out of the loop, then compile a response with necessary data. Otherwise compile
+-                // a response saying that the there were not transactions for the given productIdentifier.
+-                int i = 0;
+                 boolean found = false;
+-                while (list != null && (i < list.size() && !found)) {
++                for (Purchase purchase : list) {
+                     try {
++                        if (!purchase.getProducts().contains(productIdentifier)) continue;
+ 
+-                        JSObject currentPurchaseHistoryRecord = new JSObject(list.get(i).getOriginalJson());
+-                        Log.i("PurchaseHistory", currentPurchaseHistoryRecord.toString());
+-
+-                        if (currentPurchaseHistoryRecord.get("productId").equals(productIdentifier)) {
+-
+-                            found = true;
+-
+-                            JSObject data = new JSObject();
+-                            String expiryDate = getExpiryDateFromGoogle(productIdentifier, currentPurchaseHistoryRecord.get("purchaseToken").toString());
+-                            if (expiryDate != null) {
+-                                data.put("expiryDate", expiryDate);
+-                            }
+-                            Calendar calendar = Calendar.getInstance();
+-                            calendar.setTimeInMillis(Long.parseLong((currentPurchaseHistoryRecord.get("purchaseTime").toString())));
+-                            String orderId = currentPurchaseHistoryRecord.optString("orderId", "");  // Usamos optString para obtener un valor por defecto si la clave no existe
+-                            data.put("productIdentifier", currentPurchaseHistoryRecord.get("productId"));
+-                            data.put("originalId", orderId);
+-                            data.put("transactionId", orderId);
+-                            data.put("developerPayload",currentPurchaseHistoryRecord.optString("developerPayload", ""));  // Usamos optString para obtener un valor por defecto si la clave no existe
+-                            data.put("purchaseToken", currentPurchaseHistoryRecord.get("purchaseToken").toString());
++                        found = true;
+ 
+-                            response.put("responseCode", 0);
+-                            response.put("responseMessage", "Successfully found the latest transaction matching given productIdentifier");
+-                            response.put("data", data);
++                        JSObject data = new JSObject();
++                        String expiryDate = getExpiryDateFromGoogle(productIdentifier, purchase.getPurchaseToken());
++                        if (expiryDate != null) {
++                            data.put("expiryDate", expiryDate);
+                         }
++                        String orderId = purchase.getOrderId() != null ? purchase.getOrderId() : "";
++                        data.put("productIdentifier", productIdentifier);
++                        data.put("originalId", orderId);
++                        data.put("transactionId", orderId);
++                        data.put("developerPayload", purchase.getDeveloperPayload() != null ? purchase.getDeveloperPayload() : "");
++                        data.put("purchaseToken", purchase.getPurchaseToken());
++
++                        response.put("responseCode", 0);
++                        response.put("responseMessage", "Successfully found the latest transaction matching given productIdentifier");
++                        response.put("data", data);
++                        break;
+                     } catch (Exception e) {
+                         Logger.error(e.getMessage());
+                     }
+-
+-                    i++;
+-
+                 }
+ 
+-                // If after looping through the list of purchase history records, no records are found to be associated with
+-                // the given product identifier, return a response saying no transactions found
++                // If no purchase is found to be associated with the given product identifier,
++                // return a response saying no transactions found
+                 if (!found) {
+                     response.put("responseCode", 3);
+                     response.put("responseMessage", "No transaction for given productIdentifier, or it could not be verified");
+@@ -318,7 +305,7 @@ public class Subscriptions {
+                     (billingResult1, productDetailsList) -> {
+ 
+                         try {
+-                            ProductDetails productDetails = productDetailsList.get(0);
++                            ProductDetails productDetails = productDetailsList.getProductDetailsList().get(0);
+                             BillingFlowParams billingFlowParams = BillingFlowParams.newBuilder()
+                                     .setProductDetailsParamsList(
+                                             List.of(
