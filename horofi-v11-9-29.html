@@ -5942,6 +5942,8 @@ async function pmSendAndClose(){
     return;
   }
 
+  maybeRequestNativeReview();
+
   status.textContent = '⏳ جارٍ الإرسال...';
   status.style.color = '#888';
 
@@ -5970,6 +5972,27 @@ async function pmSendAndClose(){
     status.style.color = '#e67e22';
     setTimeout(pmClose, 1500);
   }
+}
+
+/* تقييم المتجر الرسمي (Google Play / App Store) — يُستدعى بصرف النظر عن قيمة
+   النجوم المُختارة في النموذج الخاص أعلاه، حتى لا يُعتبر "تصفية" للتقييمات
+   السلبية (ممنوعة صراحة في إرشادات آبل). النظام نفسه (Android/iOS) يحدّد متى
+   تظهر النافذة فعلياً ولا يسمح باستدعائها بلا حدود، لذا الحد الزمني هنا محلي
+   فقط لتقليل النداءات غير المجدية على تطبيق يُستخدم عدة مرات يومياً. */
+function maybeRequestNativeReview(){
+  try{
+    if(!window.Capacitor || typeof window.Capacitor.getPlatform !== 'function') return;
+    if(window.Capacitor.getPlatform() === 'web') return;
+    const plugin = window.Capacitor.Plugins && window.Capacitor.Plugins.InAppReview;
+    if(!plugin || typeof plugin.requestReview !== 'function') return;
+
+    const THROTTLE_MS = 14 * 24 * 60 * 60 * 1000; // 14 يوماً
+    const last = Number(localStorage.getItem('iar_last_ts') || 0);
+    if(Date.now() - last < THROTTLE_MS) return;
+
+    localStorage.setItem('iar_last_ts', String(Date.now()));
+    plugin.requestReview().catch(()=>{});
+  } catch(e){ /* لا نُفشل تدفّق التطبيق بسبب هذه الميزة الثانوية */ }
 }
 
 /* ══════════════════════════════════
