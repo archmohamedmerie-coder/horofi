@@ -3083,6 +3083,21 @@ function logoutUser(){
   stopAllAudio();
   auth.signOut().then(function(){
     CURRENT_UID = null; CHILDREN = []; ACTIVE_CHILD_ID = null;
+    /* تصفير بيانات الطفل السابق أيضاً — بدونه يبقى PROFILE محمّلاً باسم الطفل
+       السابق، فيعرضه buildHome() للمستخدم أو الضيف التالي على نفس الجهاز
+       (سلوك خاطئ وتسريب خصوصية). نُصفّر كذلك حقول شاشة التهيئة وسطر التحية. */
+    PROFILE = {name:'', gender:'male', country:'', nisba_m:'', nisba_f:''};
+    completedLetters = new Set();
+    /* المفتاحان القديمان غير مرتبطين بأي uid، و saveProfile() تكتبهما دائماً
+       كنسخة احتياطية. لو تُركا، فإن ترحيل البيانات القديمة داخل loadChildren()
+       يُنشئ للمستخدم أو الضيف التالي طفلاً من بيانات الطفل السابق. */
+    try{ localStorage.removeItem('horofiProfile'); }catch(e){}
+    try{ localStorage.removeItem('horofiProgress'); }catch(e){}
+    const _obName = document.getElementById('obName'); if (_obName) _obName.value = '';
+    const _obCountry = document.getElementById('obCountry'); if (_obCountry) _obCountry.value = '';
+    resetGenderPicker();
+    const _greet = document.getElementById('homeGreeting');
+    if (_greet) _greet.textContent = 'تعلَّم الحروف العربية بطريقة ممتعة!';
     document.getElementById('loginEmail').value = '';
     document.getElementById('loginPass').value  = '';
     document.getElementById('loginErr').textContent = '';
