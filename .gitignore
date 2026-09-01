@@ -69,3 +69,9 @@ node_modules/
 .dataconnect
 *.p8
 AuthKey_*.p8
+
+# ملفات عمل مؤقتة (فيديوهات المراجعة، نسخ الصور)
+*.mp4
+*.mov
+*" - Kopie".png
+img/* - Kopie.png
