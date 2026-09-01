@@ -653,6 +653,13 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 
   <div class="login-card-anim" style="width:92%;max-width:340px;margin:18px auto 0;background:#fff;border-radius:18px;padding:20px 16px 22px;box-shadow:0 4px 22px rgba(0,0,0,.12)">
 
+    <!-- زر رجوع — يظهر فقط حين يفتح ضيفٌ مسجَّل هذه الشاشة لترقية حسابه.
+         ضروري لأن iOS لا يملك زر رجوع في الجهاز، فبدونه يعلق الضيف هنا. -->
+    <button id="loginBackBtn" onclick="stopAllAudio();nav('home')"
+      style="display:none;background:rgba(155,93,229,.12);color:#9B5DE5;border:none;border-radius:9px;padding:8px 14px;font-size:.9rem;font-weight:800;font-family:'Tajawal',sans-serif;cursor:pointer;margin-bottom:12px">
+      ← رجوع
+    </button>
+
     <!-- تبويبات الدخول / التسجيل -->
     <div style="display:flex;border:2px solid #e0d0f5;border-radius:10px;overflow:hidden;margin-bottom:18px">
       <button id="tabLoginBtn" onclick="showLoginTab()"
@@ -742,6 +749,25 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
         رجوع
       </button>
     </div><!-- /resetForm -->
+
+    <!-- ══ متابعة كضيف ══
+         Apple Guideline 5.1.1(v): لا يجوز إجبار المستخدم على التسجيل للوصول إلى
+         ميزات لا تعتمد على حساب. الزر يبقى ظاهراً في تبويبَي الدخول والتسجيل معاً. -->
+    <div id="guestSection">
+      <div style="display:flex;align-items:center;gap:8px;margin:16px 0 12px">
+        <div style="flex:1;height:1px;background:#e8dcf7"></div>
+        <span style="font-size:.78rem;color:#aaa;font-weight:700;font-family:'Tajawal',sans-serif">أو</span>
+        <div style="flex:1;height:1px;background:#e8dcf7"></div>
+      </div>
+      <button id="guestBtn" onclick="continueAsGuest()"
+        style="display:block;width:100%;padding:13px;background:#FFC947;color:#5a3d00;border:none;border-radius:10px;font-size:1.05rem;font-weight:800;font-family:'Tajawal',sans-serif;cursor:pointer">
+        🎈 ابدأ اللعب بدون تسجيل
+      </button>
+      <div style="font-size:.76rem;color:#999;text-align:center;font-family:'Tajawal',sans-serif;margin-top:7px;line-height:1.6">
+        جرّب التطبيق فوراً — يمكنك إنشاء حساب لاحقاً لحفظ التقدّم
+      </div>
+      <div id="guestErr" style="font-size:.83rem;font-weight:700;text-align:center;margin-top:7px;min-height:18px"></div>
+    </div>
 
     <button onclick="openPrivacyPolicy()" style="display:block;width:100%;padding:8px;margin-top:8px;background:transparent;color:#888;border:none;font-size:.8rem;font-weight:700;font-family:'Tajawal',sans-serif;cursor:pointer;text-decoration:underline">
       سياسة الخصوصية
@@ -2963,25 +2989,97 @@ function doRegister(){
   if (pass !== confirm){ errEl.textContent = 'كلمتا السر غير متطابقتين'; return; }
 
   errEl.style.color = '#888'; errEl.textContent = 'جارٍ إنشاء الحساب...';
-  auth.createUserWithEmailAndPassword(email, pass)
+
+  /* إن كان المستخدم الحالي ضيفاً (Anonymous) فنحن نُرقّي حسابه القائم بدل إنشاء
+     حساب جديد: linkWithCredential تحتفظ بنفس الـuid، بينما
+     createUserWithEmailAndPassword كانت ستُنشئ uid جديداً — وهذا يعني فقدان
+     اشتراكه المدفوع (المرتبط بـusers/{uid} في Firestore) وتقدّم أطفاله
+     (المخزَّن تحت مفتاح مرتبط بالـuid في _chKey). */
+  var cur = auth.currentUser;
+  var wasAnonymous = !!(cur && cur.isAnonymous);
+  var task = wasAnonymous
+    ? cur.linkWithCredential(firebase.auth.EmailAuthProvider.credential(email, pass))
+    : auth.createUserWithEmailAndPassword(email, pass);
+
+  task
     .then(function(){
       document.getElementById('regPass').value = '';
       document.getElementById('regConfirm').value = '';
-      errEl.style.color = '#2d8653'; errEl.textContent = 'تم إنشاء الحساب بنجاح! ✅';
+      errEl.style.color = '#2d8653';
+      errEl.textContent = wasAnonymous
+        ? 'تم حفظ حسابك بنجاح! ✅ تقدّم أطفالك محفوظ كما هو'
+        : 'تم إنشاء الحساب بنجاح! ✅';
+      /* بعد الترقية لا يتغيّر الـuid، لذا قد لا يُطلق onAuthStateChanged إعادة
+         التوجيه — نُعيدها يدوياً بنفس منطق onAuthStateChanged تماماً. */
+      if (wasAnonymous){
+        setTimeout(function(){
+          var backBtn = document.getElementById('loginBackBtn');
+          if (backBtn) backBtn.style.display = 'none';
+          var guestSec = document.getElementById('guestSection');
+          if (guestSec) guestSec.style.display = '';
+          var hasProfile = loadProfile();
+          if (hasProfile && PROFILE.name){ loadProgress(); buildHome(); nav('home'); }
+          else { resetGenderPicker(); nav('onboarding'); }
+        }, 1200);
+      }
     })
     .catch(function(err){
       errEl.style.color = '#e53935';
-      if (err.code==='auth/email-already-in-use')
+      if (err.code==='auth/email-already-in-use' || err.code==='auth/credential-already-in-use')
         errEl.textContent = 'هذا البريد مسجّل بالفعل — استخدم تبويب الدخول';
       else if (err.code==='auth/weak-password')
         errEl.textContent = 'كلمة السر ضعيفة جداً';
+      else if (err.code==='auth/requires-recent-login')
+        errEl.textContent = 'انتهت صلاحية جلستك — أعد فتح التطبيق ثم حاول مجدداً';
       else errEl.textContent = 'خطأ: ' + err.message;
     });
 }
 
+/* ── متابعة كضيف (Firebase Anonymous Auth) ──
+   Apple Guideline 5.1.1(v) تمنع إجبار المستخدم على التسجيل للوصول إلى ميزات لا
+   تعتمد على حساب. حساب الضيف يمنح uid حقيقياً، فتعمل معه قواعد Firestore
+   (request.auth != null) ومنطق الاشتراك ومزامنة الأطفال بلا أي تعديل، ودون
+   طلب أي بيانات شخصية من المستخدم. */
+function continueAsGuest(){
+  var btn   = document.getElementById('guestBtn');
+  var errEl = document.getElementById('guestErr');
+  if (btn) btn.disabled = true;
+  if (errEl){ errEl.style.color = '#888'; errEl.textContent = 'جارٍ التحضير...'; }
+  auth.signInAnonymously()
+    .then(function(){ if (errEl) errEl.textContent = ''; })
+    .catch(function(err){
+      if (errEl){
+        errEl.style.color = '#e53935';
+        errEl.textContent = (err.code === 'auth/operation-not-allowed')
+          ? 'وضع الضيف غير مُفعَّل حالياً — يرجى التسجيل بالبريد'
+          : 'تعذّر البدء كضيف: ' + err.message;
+      }
+    })
+    .then(function(){ if (btn) btn.disabled = false; });
+}
+
+/* ── ترقية حساب الضيف إلى حساب دائم ──
+   يفتح شاشة الدخول على تبويب التسجيل مع إظهار زر رجوع (لأن الضيف يبقى مسجَّل
+   الدخول، فلا يُخرجه onAuthStateChanged من الشاشة تلقائياً) وإخفاء زر الضيف. */
+function upgradeGuestAccount(){
+  stopAllAudio();
+  var backBtn = document.getElementById('loginBackBtn');
+  if (backBtn) backBtn.style.display = 'block';
+  var guestSec = document.getElementById('guestSection');
+  if (guestSec) guestSec.style.display = 'none';
+  showRegisterTab();
+  nav('login');
+}
+
 /* ── تسجيل الخروج ── */
 function logoutUser(){
-  if (!confirm('هل تريد تسجيل الخروج؟')) return;
+  var _cur = auth.currentUser;
+  if (_cur && _cur.isAnonymous){
+    // حساب الضيف غير مرتبط ببريد، فلا سبيل للعودة إليه بعد الخروج — نُحذّر بوضوح
+    if (!confirm('أنت تستخدم التطبيق كضيف.\n\nالخروج الآن يعني فقدان تقدّم أطفالك نهائياً، لأن حساب الضيف غير مرتبط ببريد إلكتروني ولا يمكن استعادته.\n\nهل تريد المتابعة؟')) return;
+  } else {
+    if (!confirm('هل تريد تسجيل الخروج؟')) return;
+  }
   stopAllAudio();
   auth.signOut().then(function(){
     CURRENT_UID = null; CHILDREN = []; ACTIVE_CHILD_ID = null;
@@ -3002,7 +3100,8 @@ function buildAccountScreen(){
   const body = document.getElementById('accountBody');
   if (!body) return;
   const user = auth.currentUser;
-  const email = user ? user.email : '';
+  const isGuest = !!(user && user.isAnonymous);
+  const email = user ? (user.email || '') : '';
   const subTxt = isSubscribed
     ? '<span style="color:#2d8653;font-weight:800">مُفعَّل ✅</span>'
     : '<span style="color:#c73030;font-weight:800">غير مُفعَّل</span>';
@@ -3017,8 +3116,8 @@ function buildAccountScreen(){
   }
   body.innerHTML = `
     <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:var(--sh)">
-      <div style="font-weight:800;margin-bottom:6px">📧 البريد الإلكتروني</div>
-      <div style="color:var(--muted);font-weight:600">${email}</div>
+      <div style="font-weight:800;margin-bottom:6px">${isGuest ? '👤 نوع الحساب' : '📧 البريد الإلكتروني'}</div>
+      <div style="color:var(--muted);font-weight:600">${isGuest ? 'ضيف — التقدّم محفوظ على هذا الجهاز فقط' : email}</div>
     </div>
     <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:var(--sh)">
       <div style="font-weight:800;margin-bottom:6px">👨‍👩‍👧‍👦 الأطفال</div>
@@ -3033,8 +3132,11 @@ function buildAccountScreen(){
   btnWrap.style.cssText = 'display:flex;flex-direction:column;gap:10px;align-items:center;margin-top:6px';
   btnWrap.innerHTML = `
     ${isSubscribed ? `<button class="btn2" style="max-width:280px;width:100%" id="manageSubBtn" onclick="openBillingPortal()">💳 إدارة / إلغاء الاشتراك</button>` : ''}
-    <button class="btn2" style="max-width:280px;width:100%" onclick="changeMyPassword()">🔑 تغيير كلمة السر</button>
+    ${isGuest
+      ? `<button class="btn2" style="max-width:280px;width:100%;background:#eaffef;color:#2d8653;border:2px solid #b7e6c8" onclick="upgradeGuestAccount()">✨ أنشئ حساباً لحفظ التقدّم</button>`
+      : `<button class="btn2" style="max-width:280px;width:100%" onclick="changeMyPassword()">🔑 تغيير كلمة السر</button>`}
     <button class="btn2" style="max-width:280px;width:100%" onclick="openPrivacyPolicy()">📄 سياسة الخصوصية</button>
+    <button class="btn2" style="max-width:280px;width:100%" onclick="openTermsOfUse()">📜 شروط الاستخدام</button>
     <button class="btn2" style="max-width:280px;width:100%;background:#fff0f0;color:#c73030;border:2px solid #ffcccc" onclick="deleteAccount()">🗑️ حذف الحساب نهائياً</button>
   `;
   body.appendChild(btnWrap);
@@ -3047,6 +3149,19 @@ function openPrivacyPolicy(){
     CapBrowser.open({ url: PRIVACY_POLICY_URL });
   } else {
     window.open(PRIVACY_POLICY_URL, '_blank', 'noopener,noreferrer');
+  }
+}
+/* ── شروط الاستخدام (EULA) ──
+   Apple Guideline 3.1.2: كل تطبيق فيه اشتراك متجدّد تلقائياً يجب أن يعرض رابطاً
+   فعّالاً لشروط الاستخدام *داخل التطبيق نفسه* (إضافةً إلى وصف المتجر). نستخدم
+   شروط آبل القياسية لأننا لا نملك EULA مخصّصة. */
+const TERMS_OF_USE_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
+function openTermsOfUse(){
+  const CapBrowser = window.Capacitor?.Plugins?.Browser;
+  if (window.Capacitor?.isNativePlatform() && CapBrowser) {
+    CapBrowser.open({ url: TERMS_OF_USE_URL });
+  } else {
+    window.open(TERMS_OF_USE_URL, '_blank', 'noopener,noreferrer');
   }
 }
 /* ── فتح بوابة إدارة/إلغاء الاشتراك من Stripe ── */
@@ -3651,6 +3766,16 @@ function nav(id){
   const gm = document.getElementById('globalMuteBtn');
   const hideMuteBtnScreens = ['login', 'home', 'letters', 'levelSelect', 'subscription', 'parent', 'onboarding', 'game', 'done'];
   if (gm) gm.style.display = hideMuteBtnScreens.includes(id) ? 'none' : '';
+  // شاشة الدخول حين يكون المستخدم مسجَّلاً بالفعل (ضيف جاء ليُرقّي حسابه، أو رجع
+  // من شاشة التهيئة): يجب إظهار زر رجوع وإخفاء زر الضيف — وإلا عَلِق على iOS
+  // لأنه لا يملك زر رجوع في الجهاز.
+  if (id === 'login'){
+    const signedIn = !!auth.currentUser;
+    const backBtn  = document.getElementById('loginBackBtn');
+    if (backBtn) backBtn.style.display = signedIn ? 'block' : 'none';
+    const guestSec = document.getElementById('guestSection');
+    if (guestSec) guestSec.style.display = signedIn ? 'none' : '';
+  }
   // إعادة بناء الشاشات الديناميكية كي يُحدَّث العداد والشارات
   if (id === 'home') buildHome();
   else if (id === 'letters') buildLetterGrid();
@@ -5289,6 +5414,11 @@ auth.onAuthStateChanged(async function(user){
     CURRENT_UID = null;
     if (_subscriptionUnsub) { _subscriptionUnsub(); _subscriptionUnsub = null; }
     isSubscribed = false;
+    // إعادة شاشة الدخول لهيئتها الطبيعية (قد تكون بقيت على هيئة "ترقية ضيف")
+    var backBtn = document.getElementById('loginBackBtn');
+    if (backBtn) backBtn.style.display = 'none';
+    var guestSec = document.getElementById('guestSection');
+    if (guestSec) guestSec.style.display = '';
     nav('login');
   }
 });
@@ -6145,6 +6275,8 @@ function handleHardwareBack(){
   const active = document.querySelector('.screen.active');
   const id = active ? active.id : 'home';
   if (id === 'game'){ gameBack(); return; }
+  // ضيف فتح شاشة الدخول لترقية حسابه — الرجوع يُعيده للتطبيق ولا يُخرجه منه
+  if (id === 'login' && auth.currentUser){ stopAllAudio(); nav('home'); return; }
   const target = BACK_TARGETS[id];
   if (target){ stopAllAudio(); nav(target); }
   else { window.Capacitor.Plugins.App.exitApp(); }
@@ -6197,6 +6329,13 @@ async function checkSubscriptionReturn(){
         <li>✅ دعم صوتي كامل</li>
       </ul>
       <div class="sub-price" id="subPriceLabel">1.99 يورو / شهر</div>
+      <!-- Apple Guideline 3.1.2: يجب أن يعرض التطبيق نفسه اسم الاشتراك ومدّته
+           وسعره وروابط سياسة الخصوصية وشروط الاستخدام. -->
+      <div style="font-size:.82rem;color:var(--muted);font-weight:600;line-height:1.75;margin:8px 2px 12px;text-align:center">
+        <strong>اشتراك «فتح جميع الحروف»</strong> — مدّته <strong>شهر واحد</strong>،
+        ويتجدّد تلقائياً كل شهر بنفس السعر ما لم تُلغه قبل 24 ساعة من نهاية المدة.
+        يمكنك الإلغاء في أي وقت من إعدادات حسابك.
+      </div>
       <div id="subBuyButtons">
         <button class="sub-web-btn" style="margin-top:4px" onclick="activateSubscription()">
           <span>🔒 اشترك الآن عبر موقعنا الآمن</span>
@@ -6215,6 +6354,15 @@ async function checkSubscriptionReturn(){
         <div id="subIosMsg" style="min-height:18px;font-size:.85rem;text-align:center;margin-top:6px"></div>
       </div>
       <button class="login-link" onclick="stopAllAudio();nav('letters')">العودة للحروف المجانية</button>
+      <div style="display:flex;gap:14px;justify-content:center;align-items:center;margin-top:12px;flex-wrap:wrap">
+        <button onclick="openPrivacyPolicy()" style="background:transparent;border:none;color:#9B5DE5;font-size:.82rem;font-weight:700;font-family:'Tajawal',sans-serif;cursor:pointer;text-decoration:underline;padding:4px">
+          سياسة الخصوصية
+        </button>
+        <span style="color:#ccc">•</span>
+        <button onclick="openTermsOfUse()" style="background:transparent;border:none;color:#9B5DE5;font-size:.82rem;font-weight:700;font-family:'Tajawal',sans-serif;cursor:pointer;text-decoration:underline;padding:4px">
+          شروط الاستخدام
+        </button>
+      </div>
     </div>
   </div>
 </div>
