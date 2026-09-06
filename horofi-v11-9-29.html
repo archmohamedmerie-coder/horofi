@@ -851,6 +851,16 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
       </optgroup>
     </select>
     <button class="btn" onclick="completeOnboarding()" style="margin-top:6px">ابدأ! 🚀</button>
+    <!-- تخطّي التعريف — Apple Guideline 5.1.1(v): لا يجوز إلزام المستخدم بإدخال
+         معلومات شخصية (اسم الطفل، جنسه، بلده) للوصول إلى محتوى التطبيق. الاسم
+         يبقى متاحاً لاحقاً من صفحة الحساب لمن يريد التخصيص. -->
+    <button class="btn2" onclick="skipOnboarding()"
+      style="margin-top:2px;background:#fff;border:2px solid var(--border);color:#666">
+      تخطّي — ادخل بدون إدخال أي بيانات
+    </button>
+    <div style="font-size:.74rem;color:#999;text-align:center;line-height:1.6;margin-top:-4px">
+      Skip — enter without providing any information
+    </div>
   </div>
 </div>
 
@@ -3264,6 +3274,25 @@ function sendResetCode(){
 }
 
 
+/* ── تخطّي شاشة التعريف ──
+   Apple Guideline 5.1.1(v): لا يجوز إلزام المستخدم بإدخال معلومات شخصية للوصول
+   إلى وظائف التطبيق. اسم الطفل وجنسه وبلده تخصيص اختياري لا شرط للاستخدام، لذا
+   ندخل بملف فارغ (التحية تبقى عامة، ولا يُشغَّل صوت الترحيب باسم). يمكن إدخال
+   الاسم لاحقاً من "تغيير الاسم" في الشاشة الرئيسية. */
+function skipOnboarding(){
+  unlockSpeech();
+  PROFILE.name    = '';
+  PROFILE.country = '';
+  PROFILE.nisba_m = '';
+  PROFILE.nisba_f = '';
+  if (!PROFILE.gender) PROFILE.gender = 'male';
+  __addingChild = false;
+  saveProfile();          // يُنشئ طفلاً بلا اسم ويُنشّطه إن لم يوجد
+  loadProgress();
+  buildHome();
+  nav('home');
+}
+
 function completeOnboarding(){
   unlockSpeech();
   const nameVal = document.getElementById('obName').value.trim();
@@ -5423,7 +5452,9 @@ auth.onAuthStateChanged(async function(user){
     loadSubscription(); // يربط مستمع Firestore الحقيقي بعد معرفة uid
     await pullChildrenFromCloud(); // يستعيد بيانات الأطفال من السحابة إن كان هذا جهازاً جديداً
     var hasProfile = loadProfile();
-    if (hasProfile && PROFILE.name){ loadProgress(); buildHome(); nav('home'); }
+    /* CHILDREN.length يغطّي من تخطّى شاشة التعريف: لديه طفل محفوظ بلا اسم، فلا
+       يصحّ إعادته للتهيئة في كل فتح (loadProfile ترجع false حين لا يوجد اسم). */
+    if ((hasProfile && PROFILE.name) || CHILDREN.length > 0){ loadProgress(); buildHome(); nav('home'); }
     else { resetGenderPicker(); nav('onboarding'); }
   } else {
     CURRENT_UID = null;
