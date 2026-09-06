@@ -81,6 +81,9 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 @keyframes pop{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
 .progress-summary{background:#fff;border-radius:16px;padding:10px 20px;margin-bottom:24px;box-shadow:var(--sh);font-size:.85rem;font-weight:700;color:var(--muted)}
 .progress-summary strong{color:var(--purple)}
+/* بطاقة تذكير بالتقييم — نصّ يُقرأ فقط: بلا زر ولا رابط ولا فتح للمتجر */
+.rate-note{max-width:330px;background:#fff;border:2px solid var(--sun);border-radius:16px;padding:10px 16px;margin:0 0 16px;box-shadow:var(--sh);font-size:.85rem;font-weight:700;color:var(--ink);line-height:1.6;cursor:default}
+.rate-note .rn-stars{display:block;font-size:.95rem;letter-spacing:2px;margin-bottom:2px}
 .btn{background:var(--purple);color:#fff;border:none;border-radius:18px;padding:16px 52px;font-size:1.2rem;font-weight:800;font-family:'Tajawal',sans-serif;cursor:pointer;box-shadow:0 6px 0 var(--purple-d);transition:transform .13s,box-shadow .13s}
 .btn:hover{transform:translateY(-2px);box-shadow:0 8px 0 var(--purple-d)}
 .btn:active{transform:translateY(1px);box-shadow:0 3px 0 var(--purple-d)}
@@ -878,6 +881,12 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
   <div class="home-sub" id="homeGreeting">تعلَّم الحروف العربية بطريقة ممتعة!</div>
   <div class="word-swarm" id="wordSwarm"></div>
   <div class="progress-summary" id="progressSummary"></div>
+  <!-- تذكير بالتقييم: نصّ يُقرأ فقط، لا يُضغط ولا يقود إلى المتجر.
+       موضعه فوق الزر الرئيسي كي يُرى بلا تمرير، ومضغوط كي يبقى الزر ظاهراً معه. -->
+  <div class="rate-note" id="rateNote" style="display:none">
+    <span class="rn-stars">⭐⭐⭐⭐⭐</span>
+    نرجو منكم مشكورين تقييم التطبيق وتجربتكم فيه
+  </div>
   <button class="btn" onclick="showParentMsg()">نبدأ التعلم! ✏️</button>
   <button class="btn2" style="margin-top:14px;max-width:220px" onclick="stopAllAudio();openEditProfile()">✏️ تغيير الاسم</button>
   <button class="btn2" style="margin-top:10px;max-width:220px" onclick="openChildren()">👧👦 الأطفال</button>
@@ -3934,6 +3943,7 @@ function buildHome(){
       ? `أَهْلاً يَا ${PROFILE.name} ${nisba} ${PROFILE.gender==='female'?'الْمُجْتَهِدَةُ':'الْمُجْتَهِدُ'}! 👋`
       : g(`أهلاً بك يا ${PROFILE.name}! 👋`,`أهلاً بكِ يا ${PROFILE.name}! 👋`);
   }
+  updateRateNote();
 }
 
 /* ── LETTER GRID ── */
@@ -6118,8 +6128,6 @@ async function pmSendAndClose(){
     return;
   }
 
-  maybeRequestNativeReview();
-
   status.textContent = '⏳ جارٍ الإرسال...';
   status.style.color = '#888';
 
@@ -6150,25 +6158,43 @@ async function pmSendAndClose(){
   }
 }
 
-/* تقييم المتجر الرسمي (Google Play / App Store) — يُستدعى بصرف النظر عن قيمة
-   النجوم المُختارة في النموذج الخاص أعلاه، حتى لا يُعتبر "تصفية" للتقييمات
-   السلبية (ممنوعة صراحة في إرشادات آبل). النظام نفسه (Android/iOS) يحدّد متى
-   تظهر النافذة فعلياً ولا يسمح باستدعائها بلا حدود، لذا الحد الزمني هنا محلي
-   فقط لتقليل النداءات غير المجدية على تطبيق يُستخدم عدة مرات يومياً. */
-function maybeRequestNativeReview(){
+/* تذكير بالتقييم — بطاقة نصّية في شاشة home، تُقرأ ولا تُضغط: بلا زر ولا رابط
+   ولا فتح للمتجر. من أراد التقييم يذهب إلى المتجر بنفسه.
+   تبدأ بالظهور من الفتحة الثالثة (لا نطلب رأياً في شيء لم يُجرَّب)، وتختفي
+   نهائياً بعد أسبوعين من أول ظهور.
+   الاختفاء زمني لا شرطي عمداً: لا Google ولا آبل تُبلغ التطبيق بأن المستخدم
+   قيّم فعلاً، فلا سبيل لربط الاختفاء بحدوث التقييم.
+   وهي تظهر لكل مستخدم بالتساوي، غير مرتبطة إطلاقاً بالنجوم التي يختارها في
+   نموذج "رسالة لولي الأمر" — تصفية أصحاب الرأي السلبي ممنوعة عند المتجرين. */
+const RATE_NOTE_MIN_OPENS = 3;
+const RATE_NOTE_WINDOW_MS = 14 * 24 * 60 * 60 * 1000; // أسبوعان
+
+function countAppOpen(){
   try{
-    if(!window.Capacitor || typeof window.Capacitor.getPlatform !== 'function') return;
-    if(window.Capacitor.getPlatform() === 'web') return;
-    const plugin = window.Capacitor.Plugins && window.Capacitor.Plugins.InAppReview;
-    if(!plugin || typeof plugin.requestReview !== 'function') return;
+    localStorage.setItem('rn_opens', String(Number(localStorage.getItem('rn_opens') || 0) + 1));
+  } catch(e){ /* التخزين قد يكون محجوباً — الميزة ثانوية ولا تُفشل شيئاً */ }
+}
+countAppOpen();
 
-    const THROTTLE_MS = 14 * 24 * 60 * 60 * 1000; // 14 يوماً
-    const last = Number(localStorage.getItem('iar_last_ts') || 0);
-    if(Date.now() - last < THROTTLE_MS) return;
+function updateRateNote(){
+  const el = document.getElementById('rateNote');
+  if(!el) return;
+  el.style.display = 'none';
+  try{
+    if(localStorage.getItem('rn_done') === '1') return;
+    if(Number(localStorage.getItem('rn_opens') || 0) < RATE_NOTE_MIN_OPENS) return;
 
-    localStorage.setItem('iar_last_ts', String(Date.now()));
-    plugin.requestReview().catch(()=>{});
-  } catch(e){ /* لا نُفشل تدفّق التطبيق بسبب هذه الميزة الثانوية */ }
+    let firstShown = Number(localStorage.getItem('rn_first_shown') || 0);
+    if(!firstShown){
+      firstShown = Date.now();
+      localStorage.setItem('rn_first_shown', String(firstShown));
+    }
+    if(Date.now() - firstShown >= RATE_NOTE_WINDOW_MS){
+      localStorage.setItem('rn_done', '1'); // انتهى الأسبوعان — لا تعود أبداً
+      return;
+    }
+    el.style.display = 'block';
+  } catch(e){ /* كما أعلاه */ }
 }
 
 /* ══════════════════════════════════
