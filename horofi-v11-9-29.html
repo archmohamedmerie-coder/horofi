@@ -3287,8 +3287,50 @@ function openTermsOfUse(){
 }
 /* ── فتح بوابة إدارة/إلغاء الاشتراك من Stripe ── */
 function openBillingPortal(){
-  parentalGate(doOpenBillingPortal); // خروج من التطبيق + إدارة اشتراك — Guideline 1.3
+  parentalGate(doManageSubscription); // إدارة اشتراك = تجارة — Guideline 1.3
 }
+
+/* توجيه إدارة الاشتراك — Apple Guideline 3.1.1
+   اشتراك اشتُري عبر StoreKit يجب أن يُدار عند آبل، لا عبر صفحة دفع خارجية.
+   لكن لا نحكم بالمنصّة وحدها: نفس الحساب قد يكون اشترك عبر Stripe من أندرويد
+   أو الويب ثم فتح iOS. فنسأل StoreKit نفسه — بنفس الدالة التي يستخدمها
+   confirmAppleTransactionWithServer — هل لهذا الحساب معاملة على منتجنا.
+   عند تعذّر الكشف نفترض آبل: إرسال مشترك آبل إلى Stripe مخالفة، أمّا عرض ورقة
+   آبل لمشترك Stripe فإرباك بسيط لا أكثر. الخطآن غير متكافئين. */
+async function doManageSubscription(){
+  if (window.Capacitor?.getPlatform?.() !== 'ios') return doOpenBillingPortal();
+
+  const btn = document.getElementById('manageSubBtn');
+  let useApple = true;
+  if (btn){ btn.disabled = true; btn.textContent = '⏳ لحظة...'; }
+  try{
+    const Sub = window.Capacitor?.Plugins?.Subscriptions;
+    if (Sub && typeof Sub.getLatestTransaction === 'function'){
+      const tx = await Sub.getLatestTransaction({ productIdentifier: APPLE_SUBSCRIPTION_PRODUCT_ID });
+      useApple = !!(tx && tx.responseCode === 0 && tx.data && tx.data.transactionId);
+    }
+  }catch(e){
+    useApple = true; // انظر التعليق أعلاه
+  }finally{
+    if (btn){ btn.disabled = false; btn.textContent = '💳 إدارة / إلغاء الاشتراك'; }
+  }
+
+  if (!useApple) return doOpenBillingPortal();
+
+  const Sub = window.Capacitor?.Plugins?.Subscriptions;
+  if (!Sub || typeof Sub.manageSubscriptions !== 'function'){
+    alert('تعذّر فتح صفحة إدارة الاشتراك لدى آبل.');
+    return;
+  }
+  try{
+    // ورقة StoreKit 2 الأصلية: تُعرض داخل التطبيق ولا تغادره
+    await Sub.manageSubscriptions();
+  }catch(err){
+    alert('تعذّر فتح صفحة إدارة الاشتراك لدى آبل: ' + (err.message || err));
+  }
+}
+
+/* مسار Stripe — لأندرويد والويب، ولمن اشترك عبر Stripe وفتح iOS */
 async function doOpenBillingPortal(){
   const btn = document.getElementById('manageSubBtn');
   if (btn){ btn.disabled = true; btn.textContent = '⏳ جارٍ التحضير...'; }
@@ -6265,6 +6307,10 @@ function updateRateNote(){
   const el = document.getElementById('rateNote');
   if(!el) return;
   el.style.display = 'none';
+  /* أندرويد فقط: قاعدة آبل 1.1.7 توجب استخدام واجهة التقييم الرسمية وتمنع
+     "نوافذ التقييم المخصّصة"، وبطاقتنا — رغم أنها نصّ بلا زر ولا رابط — تقع
+     في هذا الوصف. لا نخاطر بها على iOS بعد أربع دورات رفض. */
+  try{ if(window.Capacitor?.getPlatform?.() === 'ios') return; }catch(e){}
   try{
     if(localStorage.getItem('rn_done') === '1') return;
     if(Number(localStorage.getItem('rn_opens') || 0) < RATE_NOTE_MIN_OPENS) return;
