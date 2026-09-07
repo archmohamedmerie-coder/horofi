@@ -553,6 +553,39 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 
 
 /* ── نافذة رسالة الأهل ── */
+/* بوابة ولي الأمر — Apple Guideline 1.3 (فئة الأطفال) */
+#pgOverlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.72);
+  display:flex;align-items:center;justify-content:center;
+  z-index:10000;padding:16px;
+}
+#pgBox{
+  background:#fff;border-radius:20px;padding:26px 22px;
+  max-width:380px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,0.28);
+  font-family:inherit;direction:rtl;text-align:center;
+}
+#pgBox .pg-lock{font-size:42px;margin-bottom:6px}
+#pgBox .pg-title{font-size:1.15rem;font-weight:800;color:#6A1FA0;margin-bottom:6px}
+#pgBox .pg-sub{font-size:.85rem;font-weight:700;color:var(--muted);line-height:1.7;margin-bottom:16px}
+#pgBox .pg-question{font-size:1.05rem;font-weight:800;color:#333;margin-bottom:12px;line-height:1.8}
+#pgBox .pg-question strong{color:#6A1FA0}
+#pgBox .pg-input{
+  width:130px;text-align:center;border:2px solid #ccc;border-radius:12px;
+  padding:10px;font-size:1.15rem;font-weight:800;font-family:inherit;
+  color:#333;background:#fafafa;box-sizing:border-box;
+}
+#pgBox .pg-input:focus{outline:none;border-color:#6A1FA0}
+#pgBox .pg-error{min-height:20px;margin-top:8px;font-size:.83rem;font-weight:700;color:#e53935}
+#pgBox .pg-btns{display:flex;gap:10px;margin-top:10px}
+#pgBox .pg-btn-ok{
+  flex:1;background:#6A1FA0;color:#fff;border:none;border-radius:12px;
+  padding:11px;font-size:1rem;cursor:pointer;font-weight:700;font-family:inherit;
+}
+#pgBox .pg-btn-cancel{
+  flex:1;background:#f2f2f2;color:#555;border:none;border-radius:12px;
+  padding:11px;font-size:1rem;cursor:pointer;font-weight:700;font-family:inherit;
+}
+#pgBox .pg-btn-ok:active,#pgBox .pg-btn-cancel:active{opacity:.85}
 #parentMsgOverlay{
   position:fixed;inset:0;background:rgba(0,0,0,0.65);
   display:flex;align-items:center;justify-content:center;
@@ -3175,15 +3208,74 @@ function buildAccountScreen(){
   `;
   body.appendChild(btnWrap);
 }
+/* ══════════════════════════════════
+   بوابة ولي الأمر — Apple Guideline 1.3 (Kids Category)
+   التطبيق في فئة الأطفال، وآبل تشترط بوابة لولي الأمر **قبل** أي رابط يخرج من
+   التطبيق وقبل أي عملية شرائية، **ولا يجوز أن تكون قابلة للتعطيل**. رُفض
+   Build 8 لهذا السبب بالضبط (مراجعة 07.09.2026).
+   المهمة مسألة ضرب بأرقام مكتوبة بالحروف العربية: طفل في سنّ تعلّم الحروف لا
+   يقرؤها، وولي الأمر يحلّها في ثانية. تُولَّد عشوائياً في كل فتح، ولا يوجد أي
+   خيار لحفظ النتيجة أو تخطّي البوابة — وهذا شرط آبل النصّي.
+   كل منفذ خروج أو شراء يمرّ من هنا: التغليف داخل الدوال نفسها لا عند أزرارها،
+   كي لا يفلت أي نداء جديد مستقبلاً من البوابة.
+   ══════════════════════════════════ */
+const PG_WORDS = ['صفر','واحد','اثنين','ثلاثة','أربعة','خمسة','ستة','سبعة','ثمانية','تسعة'];
+let PG_ANSWER = null;
+let PG_ACTION = null;
+
+function parentalGate(action){
+  const ov = document.getElementById('pgOverlay');
+  if (!ov){ return; } // لا نُنفّذ العملية إطلاقاً إن غابت البوابة — الفشل الآمن هو المنع
+  PG_ACTION = action;
+  /* 6..9 عمداً: الناتج 36..81، مهمّة تافهة لبالغ وبعيدة عن متناول طفل في سنّ
+     تعلّم الحروف. نطاق أصغر (3×3=9) لا يرقى إلى "مهمّة مستوى بالغ". */
+  const a = 6 + Math.floor(Math.random() * 4);
+  const b = 6 + Math.floor(Math.random() * 4);
+  PG_ANSWER = a * b;
+  document.getElementById('pgQuestion').innerHTML =
+    `كم حاصل ضرب <strong>${PG_WORDS[a]}</strong> في <strong>${PG_WORDS[b]}</strong>؟`;
+  const inp = document.getElementById('pgInput');
+  inp.value = '';
+  document.getElementById('pgError').textContent = '';
+  ov.style.display = 'flex';
+  setTimeout(()=>{ try{ inp.focus(); }catch(e){} }, 50);
+}
+
+function pgCancel(){
+  const ov = document.getElementById('pgOverlay');
+  if (ov) ov.style.display = 'none';
+  PG_ACTION = null;
+  PG_ANSWER = null;
+}
+
+function pgConfirm(){
+  const raw = (document.getElementById('pgInput').value || '').trim();
+  const val = Number(raw);
+  if (raw === '' || !Number.isFinite(val) || val !== PG_ANSWER){
+    document.getElementById('pgError').textContent = 'إجابة غير صحيحة — حاول مرة أخرى.';
+    return;
+  }
+  const action = PG_ACTION;
+  pgCancel();
+  if (typeof action === 'function') action();
+}
+
+function pgKey(ev){ if (ev && ev.key === 'Enter') pgConfirm(); }
+
+/* فتح رابط خارجي — لا يُنادى إلا من داخل بوابة ولي الأمر */
+function pgOpenExternal(url){
+  const CapBrowser = window.Capacitor?.Plugins?.Browser;
+  if (window.Capacitor?.isNativePlatform() && CapBrowser) {
+    CapBrowser.open({ url });
+  } else {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+}
+
 /* ── فتح سياسة الخصوصية (مطلوبة بشكل ظاهر داخل التطبيق نفسه، لا فقط في صفحة المتجر — Apple Guideline 5.1.1) ── */
 const PRIVACY_POLICY_URL = 'https://archmohamedmerie-coder.github.io/horofi/privacy.html';
 function openPrivacyPolicy(){
-  const CapBrowser = window.Capacitor?.Plugins?.Browser;
-  if (window.Capacitor?.isNativePlatform() && CapBrowser) {
-    CapBrowser.open({ url: PRIVACY_POLICY_URL });
-  } else {
-    window.open(PRIVACY_POLICY_URL, '_blank', 'noopener,noreferrer');
-  }
+  parentalGate(()=> pgOpenExternal(PRIVACY_POLICY_URL));
 }
 /* ── شروط الاستخدام (EULA) ──
    Apple Guideline 3.1.2: كل تطبيق فيه اشتراك متجدّد تلقائياً يجب أن يعرض رابطاً
@@ -3191,15 +3283,13 @@ function openPrivacyPolicy(){
    شروط آبل القياسية لأننا لا نملك EULA مخصّصة. */
 const TERMS_OF_USE_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
 function openTermsOfUse(){
-  const CapBrowser = window.Capacitor?.Plugins?.Browser;
-  if (window.Capacitor?.isNativePlatform() && CapBrowser) {
-    CapBrowser.open({ url: TERMS_OF_USE_URL });
-  } else {
-    window.open(TERMS_OF_USE_URL, '_blank', 'noopener,noreferrer');
-  }
+  parentalGate(()=> pgOpenExternal(TERMS_OF_USE_URL));
 }
 /* ── فتح بوابة إدارة/إلغاء الاشتراك من Stripe ── */
-async function openBillingPortal(){
+function openBillingPortal(){
+  parentalGate(doOpenBillingPortal); // خروج من التطبيق + إدارة اشتراك — Guideline 1.3
+}
+async function doOpenBillingPortal(){
   const btn = document.getElementById('manageSubBtn');
   if (btn){ btn.disabled = true; btn.textContent = '⏳ جارٍ التحضير...'; }
   try{
@@ -3207,12 +3297,7 @@ async function openBillingPortal(){
     const res = await call();
     const url = res.data && res.data.url;
     if (!url) throw new Error('لم يصل رابط من الخادم');
-    const CapBrowser = window.Capacitor?.Plugins?.Browser;
-    if (window.Capacitor?.isNativePlatform() && CapBrowser) {
-      CapBrowser.open({ url });
-    } else {
-      window.open(url, '_blank', 'noopener,noreferrer');
-    }
+    pgOpenExternal(url);
   }catch(err){
     alert('تعذّر فتح صفحة إدارة الاشتراك: ' + (err.message||err));
   }finally{
@@ -6245,7 +6330,10 @@ function showSubscriptionPage(){
   nav('subscription');
 }
 /* ── الشراء الفعلي على iOS عبر StoreKit 2 ── */
-async function purchaseIOSSubscription(){
+function purchaseIOSSubscription(){
+  parentalGate(doPurchaseIOSSubscription); // شراء داخل التطبيق — Guideline 1.3
+}
+async function doPurchaseIOSSubscription(){
   const Sub = window.Capacitor?.Plugins?.Subscriptions;
   const btn = document.getElementById('subIosBuyBtn');
   const msgEl = document.getElementById('subIosMsg');
@@ -6298,17 +6386,15 @@ async function restoreIOSPurchases(){
 }
 const STRIPE_URL = 'https://buy.stripe.com/aFa28r2MQdUuassdcK3F600';
 function activateSubscription(){
+  parentalGate(doActivateSubscription); // شراء + خروج من التطبيق — Guideline 1.3
+}
+function doActivateSubscription(){
   const url = CURRENT_UID
     ? `${STRIPE_URL}?client_reference_id=${encodeURIComponent(CURRENT_UID)}`
     : STRIPE_URL;
   // داخل تطبيق Android: افتح متصفحاً خارجياً حقيقياً (Chrome Custom Tabs) بدل الـ WebView الداخلي —
   // هذا يسمح بعودة موثوقة عبر حدث 'resume' والكشف التلقائي عن حالة الاشتراك
-  const CapBrowser = window.Capacitor?.Plugins?.Browser;
-  if (window.Capacitor?.isNativePlatform() && CapBrowser) {
-    CapBrowser.open({ url });
-  } else {
-    window.open(url, '_blank', 'noopener,noreferrer');
-  }
+  pgOpenExternal(url);
 }
 /* ── كشف تلقائي لحالة الاشتراك عند عودة المستخدم من الدفع ── */
 async function silentSubscriptionCheck(){
@@ -6500,6 +6586,28 @@ async function checkSubscriptionReturn(){
     <div class="pm-btns">
       <button class="pm-btn-send" onclick="pmSendAndClose()">إرسال وبدء ▶</button>
       <button class="pm-btn-ok" onclick="pmClose()">بدء بدون إرسال ◀</button>
+    </div>
+  </div>
+</div>
+
+<!-- بوابة ولي الأمر — Apple Guideline 1.3. تُفتح فقط من parentalGate() قبل أي
+     رابط يخرج من التطبيق أو أي عملية شرائية. لا خيار لتعطيلها أو تذكّر الإجابة. -->
+<div id="pgOverlay" style="display:none">
+  <div id="pgBox">
+    <div class="pg-lock">🔒</div>
+    <!-- لا تعليمات موجَّهة للطفل: هو لا يقرأ أصلاً (التطبيق يعلّمه الحروف).
+         البوابة تعمل لأن السؤال نفسه خارج قدرته، لا لأننا نطلب منه شيئاً.
+         السطر الإنجليزي للمراجع كي يتعرّف على البوابة فوراً. -->
+    <div class="pg-title">سؤال لوليّ الأمر</div>
+    <div class="pg-sub">
+      <span dir="ltr" style="display:inline-block;font-size:.78rem">Parental gate</span>
+    </div>
+    <div class="pg-question" id="pgQuestion"></div>
+    <input class="pg-input" id="pgInput" type="number" inputmode="numeric" autocomplete="off" onkeydown="pgKey(event)">
+    <div class="pg-error" id="pgError"></div>
+    <div class="pg-btns">
+      <button class="pg-btn-ok" onclick="pgConfirm()">تأكيد</button>
+      <button class="pg-btn-cancel" onclick="pgCancel()">إلغاء</button>
     </div>
   </div>
 </div>
