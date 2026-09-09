@@ -550,59 +550,39 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 
 
 /* ── نافذة رسالة الأهل ── */
-#parentMsgOverlay{
-  position:fixed;inset:0;background:rgba(0,0,0,0.65);
+/* بوابة ولي الأمر — Apple Guideline 1.3 (فئة الأطفال) */
+#pgOverlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.72);
   display:flex;align-items:center;justify-content:center;
-  z-index:9999;padding:16px;
+  z-index:10000;padding:16px;
 }
-#parentMsgBox{
-  background:#fff;border-radius:20px;padding:28px 22px;
-  max-width:420px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,0.25);
-  font-family:inherit;direction:rtl;text-align:right;
+#pgBox{
+  background:#fff;border-radius:20px;padding:26px 22px;
+  max-width:380px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,0.28);
+  font-family:inherit;direction:rtl;text-align:center;
 }
-#parentMsgBox .pm-logo{text-align:center;font-size:48px;margin-bottom:8px;}
-#parentMsgBox .pm-title{
-  font-size:1.25rem;font-weight:700;color:#6A1FA0;
-  text-align:center;margin-bottom:14px;
-}
-#parentMsgBox .pm-body{
-  font-size:0.97rem;line-height:1.8;color:#333;
-  margin-bottom:18px;
-}
-#parentMsgBox .pm-body p{margin:0 0 10px;}
-#parentMsgBox .pm-body strong{color:#6A1FA0;}
-/* قسم الملاحظات */
-#parentMsgBox .pm-feedback{
-  border-top:1px solid #e0d0f0;padding-top:14px;margin-top:4px;
-}
-#parentMsgBox .pm-feedback label{
-  display:block;font-size:0.88rem;color:#555;margin-bottom:5px;font-weight:600;
-}
-#parentMsgBox .pm-feedback select,
-#parentMsgBox .pm-feedback textarea{
-  width:100%;border:1px solid #ccc;border-radius:10px;
-  padding:8px 10px;font-size:0.93rem;font-family:inherit;
+#pgBox .pg-lock{font-size:42px;margin-bottom:6px}
+#pgBox .pg-title{font-size:1.15rem;font-weight:800;color:#6A1FA0;margin-bottom:6px}
+#pgBox .pg-sub{font-size:.85rem;font-weight:700;color:var(--muted);line-height:1.7;margin-bottom:16px}
+#pgBox .pg-question{font-size:1.05rem;font-weight:800;color:#333;margin-bottom:12px;line-height:1.8}
+#pgBox .pg-question strong{color:#6A1FA0}
+#pgBox .pg-input{
+  width:130px;text-align:center;border:2px solid #ccc;border-radius:12px;
+  padding:10px;font-size:1.15rem;font-weight:800;font-family:inherit;
   color:#333;background:#fafafa;box-sizing:border-box;
-  margin-bottom:10px;direction:rtl;
 }
-#parentMsgBox .pm-feedback textarea{resize:vertical;min-height:72px;}
-#parentMsgBox .pm-btns{display:flex;gap:10px;margin-top:6px;}
-#parentMsgBox .pm-btn-ok{
-  flex:1;background:#6A1FA0;color:#fff;border:none;
-  border-radius:12px;padding:11px;font-size:1rem;
-  cursor:pointer;font-weight:700;
+#pgBox .pg-input:focus{outline:none;border-color:#6A1FA0}
+#pgBox .pg-error{min-height:20px;margin-top:8px;font-size:.83rem;font-weight:700;color:#e53935}
+#pgBox .pg-btns{display:flex;gap:10px;margin-top:10px}
+#pgBox .pg-btn-ok{
+  flex:1;background:#6A1FA0;color:#fff;border:none;border-radius:12px;
+  padding:11px;font-size:1rem;cursor:pointer;font-weight:700;font-family:inherit;
 }
-#parentMsgBox .pm-btn-ok:active{opacity:0.85;}
-#parentMsgBox .pm-btn-send{
-  flex:1;background:#28a745;color:#fff;border:none;
-  border-radius:12px;padding:11px;font-size:0.95rem;
-  cursor:pointer;font-weight:700;
+#pgBox .pg-btn-cancel{
+  flex:1;background:#f2f2f2;color:#555;border:none;border-radius:12px;
+  padding:11px;font-size:1rem;cursor:pointer;font-weight:700;font-family:inherit;
 }
-#parentMsgBox .pm-btn-send:active{opacity:0.85;}
-#parentMsgBox .pm-send-status{
-  font-size:0.82rem;color:#28a745;text-align:center;
-  margin-top:6px;min-height:18px;
-}
+#pgBox .pg-btn-ok:active,#pgBox .pg-btn-cancel:active{opacity:.85}
 
 /* ── FREEMIUM ── */
 .ltile-lock{position:absolute;top:4px;left:4px;font-size:.72rem;pointer-events:none;background:rgba(255,255,255,.92);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.18)}
@@ -653,6 +633,15 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 
   <div class="login-card-anim" style="width:92%;max-width:340px;margin:18px auto 0;background:#fff;border-radius:18px;padding:20px 16px 22px;box-shadow:0 4px 22px rgba(0,0,0,.12)">
 
+    <!-- زر العودة — يظهر فقط حين يفتح مستخدمٌ مسجَّل هذه الشاشة (ضيف جاء ليُرقّي
+         حسابه، أو عائد من شاشة التهيئة). ضروري لأن iOS لا يملك زر رجوع في
+         الجهاز، فبدونه يعلق المستخدم هنا. جُعل عريضاً وصريح النصّ بعد أن علق
+         مراجع آبل في هذه الشاشة بالضبط وظنّ أن لا سبيل له إلى التطبيق. -->
+    <button id="loginBackBtn" onclick="stopAllAudio();nav('home')"
+      style="display:none;width:100%;background:rgba(155,93,229,.12);color:#9B5DE5;border:2px solid #9B5DE5;border-radius:10px;padding:12px 14px;font-size:1rem;font-weight:800;font-family:'Tajawal',sans-serif;cursor:pointer;margin-bottom:14px">
+      ← العودة إلى التطبيق
+      <span dir="ltr" style="display:block;font-size:.72rem;font-weight:700;opacity:.85;margin-top:2px">Back to the app — no account needed</span>
+    </button>
     <!-- تبويبات الدخول / التسجيل -->
     <div style="display:flex;border:2px solid #e0d0f5;border-radius:10px;overflow:hidden;margin-bottom:18px">
       <button id="tabLoginBtn" onclick="showLoginTab()"
@@ -743,6 +732,25 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
       </button>
     </div><!-- /resetForm -->
 
+    <!-- ══ متابعة كضيف ══
+         Apple Guideline 5.1.1(v): لا يجوز إجبار المستخدم على التسجيل للوصول إلى
+         ميزات لا تعتمد على حساب. الزر يبقى ظاهراً في تبويبَي الدخول والتسجيل معاً. -->
+    <div id="guestSection">
+      <div style="display:flex;align-items:center;gap:8px;margin:16px 0 12px">
+        <div style="flex:1;height:1px;background:#e8dcf7"></div>
+        <span style="font-size:.78rem;color:#aaa;font-weight:700;font-family:'Tajawal',sans-serif">أو</span>
+        <div style="flex:1;height:1px;background:#e8dcf7"></div>
+      </div>
+      <button id="guestBtn" onclick="continueAsGuest()"
+        style="display:block;width:100%;padding:13px;background:#FFC947;color:#5a3d00;border:none;border-radius:10px;font-size:1.05rem;font-weight:800;font-family:'Tajawal',sans-serif;cursor:pointer">
+        🎈 ابدأ اللعب بدون تسجيل
+      </button>
+      <div style="font-size:.76rem;color:#999;text-align:center;font-family:'Tajawal',sans-serif;margin-top:7px;line-height:1.6">
+        جرّب التطبيق فوراً — يمكنك إنشاء حساب لاحقاً لحفظ التقدّم
+      </div>
+      <div id="guestErr" style="font-size:.83rem;font-weight:700;text-align:center;margin-top:7px;min-height:18px"></div>
+    </div>
+
     <button onclick="openPrivacyPolicy()" style="display:block;width:100%;padding:8px;margin-top:8px;background:transparent;color:#888;border:none;font-size:.8rem;font-weight:700;font-family:'Tajawal',sans-serif;cursor:pointer;text-decoration:underline">
       سياسة الخصوصية
     </button>
@@ -825,6 +833,16 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
       </optgroup>
     </select>
     <button class="btn" onclick="completeOnboarding()" style="margin-top:6px">ابدأ! 🚀</button>
+    <!-- تخطّي التعريف — Apple Guideline 5.1.1(v): لا يجوز إلزام المستخدم بإدخال
+         معلومات شخصية (اسم الطفل، جنسه، بلده) للوصول إلى محتوى التطبيق. الاسم
+         يبقى متاحاً لاحقاً من صفحة الحساب لمن يريد التخصيص. -->
+    <button class="btn2" onclick="skipOnboarding()"
+      style="margin-top:2px;background:#fff;border:2px solid var(--border);color:#666">
+      تخطّي — ادخل بدون إدخال أي بيانات
+    </button>
+    <div style="font-size:.74rem;color:#999;text-align:center;line-height:1.6;margin-top:-4px">
+      Skip — enter without providing any information
+    </div>
   </div>
 </div>
 
@@ -842,7 +860,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
   <div class="home-sub" id="homeGreeting">تعلَّم الحروف العربية بطريقة ممتعة!</div>
   <div class="word-swarm" id="wordSwarm"></div>
   <div class="progress-summary" id="progressSummary"></div>
-  <button class="btn" onclick="showParentMsg()">نبدأ التعلم! ✏️</button>
+  <button class="btn" onclick="nav('letters')">نبدأ التعلم! ✏️</button>
   <button class="btn2" style="margin-top:14px;max-width:220px" onclick="stopAllAudio();openEditProfile()">✏️ تغيير الاسم</button>
   <button class="btn2" style="margin-top:10px;max-width:220px" onclick="openChildren()">👧👦 الأطفال</button>
   <button class="btn2" style="margin-top:10px;max-width:220px" onclick="stopAllAudio();openAccount()">👤 حسابي</button>
@@ -2963,28 +2981,115 @@ function doRegister(){
   if (pass !== confirm){ errEl.textContent = 'كلمتا السر غير متطابقتين'; return; }
 
   errEl.style.color = '#888'; errEl.textContent = 'جارٍ إنشاء الحساب...';
-  auth.createUserWithEmailAndPassword(email, pass)
+
+  /* إن كان المستخدم الحالي ضيفاً (Anonymous) فنحن نُرقّي حسابه القائم بدل إنشاء
+     حساب جديد: linkWithCredential تحتفظ بنفس الـuid، بينما
+     createUserWithEmailAndPassword كانت ستُنشئ uid جديداً — وهذا يعني فقدان
+     اشتراكه المدفوع (المرتبط بـusers/{uid} في Firestore) وتقدّم أطفاله
+     (المخزَّن تحت مفتاح مرتبط بالـuid في _chKey). */
+  var cur = auth.currentUser;
+  var wasAnonymous = !!(cur && cur.isAnonymous);
+  var task = wasAnonymous
+    ? cur.linkWithCredential(firebase.auth.EmailAuthProvider.credential(email, pass))
+    : auth.createUserWithEmailAndPassword(email, pass);
+
+  task
     .then(function(){
       document.getElementById('regPass').value = '';
       document.getElementById('regConfirm').value = '';
-      errEl.style.color = '#2d8653'; errEl.textContent = 'تم إنشاء الحساب بنجاح! ✅';
+      errEl.style.color = '#2d8653';
+      errEl.textContent = wasAnonymous
+        ? 'تم حفظ حسابك بنجاح! ✅ تقدّم أطفالك محفوظ كما هو'
+        : 'تم إنشاء الحساب بنجاح! ✅';
+      /* بعد الترقية لا يتغيّر الـuid، لذا قد لا يُطلق onAuthStateChanged إعادة
+         التوجيه — نُعيدها يدوياً بنفس منطق onAuthStateChanged تماماً. */
+      if (wasAnonymous){
+        setTimeout(function(){
+          var backBtn = document.getElementById('loginBackBtn');
+          if (backBtn) backBtn.style.display = 'none';
+          var guestSec = document.getElementById('guestSection');
+          if (guestSec) guestSec.style.display = '';
+          var hasProfile = loadProfile();
+          if (hasProfile && PROFILE.name){ loadProgress(); buildHome(); nav('home'); }
+          else { resetGenderPicker(); nav('onboarding'); }
+        }, 1200);
+      }
     })
     .catch(function(err){
       errEl.style.color = '#e53935';
-      if (err.code==='auth/email-already-in-use')
+      if (err.code==='auth/email-already-in-use' || err.code==='auth/credential-already-in-use')
         errEl.textContent = 'هذا البريد مسجّل بالفعل — استخدم تبويب الدخول';
       else if (err.code==='auth/weak-password')
         errEl.textContent = 'كلمة السر ضعيفة جداً';
+      else if (err.code==='auth/requires-recent-login')
+        errEl.textContent = 'انتهت صلاحية جلستك — أعد فتح التطبيق ثم حاول مجدداً';
       else errEl.textContent = 'خطأ: ' + err.message;
     });
 }
 
+/* ── متابعة كضيف (Firebase Anonymous Auth) ──
+   Apple Guideline 5.1.1(v) تمنع إجبار المستخدم على التسجيل للوصول إلى ميزات لا
+   تعتمد على حساب. حساب الضيف يمنح uid حقيقياً، فتعمل معه قواعد Firestore
+   (request.auth != null) ومنطق الاشتراك ومزامنة الأطفال بلا أي تعديل، ودون
+   طلب أي بيانات شخصية من المستخدم. */
+function continueAsGuest(){
+  var btn   = document.getElementById('guestBtn');
+  var errEl = document.getElementById('guestErr');
+  if (btn) btn.disabled = true;
+  if (errEl){ errEl.style.color = '#888'; errEl.textContent = 'جارٍ التحضير...'; }
+  auth.signInAnonymously()
+    .then(function(){ if (errEl) errEl.textContent = ''; })
+    .catch(function(err){
+      if (errEl){
+        errEl.style.color = '#e53935';
+        errEl.textContent = (err.code === 'auth/operation-not-allowed')
+          ? 'وضع الضيف غير مُفعَّل حالياً — يرجى التسجيل بالبريد'
+          : 'تعذّر البدء كضيف: ' + err.message;
+      }
+    })
+    .then(function(){ if (btn) btn.disabled = false; });
+}
+
+/* ── ترقية حساب الضيف إلى حساب دائم ──
+   يفتح شاشة الدخول على تبويب التسجيل مع إظهار زر رجوع (لأن الضيف يبقى مسجَّل
+   الدخول، فلا يُخرجه onAuthStateChanged من الشاشة تلقائياً) وإخفاء زر الضيف. */
+function upgradeGuestAccount(){
+  stopAllAudio();
+  var backBtn = document.getElementById('loginBackBtn');
+  if (backBtn) backBtn.style.display = 'block';
+  var guestSec = document.getElementById('guestSection');
+  if (guestSec) guestSec.style.display = 'none';
+  showRegisterTab();
+  nav('login');
+}
+
 /* ── تسجيل الخروج ── */
 function logoutUser(){
-  if (!confirm('هل تريد تسجيل الخروج؟')) return;
+  var _cur = auth.currentUser;
+  if (_cur && _cur.isAnonymous){
+    // حساب الضيف غير مرتبط ببريد، فلا سبيل للعودة إليه بعد الخروج — نُحذّر بوضوح
+    if (!confirm('أنت تستخدم التطبيق كضيف.\n\nالخروج الآن يعني فقدان تقدّم أطفالك نهائياً، لأن حساب الضيف غير مرتبط ببريد إلكتروني ولا يمكن استعادته.\n\nهل تريد المتابعة؟')) return;
+  } else {
+    if (!confirm('هل تريد تسجيل الخروج؟')) return;
+  }
   stopAllAudio();
   auth.signOut().then(function(){
     CURRENT_UID = null; CHILDREN = []; ACTIVE_CHILD_ID = null;
+    /* تصفير بيانات الطفل السابق أيضاً — بدونه يبقى PROFILE محمّلاً باسم الطفل
+       السابق، فيعرضه buildHome() للمستخدم أو الضيف التالي على نفس الجهاز
+       (سلوك خاطئ وتسريب خصوصية). نُصفّر كذلك حقول شاشة التهيئة وسطر التحية. */
+    PROFILE = {name:'', gender:'male', country:'', nisba_m:'', nisba_f:''};
+    completedLetters = new Set();
+    /* المفتاحان القديمان غير مرتبطين بأي uid، و saveProfile() تكتبهما دائماً
+       كنسخة احتياطية. لو تُركا، فإن ترحيل البيانات القديمة داخل loadChildren()
+       يُنشئ للمستخدم أو الضيف التالي طفلاً من بيانات الطفل السابق. */
+    try{ localStorage.removeItem('horofiProfile'); }catch(e){}
+    try{ localStorage.removeItem('horofiProgress'); }catch(e){}
+    const _obName = document.getElementById('obName'); if (_obName) _obName.value = '';
+    const _obCountry = document.getElementById('obCountry'); if (_obCountry) _obCountry.value = '';
+    resetGenderPicker();
+    const _greet = document.getElementById('homeGreeting');
+    if (_greet) _greet.textContent = 'تعلَّم الحروف العربية بطريقة ممتعة!';
     document.getElementById('loginEmail').value = '';
     document.getElementById('loginPass').value  = '';
     document.getElementById('loginErr').textContent = '';
@@ -3002,7 +3107,8 @@ function buildAccountScreen(){
   const body = document.getElementById('accountBody');
   if (!body) return;
   const user = auth.currentUser;
-  const email = user ? user.email : '';
+  const isGuest = !!(user && user.isAnonymous);
+  const email = user ? (user.email || '') : '';
   const subTxt = isSubscribed
     ? '<span style="color:#2d8653;font-weight:800">مُفعَّل ✅</span>'
     : '<span style="color:#c73030;font-weight:800">غير مُفعَّل</span>';
@@ -3017,8 +3123,8 @@ function buildAccountScreen(){
   }
   body.innerHTML = `
     <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:var(--sh)">
-      <div style="font-weight:800;margin-bottom:6px">📧 البريد الإلكتروني</div>
-      <div style="color:var(--muted);font-weight:600">${email}</div>
+      <div style="font-weight:800;margin-bottom:6px">${isGuest ? '👤 نوع الحساب' : '📧 البريد الإلكتروني'}</div>
+      <div style="color:var(--muted);font-weight:600">${isGuest ? 'ضيف — التقدّم محفوظ على هذا الجهاز فقط' : email}</div>
     </div>
     <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:var(--sh)">
       <div style="font-weight:800;margin-bottom:6px">👨‍👩‍👧‍👦 الأطفال</div>
@@ -3033,24 +3139,139 @@ function buildAccountScreen(){
   btnWrap.style.cssText = 'display:flex;flex-direction:column;gap:10px;align-items:center;margin-top:6px';
   btnWrap.innerHTML = `
     ${isSubscribed ? `<button class="btn2" style="max-width:280px;width:100%" id="manageSubBtn" onclick="openBillingPortal()">💳 إدارة / إلغاء الاشتراك</button>` : ''}
-    <button class="btn2" style="max-width:280px;width:100%" onclick="changeMyPassword()">🔑 تغيير كلمة السر</button>
+    ${isGuest
+      ? `<button class="btn2" style="max-width:280px;width:100%;background:#eaffef;color:#2d8653;border:2px solid #b7e6c8" onclick="upgradeGuestAccount()">✨ أنشئ حساباً لحفظ التقدّم</button>`
+      : `<button class="btn2" style="max-width:280px;width:100%" onclick="changeMyPassword()">🔑 تغيير كلمة السر</button>`}
     <button class="btn2" style="max-width:280px;width:100%" onclick="openPrivacyPolicy()">📄 سياسة الخصوصية</button>
+    <button class="btn2" style="max-width:280px;width:100%" onclick="openTermsOfUse()">📜 شروط الاستخدام</button>
     <button class="btn2" style="max-width:280px;width:100%;background:#fff0f0;color:#c73030;border:2px solid #ffcccc" onclick="deleteAccount()">🗑️ حذف الحساب نهائياً</button>
   `;
   body.appendChild(btnWrap);
 }
+/* ══════════════════════════════════
+   بوابة ولي الأمر — Apple Guideline 1.3 (Kids Category)
+   التطبيق في فئة الأطفال، وآبل تشترط بوابة لولي الأمر **قبل** أي رابط يخرج من
+   التطبيق وقبل أي عملية شرائية، **ولا يجوز أن تكون قابلة للتعطيل**. رُفض
+   Build 8 لهذا السبب بالضبط (مراجعة 07.09.2026).
+   المهمة مسألة ضرب بأرقام مكتوبة بالحروف العربية: طفل في سنّ تعلّم الحروف لا
+   يقرؤها، وولي الأمر يحلّها في ثانية. تُولَّد عشوائياً في كل فتح، ولا يوجد أي
+   خيار لحفظ النتيجة أو تخطّي البوابة — وهذا شرط آبل النصّي.
+   كل منفذ خروج أو شراء يمرّ من هنا: التغليف داخل الدوال نفسها لا عند أزرارها،
+   كي لا يفلت أي نداء جديد مستقبلاً من البوابة.
+   ══════════════════════════════════ */
+const PG_WORDS = ['صفر','واحد','اثنين','ثلاثة','أربعة','خمسة','ستة','سبعة','ثمانية','تسعة'];
+let PG_ANSWER = null;
+let PG_ACTION = null;
+
+function parentalGate(action){
+  const ov = document.getElementById('pgOverlay');
+  if (!ov){ return; } // لا نُنفّذ العملية إطلاقاً إن غابت البوابة — الفشل الآمن هو المنع
+  PG_ACTION = action;
+  /* 6..9 عمداً: الناتج 36..81، مهمّة تافهة لبالغ وبعيدة عن متناول طفل في سنّ
+     تعلّم الحروف. نطاق أصغر (3×3=9) لا يرقى إلى "مهمّة مستوى بالغ". */
+  const a = 6 + Math.floor(Math.random() * 4);
+  const b = 6 + Math.floor(Math.random() * 4);
+  PG_ANSWER = a * b;
+  document.getElementById('pgQuestion').innerHTML =
+    `كم حاصل ضرب <strong>${PG_WORDS[a]}</strong> في <strong>${PG_WORDS[b]}</strong>؟`;
+  const inp = document.getElementById('pgInput');
+  inp.value = '';
+  document.getElementById('pgError').textContent = '';
+  ov.style.display = 'flex';
+  setTimeout(()=>{ try{ inp.focus(); }catch(e){} }, 50);
+}
+
+function pgCancel(){
+  const ov = document.getElementById('pgOverlay');
+  if (ov) ov.style.display = 'none';
+  PG_ACTION = null;
+  PG_ANSWER = null;
+}
+
+function pgConfirm(){
+  const raw = (document.getElementById('pgInput').value || '').trim();
+  const val = Number(raw);
+  if (raw === '' || !Number.isFinite(val) || val !== PG_ANSWER){
+    document.getElementById('pgError').textContent = 'إجابة غير صحيحة — حاول مرة أخرى.';
+    return;
+  }
+  const action = PG_ACTION;
+  pgCancel();
+  if (typeof action === 'function') action();
+}
+
+function pgKey(ev){ if (ev && ev.key === 'Enter') pgConfirm(); }
+
+/* فتح رابط خارجي — لا يُنادى إلا من داخل بوابة ولي الأمر */
+function pgOpenExternal(url){
+  const CapBrowser = window.Capacitor?.Plugins?.Browser;
+  if (window.Capacitor?.isNativePlatform() && CapBrowser) {
+    CapBrowser.open({ url });
+  } else {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+}
+
 /* ── فتح سياسة الخصوصية (مطلوبة بشكل ظاهر داخل التطبيق نفسه، لا فقط في صفحة المتجر — Apple Guideline 5.1.1) ── */
 const PRIVACY_POLICY_URL = 'https://archmohamedmerie-coder.github.io/horofi/privacy.html';
 function openPrivacyPolicy(){
-  const CapBrowser = window.Capacitor?.Plugins?.Browser;
-  if (window.Capacitor?.isNativePlatform() && CapBrowser) {
-    CapBrowser.open({ url: PRIVACY_POLICY_URL });
-  } else {
-    window.open(PRIVACY_POLICY_URL, '_blank', 'noopener,noreferrer');
-  }
+  parentalGate(()=> pgOpenExternal(PRIVACY_POLICY_URL));
+}
+/* ── شروط الاستخدام (EULA) ──
+   Apple Guideline 3.1.2: كل تطبيق فيه اشتراك متجدّد تلقائياً يجب أن يعرض رابطاً
+   فعّالاً لشروط الاستخدام *داخل التطبيق نفسه* (إضافةً إلى وصف المتجر). نستخدم
+   شروط آبل القياسية لأننا لا نملك EULA مخصّصة. */
+const TERMS_OF_USE_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
+function openTermsOfUse(){
+  parentalGate(()=> pgOpenExternal(TERMS_OF_USE_URL));
 }
 /* ── فتح بوابة إدارة/إلغاء الاشتراك من Stripe ── */
-async function openBillingPortal(){
+function openBillingPortal(){
+  parentalGate(doManageSubscription); // إدارة اشتراك = تجارة — Guideline 1.3
+}
+
+/* توجيه إدارة الاشتراك — Apple Guideline 3.1.1
+   اشتراك اشتُري عبر StoreKit يجب أن يُدار عند آبل، لا عبر صفحة دفع خارجية.
+   لكن لا نحكم بالمنصّة وحدها: نفس الحساب قد يكون اشترك عبر Stripe من أندرويد
+   أو الويب ثم فتح iOS. فنسأل StoreKit نفسه — بنفس الدالة التي يستخدمها
+   confirmAppleTransactionWithServer — هل لهذا الحساب معاملة على منتجنا.
+   عند تعذّر الكشف نفترض آبل: إرسال مشترك آبل إلى Stripe مخالفة، أمّا عرض ورقة
+   آبل لمشترك Stripe فإرباك بسيط لا أكثر. الخطآن غير متكافئين. */
+async function doManageSubscription(){
+  if (window.Capacitor?.getPlatform?.() !== 'ios') return doOpenBillingPortal();
+
+  const btn = document.getElementById('manageSubBtn');
+  let useApple = true;
+  if (btn){ btn.disabled = true; btn.textContent = '⏳ لحظة...'; }
+  try{
+    const Sub = window.Capacitor?.Plugins?.Subscriptions;
+    if (Sub && typeof Sub.getLatestTransaction === 'function'){
+      const tx = await Sub.getLatestTransaction({ productIdentifier: APPLE_SUBSCRIPTION_PRODUCT_ID });
+      useApple = !!(tx && tx.responseCode === 0 && tx.data && tx.data.transactionId);
+    }
+  }catch(e){
+    useApple = true; // انظر التعليق أعلاه
+  }finally{
+    if (btn){ btn.disabled = false; btn.textContent = '💳 إدارة / إلغاء الاشتراك'; }
+  }
+
+  if (!useApple) return doOpenBillingPortal();
+
+  const Sub = window.Capacitor?.Plugins?.Subscriptions;
+  if (!Sub || typeof Sub.manageSubscriptions !== 'function'){
+    alert('تعذّر فتح صفحة إدارة الاشتراك لدى آبل.');
+    return;
+  }
+  try{
+    // ورقة StoreKit 2 الأصلية: تُعرض داخل التطبيق ولا تغادره
+    await Sub.manageSubscriptions();
+  }catch(err){
+    alert('تعذّر فتح صفحة إدارة الاشتراك لدى آبل: ' + (err.message || err));
+  }
+}
+
+/* مسار Stripe — لأندرويد والويب، ولمن اشترك عبر Stripe وفتح iOS */
+async function doOpenBillingPortal(){
   const btn = document.getElementById('manageSubBtn');
   if (btn){ btn.disabled = true; btn.textContent = '⏳ جارٍ التحضير...'; }
   try{
@@ -3058,12 +3279,7 @@ async function openBillingPortal(){
     const res = await call();
     const url = res.data && res.data.url;
     if (!url) throw new Error('لم يصل رابط من الخادم');
-    const CapBrowser = window.Capacitor?.Plugins?.Browser;
-    if (window.Capacitor?.isNativePlatform() && CapBrowser) {
-      CapBrowser.open({ url });
-    } else {
-      window.open(url, '_blank', 'noopener,noreferrer');
-    }
+    pgOpenExternal(url);
   }catch(err){
     alert('تعذّر فتح صفحة إدارة الاشتراك: ' + (err.message||err));
   }finally{
@@ -3133,6 +3349,25 @@ function sendResetCode(){
     });
 }
 
+
+/* ── تخطّي شاشة التعريف ──
+   Apple Guideline 5.1.1(v): لا يجوز إلزام المستخدم بإدخال معلومات شخصية للوصول
+   إلى وظائف التطبيق. اسم الطفل وجنسه وبلده تخصيص اختياري لا شرط للاستخدام، لذا
+   ندخل بملف فارغ (التحية تبقى عامة، ولا يُشغَّل صوت الترحيب باسم). يمكن إدخال
+   الاسم لاحقاً من "تغيير الاسم" في الشاشة الرئيسية. */
+function skipOnboarding(){
+  unlockSpeech();
+  PROFILE.name    = '';
+  PROFILE.country = '';
+  PROFILE.nisba_m = '';
+  PROFILE.nisba_f = '';
+  if (!PROFILE.gender) PROFILE.gender = 'male';
+  __addingChild = false;
+  saveProfile();          // يُنشئ طفلاً بلا اسم ويُنشّطه إن لم يوجد
+  loadProgress();
+  buildHome();
+  nav('home');
+}
 
 function completeOnboarding(){
   unlockSpeech();
@@ -3651,6 +3886,16 @@ function nav(id){
   const gm = document.getElementById('globalMuteBtn');
   const hideMuteBtnScreens = ['login', 'home', 'letters', 'levelSelect', 'subscription', 'parent', 'onboarding', 'game', 'done'];
   if (gm) gm.style.display = hideMuteBtnScreens.includes(id) ? 'none' : '';
+  // شاشة الدخول حين يكون المستخدم مسجَّلاً بالفعل (ضيف جاء ليُرقّي حسابه، أو رجع
+  // من شاشة التهيئة): يجب إظهار زر رجوع وإخفاء زر الضيف — وإلا عَلِق على iOS
+  // لأنه لا يملك زر رجوع في الجهاز.
+  if (id === 'login'){
+    const signedIn = !!auth.currentUser;
+    const backBtn  = document.getElementById('loginBackBtn');
+    if (backBtn) backBtn.style.display = signedIn ? 'block' : 'none';
+    const guestSec = document.getElementById('guestSection');
+    if (guestSec) guestSec.style.display = signedIn ? 'none' : '';
+  }
   // إعادة بناء الشاشات الديناميكية كي يُحدَّث العداد والشارات
   if (id === 'home') buildHome();
   else if (id === 'letters') buildLetterGrid();
@@ -5283,12 +5528,19 @@ auth.onAuthStateChanged(async function(user){
     loadSubscription(); // يربط مستمع Firestore الحقيقي بعد معرفة uid
     await pullChildrenFromCloud(); // يستعيد بيانات الأطفال من السحابة إن كان هذا جهازاً جديداً
     var hasProfile = loadProfile();
-    if (hasProfile && PROFILE.name){ loadProgress(); buildHome(); nav('home'); }
+    /* CHILDREN.length يغطّي من تخطّى شاشة التعريف: لديه طفل محفوظ بلا اسم، فلا
+       يصحّ إعادته للتهيئة في كل فتح (loadProfile ترجع false حين لا يوجد اسم). */
+    if ((hasProfile && PROFILE.name) || CHILDREN.length > 0){ loadProgress(); buildHome(); nav('home'); }
     else { resetGenderPicker(); nav('onboarding'); }
   } else {
     CURRENT_UID = null;
     if (_subscriptionUnsub) { _subscriptionUnsub(); _subscriptionUnsub = null; }
     isSubscribed = false;
+    // إعادة شاشة الدخول لهيئتها الطبيعية (قد تكون بقيت على هيئة "ترقية ضيف")
+    var backBtn = document.getElementById('loginBackBtn');
+    if (backBtn) backBtn.style.display = 'none';
+    var guestSec = document.getElementById('guestSection');
+    if (guestSec) guestSec.style.display = '';
     nav('login');
   }
 });
@@ -5918,83 +6170,6 @@ function elStatus() {
   return elIsReady() ? '🟢 ElevenLabs' : '🔵 Web Speech';
 }
 
-
-/* ── نافذة الأهل ── */
-function showParentMsg(){
-  const overlay = document.getElementById('parentMsgOverlay');
-  if(overlay) overlay.style.display='flex';
-}
-function pmClose(){
-  const overlay = document.getElementById('parentMsgOverlay');
-  if(overlay) overlay.style.display='none';
-  nav('letters');
-}
-
-async function pmSendAndClose(){
-  const rating = document.getElementById('pmRating').value;
-  const notes  = document.getElementById('pmNotes').value.trim();
-  const status = document.getElementById('pmSendStatus');
-
-  // زر "إرسال وبدء" يتطلب اختيار تقييم أولاً — من يريد التخطي بلا إرسال يستخدم زر "بدء بدون إرسال"
-  if(!rating){
-    status.textContent = '⚠️ يرجى اختيار تقييم أولاً';
-    status.style.color = '#e53935';
-    return;
-  }
-
-  maybeRequestNativeReview();
-
-  status.textContent = '⏳ جارٍ الإرسال...';
-  status.style.color = '#888';
-
-  try{
-    const resp = await fetch('https://formspree.io/f/meebgobd', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json','Accept':'application/json'},
-      body: JSON.stringify({
-        rating: rating || 'لم يُحدَّد',
-        notes:  notes  || 'لا يوجد',
-        child:  PROFILE.name || 'غير معروف',
-        date:   new Date().toLocaleDateString('ar-EG')
-      })
-    });
-    if(resp.ok){
-      status.textContent = '✅ شكراً! تم إرسال ملاحظاتك.';
-      status.style.color = '#28a745';
-      setTimeout(pmClose, 1200);
-    } else {
-      status.textContent = '⚠️ لم يتم الإرسال، يمكنك المتابعة.';
-      status.style.color = '#e67e22';
-      setTimeout(pmClose, 1500);
-    }
-  } catch(e){
-    status.textContent = '⚠️ تعذّر الاتصال، يمكنك المتابعة.';
-    status.style.color = '#e67e22';
-    setTimeout(pmClose, 1500);
-  }
-}
-
-/* تقييم المتجر الرسمي (Google Play / App Store) — يُستدعى بصرف النظر عن قيمة
-   النجوم المُختارة في النموذج الخاص أعلاه، حتى لا يُعتبر "تصفية" للتقييمات
-   السلبية (ممنوعة صراحة في إرشادات آبل). النظام نفسه (Android/iOS) يحدّد متى
-   تظهر النافذة فعلياً ولا يسمح باستدعائها بلا حدود، لذا الحد الزمني هنا محلي
-   فقط لتقليل النداءات غير المجدية على تطبيق يُستخدم عدة مرات يومياً. */
-function maybeRequestNativeReview(){
-  try{
-    if(!window.Capacitor || typeof window.Capacitor.getPlatform !== 'function') return;
-    if(window.Capacitor.getPlatform() === 'web') return;
-    const plugin = window.Capacitor.Plugins && window.Capacitor.Plugins.InAppReview;
-    if(!plugin || typeof plugin.requestReview !== 'function') return;
-
-    const THROTTLE_MS = 14 * 24 * 60 * 60 * 1000; // 14 يوماً
-    const last = Number(localStorage.getItem('iar_last_ts') || 0);
-    if(Date.now() - last < THROTTLE_MS) return;
-
-    localStorage.setItem('iar_last_ts', String(Date.now()));
-    plugin.requestReview().catch(()=>{});
-  } catch(e){ /* لا نُفشل تدفّق التطبيق بسبب هذه الميزة الثانوية */ }
-}
-
 /* ══════════════════════════════════
    FREEMIUM LOGIC — التحقق من الاشتراك يتم فقط عبر Firestore
    (الحقل subscribed لا يمكن كتابته إلا من Cloud Function بعد
@@ -6043,7 +6218,10 @@ function showSubscriptionPage(){
   nav('subscription');
 }
 /* ── الشراء الفعلي على iOS عبر StoreKit 2 ── */
-async function purchaseIOSSubscription(){
+function purchaseIOSSubscription(){
+  parentalGate(doPurchaseIOSSubscription); // شراء داخل التطبيق — Guideline 1.3
+}
+async function doPurchaseIOSSubscription(){
   const Sub = window.Capacitor?.Plugins?.Subscriptions;
   const btn = document.getElementById('subIosBuyBtn');
   const msgEl = document.getElementById('subIosMsg');
@@ -6096,17 +6274,15 @@ async function restoreIOSPurchases(){
 }
 const STRIPE_URL = 'https://buy.stripe.com/aFa28r2MQdUuassdcK3F600';
 function activateSubscription(){
+  parentalGate(doActivateSubscription); // شراء + خروج من التطبيق — Guideline 1.3
+}
+function doActivateSubscription(){
   const url = CURRENT_UID
     ? `${STRIPE_URL}?client_reference_id=${encodeURIComponent(CURRENT_UID)}`
     : STRIPE_URL;
   // داخل تطبيق Android: افتح متصفحاً خارجياً حقيقياً (Chrome Custom Tabs) بدل الـ WebView الداخلي —
   // هذا يسمح بعودة موثوقة عبر حدث 'resume' والكشف التلقائي عن حالة الاشتراك
-  const CapBrowser = window.Capacitor?.Plugins?.Browser;
-  if (window.Capacitor?.isNativePlatform() && CapBrowser) {
-    CapBrowser.open({ url });
-  } else {
-    window.open(url, '_blank', 'noopener,noreferrer');
-  }
+  pgOpenExternal(url);
 }
 /* ── كشف تلقائي لحالة الاشتراك عند عودة المستخدم من الدفع ── */
 async function silentSubscriptionCheck(){
@@ -6135,8 +6311,6 @@ const BACK_TARGETS = {
   done: 'letters', subscription: 'letters'
 };
 function handleHardwareBack(){
-  const overlay = document.getElementById('parentMsgOverlay');
-  if (overlay && overlay.style.display === 'flex'){ pmClose(); return; }
   const popup = document.getElementById('progressBadgePopup');
   if (popup && popup.classList.contains('show')){ closeProgressBadgePopup(); return; }
   const champ = document.getElementById('championScreen');
@@ -6145,6 +6319,8 @@ function handleHardwareBack(){
   const active = document.querySelector('.screen.active');
   const id = active ? active.id : 'home';
   if (id === 'game'){ gameBack(); return; }
+  // ضيف فتح شاشة الدخول لترقية حسابه — الرجوع يُعيده للتطبيق ولا يُخرجه منه
+  if (id === 'login' && auth.currentUser){ stopAllAudio(); nav('home'); return; }
   const target = BACK_TARGETS[id];
   if (target){ stopAllAudio(); nav(target); }
   else { window.Capacitor.Plugins.App.exitApp(); }
@@ -6197,6 +6373,13 @@ async function checkSubscriptionReturn(){
         <li>✅ دعم صوتي كامل</li>
       </ul>
       <div class="sub-price" id="subPriceLabel">1.99 يورو / شهر</div>
+      <!-- Apple Guideline 3.1.2: يجب أن يعرض التطبيق نفسه اسم الاشتراك ومدّته
+           وسعره وروابط سياسة الخصوصية وشروط الاستخدام. -->
+      <div style="font-size:.82rem;color:var(--muted);font-weight:600;line-height:1.75;margin:8px 2px 12px;text-align:center">
+        <strong>اشتراك «فتح جميع الحروف»</strong> — مدّته <strong>شهر واحد</strong>،
+        ويتجدّد تلقائياً كل شهر بنفس السعر ما لم تُلغه قبل 24 ساعة من نهاية المدة.
+        يمكنك الإلغاء في أي وقت من إعدادات حسابك.
+      </div>
       <div id="subBuyButtons">
         <button class="sub-web-btn" style="margin-top:4px" onclick="activateSubscription()">
           <span>🔒 اشترك الآن عبر موقعنا الآمن</span>
@@ -6215,6 +6398,15 @@ async function checkSubscriptionReturn(){
         <div id="subIosMsg" style="min-height:18px;font-size:.85rem;text-align:center;margin-top:6px"></div>
       </div>
       <button class="login-link" onclick="stopAllAudio();nav('letters')">العودة للحروف المجانية</button>
+      <div style="display:flex;gap:14px;justify-content:center;align-items:center;margin-top:12px;flex-wrap:wrap">
+        <button onclick="openPrivacyPolicy()" style="background:transparent;border:none;color:#9B5DE5;font-size:.82rem;font-weight:700;font-family:'Tajawal',sans-serif;cursor:pointer;text-decoration:underline;padding:4px">
+          سياسة الخصوصية
+        </button>
+        <span style="color:#ccc">•</span>
+        <button onclick="openTermsOfUse()" style="background:transparent;border:none;color:#9B5DE5;font-size:.82rem;font-weight:700;font-family:'Tajawal',sans-serif;cursor:pointer;text-decoration:underline;padding:4px">
+          شروط الاستخدام
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -6251,35 +6443,24 @@ async function checkSubscriptionReturn(){
   <button class="ch-close" onclick="closeChampionScreen()">شكراً! 🌟</button>
 </div>
 
-<!-- ── نافذة رسالة الأهل (تظهر في كل فتح) ── -->
-<div id="parentMsgOverlay" style="display:none">
-  <div id="parentMsgBox">
-    <div class="pm-logo">📚</div>
-    <div class="pm-title">أهلنا الكرام</div>
-    <div class="pm-body">
-      <p>
-        لقد قمنا بوضع <strong>أخطاء مقصودة</strong> في حركات كلمات محدودة جداً،
-        <strong>لتحفيزكم على تصحيحها مع أبنائكم</strong> عندما يعودون إليكم لسؤالكم.
-      </p>
+<!-- بوابة ولي الأمر — Apple Guideline 1.3. تُفتح فقط من parentalGate() قبل أي
+     رابط يخرج من التطبيق أو أي عملية شرائية. لا خيار لتعطيلها أو تذكّر الإجابة. -->
+<div id="pgOverlay" style="display:none">
+  <div id="pgBox">
+    <div class="pg-lock">🔒</div>
+    <!-- لا تعليمات موجَّهة للطفل: هو لا يقرأ أصلاً (التطبيق يعلّمه الحروف).
+         البوابة تعمل لأن السؤال نفسه خارج قدرته، لا لأننا نطلب منه شيئاً.
+         السطر الإنجليزي للمراجع كي يتعرّف على البوابة فوراً. -->
+    <div class="pg-title">سؤال لوليّ الأمر</div>
+    <div class="pg-sub">
+      <span dir="ltr" style="display:inline-block;font-size:.78rem">Parental gate</span>
     </div>
-    <!-- قسم الملاحظات والتقييم -->
-    <div class="pm-feedback">
-      <label>⭐ تقييمك للتطبيق</label>
-      <select id="pmRating">
-        <option value="">— اختر تقييماً —</option>
-        <option value="5">⭐⭐⭐⭐⭐ ممتاز</option>
-        <option value="4">⭐⭐⭐⭐ جيد جداً</option>
-        <option value="3">⭐⭐⭐ جيد</option>
-        <option value="2">⭐⭐ مقبول</option>
-        <option value="1">⭐ يحتاج تحسين</option>
-      </select>
-      <label>💬 ملاحظاتك واقتراحاتك (اختياري)</label>
-      <textarea id="pmNotes" placeholder="شاركنا رأيك وملاحظاتك عن التطبيق..."></textarea>
-      <div id="pmSendStatus" class="pm-send-status"></div>
-    </div>
-    <div class="pm-btns">
-      <button class="pm-btn-send" onclick="pmSendAndClose()">إرسال وبدء ▶</button>
-      <button class="pm-btn-ok" onclick="pmClose()">بدء بدون إرسال ◀</button>
+    <div class="pg-question" id="pgQuestion"></div>
+    <input class="pg-input" id="pgInput" type="number" inputmode="numeric" autocomplete="off" onkeydown="pgKey(event)">
+    <div class="pg-error" id="pgError"></div>
+    <div class="pg-btns">
+      <button class="pg-btn-ok" onclick="pgConfirm()">تأكيد</button>
+      <button class="pg-btn-cancel" onclick="pgCancel()">إلغاء</button>
     </div>
   </div>
 </div>
