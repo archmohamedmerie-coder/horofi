@@ -604,20 +604,6 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 }
 #parentMsgBox .pm-body p{margin:0 0 10px;}
 #parentMsgBox .pm-body strong{color:#6A1FA0;}
-/* قسم الملاحظات */
-#parentMsgBox .pm-feedback{
-  border-top:1px solid #e0d0f0;padding-top:14px;margin-top:4px;
-}
-#parentMsgBox .pm-feedback label{
-  display:block;font-size:0.88rem;color:#555;margin-bottom:5px;font-weight:600;
-}
-#parentMsgBox .pm-feedback textarea{
-  width:100%;border:1px solid #ccc;border-radius:10px;
-  padding:8px 10px;font-size:0.93rem;font-family:inherit;
-  color:#333;background:#fafafa;box-sizing:border-box;
-  margin-bottom:10px;direction:rtl;
-}
-#parentMsgBox .pm-feedback textarea{resize:vertical;min-height:72px;}
 #parentMsgBox .pm-btns{display:flex;gap:10px;margin-top:6px;}
 #parentMsgBox .pm-btn-ok{
   flex:1;background:#6A1FA0;color:#fff;border:none;
@@ -625,16 +611,6 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
   cursor:pointer;font-weight:700;
 }
 #parentMsgBox .pm-btn-ok:active{opacity:0.85;}
-#parentMsgBox .pm-btn-send{
-  flex:1;background:#28a745;color:#fff;border:none;
-  border-radius:12px;padding:11px;font-size:0.95rem;
-  cursor:pointer;font-weight:700;
-}
-#parentMsgBox .pm-btn-send:active{opacity:0.85;}
-#parentMsgBox .pm-send-status{
-  font-size:0.82rem;color:#28a745;text-align:center;
-  margin-top:6px;min-height:18px;
-}
 
 /* ── FREEMIUM ── */
 .ltile-lock{position:absolute;top:4px;left:4px;font-size:.72rem;pointer-events:none;background:rgba(255,255,255,.92);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.18)}
@@ -6234,42 +6210,6 @@ function pmClose(){
   nav('letters');
 }
 
-async function pmSendAndClose(){
-  const notes  = document.getElementById('pmNotes').value.trim();
-  const status = document.getElementById('pmSendStatus');
-
-  // بلا ملاحظات لا يوجد ما يُرسَل — نبدأ مباشرة بدل إرسال رسالة فارغة
-  if(!notes){ pmClose(); return; }
-
-  status.textContent = '⏳ جارٍ الإرسال...';
-  status.style.color = '#888';
-
-  try{
-    const resp = await fetch('https://formspree.io/f/meebgobd', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json','Accept':'application/json'},
-      body: JSON.stringify({
-        notes:  notes  || 'لا يوجد',
-        child:  PROFILE.name || 'غير معروف',
-        date:   new Date().toLocaleDateString('ar-EG')
-      })
-    });
-    if(resp.ok){
-      status.textContent = '✅ شكراً! تم إرسال ملاحظاتك.';
-      status.style.color = '#28a745';
-      setTimeout(pmClose, 1200);
-    } else {
-      status.textContent = '⚠️ لم يتم الإرسال، يمكنك المتابعة.';
-      status.style.color = '#e67e22';
-      setTimeout(pmClose, 1500);
-    }
-  } catch(e){
-    status.textContent = '⚠️ تعذّر الاتصال، يمكنك المتابعة.';
-    status.style.color = '#e67e22';
-    setTimeout(pmClose, 1500);
-  }
-}
-
 /* ══════════════════════════════════
    FREEMIUM LOGIC — التحقق من الاشتراك يتم فقط عبر Firestore
    (الحقل subscribed لا يمكن كتابته إلا من Cloud Function بعد
@@ -6556,15 +6496,8 @@ async function checkSubscriptionReturn(){
         <strong>لتحفيزكم على تصحيحها مع أبنائكم</strong> عندما يعودون إليكم لسؤالكم.
       </p>
     </div>
-    <!-- قسم ملاحظات ولي الأمر -->
-    <div class="pm-feedback">
-      <label>💬 ملاحظاتك واقتراحاتك (اختياري)</label>
-      <textarea id="pmNotes" placeholder="شاركنا رأيك وملاحظاتك عن التطبيق..."></textarea>
-      <div id="pmSendStatus" class="pm-send-status"></div>
-    </div>
     <div class="pm-btns">
-      <button class="pm-btn-send" onclick="pmSendAndClose()">إرسال وبدء ▶</button>
-      <button class="pm-btn-ok" onclick="pmClose()">بدء بدون إرسال ◀</button>
+      <button class="pm-btn-ok" onclick="pmClose()">نبدأ ▶</button>
     </div>
   </div>
 </div>
