@@ -583,34 +583,6 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
   padding:11px;font-size:1rem;cursor:pointer;font-weight:700;font-family:inherit;
 }
 #pgBox .pg-btn-ok:active,#pgBox .pg-btn-cancel:active{opacity:.85}
-#parentMsgOverlay{
-  position:fixed;inset:0;background:rgba(0,0,0,0.65);
-  display:flex;align-items:center;justify-content:center;
-  z-index:9999;padding:16px;
-}
-#parentMsgBox{
-  background:#fff;border-radius:20px;padding:28px 22px;
-  max-width:420px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,0.25);
-  font-family:inherit;direction:rtl;text-align:right;
-}
-#parentMsgBox .pm-logo{text-align:center;font-size:48px;margin-bottom:8px;}
-#parentMsgBox .pm-title{
-  font-size:1.25rem;font-weight:700;color:#6A1FA0;
-  text-align:center;margin-bottom:14px;
-}
-#parentMsgBox .pm-body{
-  font-size:0.97rem;line-height:1.8;color:#333;
-  margin-bottom:18px;
-}
-#parentMsgBox .pm-body p{margin:0 0 10px;}
-#parentMsgBox .pm-body strong{color:#6A1FA0;}
-#parentMsgBox .pm-btns{display:flex;gap:10px;margin-top:6px;}
-#parentMsgBox .pm-btn-ok{
-  flex:1;background:#6A1FA0;color:#fff;border:none;
-  border-radius:12px;padding:11px;font-size:1rem;
-  cursor:pointer;font-weight:700;
-}
-#parentMsgBox .pm-btn-ok:active{opacity:0.85;}
 
 /* ── FREEMIUM ── */
 .ltile-lock{position:absolute;top:4px;left:4px;font-size:.72rem;pointer-events:none;background:rgba(255,255,255,.92);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.18)}
@@ -888,7 +860,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
   <div class="home-sub" id="homeGreeting">تعلَّم الحروف العربية بطريقة ممتعة!</div>
   <div class="word-swarm" id="wordSwarm"></div>
   <div class="progress-summary" id="progressSummary"></div>
-  <button class="btn" onclick="showParentMsg()">نبدأ التعلم! ✏️</button>
+  <button class="btn" onclick="nav('letters')">نبدأ التعلم! ✏️</button>
   <button class="btn2" style="margin-top:14px;max-width:220px" onclick="stopAllAudio();openEditProfile()">✏️ تغيير الاسم</button>
   <button class="btn2" style="margin-top:10px;max-width:220px" onclick="openChildren()">👧👦 الأطفال</button>
   <button class="btn2" style="margin-top:10px;max-width:220px" onclick="stopAllAudio();openAccount()">👤 حسابي</button>
@@ -6198,18 +6170,6 @@ function elStatus() {
   return elIsReady() ? '🟢 ElevenLabs' : '🔵 Web Speech';
 }
 
-
-/* ── نافذة الأهل ── */
-function showParentMsg(){
-  const overlay = document.getElementById('parentMsgOverlay');
-  if(overlay) overlay.style.display='flex';
-}
-function pmClose(){
-  const overlay = document.getElementById('parentMsgOverlay');
-  if(overlay) overlay.style.display='none';
-  nav('letters');
-}
-
 /* ══════════════════════════════════
    FREEMIUM LOGIC — التحقق من الاشتراك يتم فقط عبر Firestore
    (الحقل subscribed لا يمكن كتابته إلا من Cloud Function بعد
@@ -6351,8 +6311,6 @@ const BACK_TARGETS = {
   done: 'letters', subscription: 'letters'
 };
 function handleHardwareBack(){
-  const overlay = document.getElementById('parentMsgOverlay');
-  if (overlay && overlay.style.display === 'flex'){ pmClose(); return; }
   const popup = document.getElementById('progressBadgePopup');
   if (popup && popup.classList.contains('show')){ closeProgressBadgePopup(); return; }
   const champ = document.getElementById('championScreen');
@@ -6483,23 +6441,6 @@ async function checkSubscriptionReturn(){
   <div class="ch-title" id="chTitle">بطل حروفي!</div>
   <div class="ch-sub" id="chSub">أتقنت جميع الحروف الـ 28 — أنت بطل حقيقي يستحق كل الإعجاب!</div>
   <button class="ch-close" onclick="closeChampionScreen()">شكراً! 🌟</button>
-</div>
-
-<!-- ── نافذة رسالة الأهل (تظهر في كل فتح) ── -->
-<div id="parentMsgOverlay" style="display:none">
-  <div id="parentMsgBox">
-    <div class="pm-logo">📚</div>
-    <div class="pm-title">أهلنا الكرام</div>
-    <div class="pm-body">
-      <p>
-        لقد قمنا بوضع <strong>أخطاء مقصودة</strong> في حركات كلمات محدودة جداً،
-        <strong>لتحفيزكم على تصحيحها مع أبنائكم</strong> عندما يعودون إليكم لسؤالكم.
-      </p>
-    </div>
-    <div class="pm-btns">
-      <button class="pm-btn-ok" onclick="pmClose()">نبدأ ▶</button>
-    </div>
-  </div>
 </div>
 
 <!-- بوابة ولي الأمر — Apple Guideline 1.3. تُفتح فقط من parentalGate() قبل أي
