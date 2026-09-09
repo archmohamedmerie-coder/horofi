@@ -81,9 +81,6 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 @keyframes pop{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
 .progress-summary{background:#fff;border-radius:16px;padding:10px 20px;margin-bottom:24px;box-shadow:var(--sh);font-size:.85rem;font-weight:700;color:var(--muted)}
 .progress-summary strong{color:var(--purple)}
-/* بطاقة تذكير بالتقييم — نصّ يُقرأ فقط: بلا زر ولا رابط ولا فتح للمتجر */
-.rate-note{max-width:330px;background:#fff;border:2px solid var(--sun);border-radius:16px;padding:10px 16px;margin:0 0 16px;box-shadow:var(--sh);font-size:.85rem;font-weight:700;color:var(--ink);line-height:1.6;cursor:default}
-.rate-note .rn-stars{display:block;font-size:.95rem;letter-spacing:2px;margin-bottom:2px}
 .btn{background:var(--purple);color:#fff;border:none;border-radius:18px;padding:16px 52px;font-size:1.2rem;font-weight:800;font-family:'Tajawal',sans-serif;cursor:pointer;box-shadow:0 6px 0 var(--purple-d);transition:transform .13s,box-shadow .13s}
 .btn:hover{transform:translateY(-2px);box-shadow:0 8px 0 var(--purple-d)}
 .btn:active{transform:translateY(1px);box-shadow:0 3px 0 var(--purple-d)}
@@ -614,7 +611,6 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 #parentMsgBox .pm-feedback label{
   display:block;font-size:0.88rem;color:#555;margin-bottom:5px;font-weight:600;
 }
-#parentMsgBox .pm-feedback select,
 #parentMsgBox .pm-feedback textarea{
   width:100%;border:1px solid #ccc;border-radius:10px;
   padding:8px 10px;font-size:0.93rem;font-family:inherit;
@@ -689,13 +685,15 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 
   <div class="login-card-anim" style="width:92%;max-width:340px;margin:18px auto 0;background:#fff;border-radius:18px;padding:20px 16px 22px;box-shadow:0 4px 22px rgba(0,0,0,.12)">
 
-    <!-- زر رجوع — يظهر فقط حين يفتح ضيفٌ مسجَّل هذه الشاشة لترقية حسابه.
-         ضروري لأن iOS لا يملك زر رجوع في الجهاز، فبدونه يعلق الضيف هنا. -->
+    <!-- زر العودة — يظهر فقط حين يفتح مستخدمٌ مسجَّل هذه الشاشة (ضيف جاء ليُرقّي
+         حسابه، أو عائد من شاشة التهيئة). ضروري لأن iOS لا يملك زر رجوع في
+         الجهاز، فبدونه يعلق المستخدم هنا. جُعل عريضاً وصريح النصّ بعد أن علق
+         مراجع آبل في هذه الشاشة بالضبط وظنّ أن لا سبيل له إلى التطبيق. -->
     <button id="loginBackBtn" onclick="stopAllAudio();nav('home')"
-      style="display:none;background:rgba(155,93,229,.12);color:#9B5DE5;border:none;border-radius:9px;padding:8px 14px;font-size:.9rem;font-weight:800;font-family:'Tajawal',sans-serif;cursor:pointer;margin-bottom:12px">
-      ← رجوع
+      style="display:none;width:100%;background:rgba(155,93,229,.12);color:#9B5DE5;border:2px solid #9B5DE5;border-radius:10px;padding:12px 14px;font-size:1rem;font-weight:800;font-family:'Tajawal',sans-serif;cursor:pointer;margin-bottom:14px">
+      ← العودة إلى التطبيق
+      <span dir="ltr" style="display:block;font-size:.72rem;font-weight:700;opacity:.85;margin-top:2px">Back to the app — no account needed</span>
     </button>
-
     <!-- تبويبات الدخول / التسجيل -->
     <div style="display:flex;border:2px solid #e0d0f5;border-radius:10px;overflow:hidden;margin-bottom:18px">
       <button id="tabLoginBtn" onclick="showLoginTab()"
@@ -914,12 +912,6 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
   <div class="home-sub" id="homeGreeting">تعلَّم الحروف العربية بطريقة ممتعة!</div>
   <div class="word-swarm" id="wordSwarm"></div>
   <div class="progress-summary" id="progressSummary"></div>
-  <!-- تذكير بالتقييم: نصّ يُقرأ فقط، لا يُضغط ولا يقود إلى المتجر.
-       موضعه فوق الزر الرئيسي كي يُرى بلا تمرير، ومضغوط كي يبقى الزر ظاهراً معه. -->
-  <div class="rate-note" id="rateNote" style="display:none">
-    <span class="rn-stars">⭐⭐⭐⭐⭐</span>
-    نرجو منكم مشكورين تقييم التطبيق وتجربتكم فيه
-  </div>
   <button class="btn" onclick="showParentMsg()">نبدأ التعلم! ✏️</button>
   <button class="btn2" style="margin-top:14px;max-width:220px" onclick="stopAllAudio();openEditProfile()">✏️ تغيير الاسم</button>
   <button class="btn2" style="margin-top:10px;max-width:220px" onclick="openChildren()">👧👦 الأطفال</button>
@@ -4070,7 +4062,6 @@ function buildHome(){
       ? `أَهْلاً يَا ${PROFILE.name} ${nisba} ${PROFILE.gender==='female'?'الْمُجْتَهِدَةُ':'الْمُجْتَهِدُ'}! 👋`
       : g(`أهلاً بك يا ${PROFILE.name}! 👋`,`أهلاً بكِ يا ${PROFILE.name}! 👋`);
   }
-  updateRateNote();
 }
 
 /* ── LETTER GRID ── */
@@ -6244,16 +6235,11 @@ function pmClose(){
 }
 
 async function pmSendAndClose(){
-  const rating = document.getElementById('pmRating').value;
   const notes  = document.getElementById('pmNotes').value.trim();
   const status = document.getElementById('pmSendStatus');
 
-  // زر "إرسال وبدء" يتطلب اختيار تقييم أولاً — من يريد التخطي بلا إرسال يستخدم زر "بدء بدون إرسال"
-  if(!rating){
-    status.textContent = '⚠️ يرجى اختيار تقييم أولاً';
-    status.style.color = '#e53935';
-    return;
-  }
+  // بلا ملاحظات لا يوجد ما يُرسَل — نبدأ مباشرة بدل إرسال رسالة فارغة
+  if(!notes){ pmClose(); return; }
 
   status.textContent = '⏳ جارٍ الإرسال...';
   status.style.color = '#888';
@@ -6263,7 +6249,6 @@ async function pmSendAndClose(){
       method: 'POST',
       headers: {'Content-Type':'application/json','Accept':'application/json'},
       body: JSON.stringify({
-        rating: rating || 'لم يُحدَّد',
         notes:  notes  || 'لا يوجد',
         child:  PROFILE.name || 'غير معروف',
         date:   new Date().toLocaleDateString('ar-EG')
@@ -6283,49 +6268,6 @@ async function pmSendAndClose(){
     status.style.color = '#e67e22';
     setTimeout(pmClose, 1500);
   }
-}
-
-/* تذكير بالتقييم — بطاقة نصّية في شاشة home، تُقرأ ولا تُضغط: بلا زر ولا رابط
-   ولا فتح للمتجر. من أراد التقييم يذهب إلى المتجر بنفسه.
-   تبدأ بالظهور من الفتحة الثالثة (لا نطلب رأياً في شيء لم يُجرَّب)، وتختفي
-   نهائياً بعد أسبوعين من أول ظهور.
-   الاختفاء زمني لا شرطي عمداً: لا Google ولا آبل تُبلغ التطبيق بأن المستخدم
-   قيّم فعلاً، فلا سبيل لربط الاختفاء بحدوث التقييم.
-   وهي تظهر لكل مستخدم بالتساوي، غير مرتبطة إطلاقاً بالنجوم التي يختارها في
-   نموذج "رسالة لولي الأمر" — تصفية أصحاب الرأي السلبي ممنوعة عند المتجرين. */
-const RATE_NOTE_MIN_OPENS = 3;
-const RATE_NOTE_WINDOW_MS = 14 * 24 * 60 * 60 * 1000; // أسبوعان
-
-function countAppOpen(){
-  try{
-    localStorage.setItem('rn_opens', String(Number(localStorage.getItem('rn_opens') || 0) + 1));
-  } catch(e){ /* التخزين قد يكون محجوباً — الميزة ثانوية ولا تُفشل شيئاً */ }
-}
-countAppOpen();
-
-function updateRateNote(){
-  const el = document.getElementById('rateNote');
-  if(!el) return;
-  el.style.display = 'none';
-  /* أندرويد فقط: قاعدة آبل 1.1.7 توجب استخدام واجهة التقييم الرسمية وتمنع
-     "نوافذ التقييم المخصّصة"، وبطاقتنا — رغم أنها نصّ بلا زر ولا رابط — تقع
-     في هذا الوصف. لا نخاطر بها على iOS بعد أربع دورات رفض. */
-  try{ if(window.Capacitor?.getPlatform?.() === 'ios') return; }catch(e){}
-  try{
-    if(localStorage.getItem('rn_done') === '1') return;
-    if(Number(localStorage.getItem('rn_opens') || 0) < RATE_NOTE_MIN_OPENS) return;
-
-    let firstShown = Number(localStorage.getItem('rn_first_shown') || 0);
-    if(!firstShown){
-      firstShown = Date.now();
-      localStorage.setItem('rn_first_shown', String(firstShown));
-    }
-    if(Date.now() - firstShown >= RATE_NOTE_WINDOW_MS){
-      localStorage.setItem('rn_done', '1'); // انتهى الأسبوعان — لا تعود أبداً
-      return;
-    }
-    el.style.display = 'block';
-  } catch(e){ /* كما أعلاه */ }
 }
 
 /* ══════════════════════════════════
@@ -6614,17 +6556,8 @@ async function checkSubscriptionReturn(){
         <strong>لتحفيزكم على تصحيحها مع أبنائكم</strong> عندما يعودون إليكم لسؤالكم.
       </p>
     </div>
-    <!-- قسم الملاحظات والتقييم -->
+    <!-- قسم ملاحظات ولي الأمر -->
     <div class="pm-feedback">
-      <label>⭐ تقييمك للتطبيق</label>
-      <select id="pmRating">
-        <option value="">— اختر تقييماً —</option>
-        <option value="5">⭐⭐⭐⭐⭐ ممتاز</option>
-        <option value="4">⭐⭐⭐⭐ جيد جداً</option>
-        <option value="3">⭐⭐⭐ جيد</option>
-        <option value="2">⭐⭐ مقبول</option>
-        <option value="1">⭐ يحتاج تحسين</option>
-      </select>
       <label>💬 ملاحظاتك واقتراحاتك (اختياري)</label>
       <textarea id="pmNotes" placeholder="شاركنا رأيك وملاحظاتك عن التطبيق..."></textarea>
       <div id="pmSendStatus" class="pm-send-status"></div>
