@@ -75,3 +75,7 @@ AuthKey_*.p8
 *.mov
 *" - Kopie".png
 img/* - Kopie.png
+
+# Playwright
+test-results/
+playwright-report/

@@ -1,0 +1,13 @@
+{
+  "name": "horofi-tests",
+  "private": true,
+  "description": "اختبارات المسارات الحرجة لتطبيق صحّح حروفك — تشغّل horofi-v11-9-29.html في متصفح بلا واجهة مع محاكاة Firebase",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "serve": "^14.2.4"
+  }
+}
