@@ -124,6 +124,8 @@ section{padding-block:var(--s24)}
 @media(max-width:900px){
   :root{--fs-h1:2.441rem;--fs-h2:1.953rem;--fs-display:2.441rem}
   .hero-grid{grid-template-columns:1fr;gap:var(--s12)}
+  .hero-grid>*{min-width:0}
+  .hero h1 .hl{white-space:normal}
   .hero-visual img.mascot{width:96px}
   section{padding-block:var(--s16)}
 }
@@ -245,6 +247,81 @@ footer{padding-block:var(--s12);border-top:1px solid var(--border);background:va
 .foot-links a:hover{color:var(--purple-ink)}
 .foot-copy{font-size:var(--fs-sm);color:var(--muted);font-weight:600}
 
+/* ═══════ طريقة التعلّم — خطوات + شاشة (غير متماثل) ═══════ */
+.method{display:grid;grid-template-columns:1.1fr .9fr;gap:var(--s16);align-items:start;margin-bottom:var(--s24)}
+.steps{list-style:none;display:grid;gap:var(--s8)}
+.step{display:grid;grid-template-columns:56px 1fr;gap:var(--s4);align-items:start}
+.step-num{
+  font-family:'Amiri',serif;font-size:var(--fs-h3);font-weight:700;line-height:1;
+  color:var(--purple);background:var(--purple-soft);border-radius:var(--radius);
+  width:56px;height:56px;display:grid;place-items:center;
+}
+.step h3{margin-bottom:var(--s2)}
+.step p{color:var(--muted);font-size:.95rem}
+.method-visual{position:sticky;top:88px}
+.method-visual img{
+  width:min(320px,100%);margin-inline:auto;border-radius:26px;
+  border:1px solid var(--border);box-shadow:var(--sh-lg);
+}
+.method-facts{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s3);
+  margin-top:var(--s6);max-width:360px;margin-inline:auto;
+}
+.method-facts div{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:var(--s3) var(--s2);text-align:center;
+}
+.method-facts strong{
+  display:block;font-family:'Amiri',serif;font-size:var(--fs-h4);
+  color:var(--purple);line-height:1.1;font-weight:700;
+}
+.method-facts span{font-size:var(--fs-sm);color:var(--muted);font-weight:700}
+@media(max-width:900px){
+  .method{grid-template-columns:1fr;gap:var(--s12);margin-bottom:var(--s16)}
+  .method-visual{position:static}
+}
+
+/* ═══════ ما يُبقيه مستمرّاً ═══════ */
+.motiv{
+  display:grid;grid-template-columns:1fr 1fr;gap:var(--s12);align-items:center;
+  background:var(--surface-alt);border:1px solid var(--border);
+  border-radius:var(--radius-lg);padding:var(--s12);
+}
+.motiv-title{font-size:var(--fs-h3);line-height:1.3;margin-bottom:var(--s4)}
+.motiv-text>p{color:var(--muted);margin-bottom:var(--s6)}
+.motiv-list{list-style:none;display:grid;gap:var(--s3)}
+.motiv-list li{padding-inline-start:var(--s4);border-inline-start:3px solid var(--purple);color:var(--muted);font-size:.95rem}
+.motiv-list strong{color:var(--ink)}
+.badges-cap{display:block;font-size:var(--fs-sm);font-weight:800;color:var(--purple-d);margin-bottom:var(--s3)}
+.chips{display:flex;flex-wrap:wrap;gap:var(--s2)}
+.chips span{
+  background:var(--surface);border:1px solid var(--border);border-radius:999px;
+  padding:var(--s2) var(--s4);font-size:var(--fs-sm);font-weight:800;color:var(--ink);
+}
+.chips .chip-gold{background:var(--sun);border-color:var(--sun);color:#4A3B00}
+@media(max-width:900px){.motiv{grid-template-columns:1fr;padding:var(--s8)}}
+
+/* ═══════ ما يُطمئن الأهل ═══════ */
+.assure{background:var(--surface-alt);border-block:1px solid var(--border)}
+.assure-grid{list-style:none;display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s6)}
+.assure-grid li{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:var(--s6);border-top:4px solid var(--purple);
+}
+.assure-grid h3{font-size:var(--fs-lg);margin-bottom:var(--s2)}
+.assure-grid p{color:var(--muted);font-size:.95rem}
+@media(max-width:900px){.assure-grid{grid-template-columns:1fr}}
+
+/* ═══════ صندوق الاشتراك (بلا سعر) ═══════ */
+.price-eyebrow{
+  display:inline-block;background:var(--green);color:#fff;border-radius:999px;
+  padding:var(--s1) var(--s4);font-size:var(--fs-sm);font-weight:800;margin-bottom:var(--s4);
+}
+.price-title{font-size:var(--fs-h3);line-height:1.3;margin-bottom:var(--s3)}
+.price-divider{display:flex;align-items:center;gap:var(--s3);color:var(--muted);font-weight:800;font-size:var(--fs-sm);margin-block:var(--s6)}
+.price-divider::before,.price-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.price-support{font-size:var(--fs-lg);font-weight:800;color:var(--purple-d);margin-inline:auto;margin-bottom:var(--s6)}
+
 /* ═══════ الحركة ═══════ */
 .reveal{opacity:0;transform:translateY(16px);transition:opacity .5s ease-out,transform .5s ease-out}
 .reveal.in{opacity:1;transform:none}
@@ -265,6 +342,7 @@ footer{padding-block:var(--s12);border-top:1px solid var(--border);background:va
     <div class="nav-links">
       <a href="#why">لماذا التطبيق</a>
       <a href="#features">المزايا</a>
+      <a href="#parents">للأهل</a>
       <a href="#shots">لقطات</a>
       <a href="#price">الاشتراك</a>
       <a href="#faq">أسئلة</a>
@@ -293,7 +371,7 @@ footer{padding-block:var(--s12);border-top:1px solid var(--border);background:va
         <a class="btn btn-primary is-soon" href="#shots">شاهد التطبيق</a>
         <a class="btn btn-ghost is-live" href="#shots">شاهد التطبيق</a>
       </div>
-      <p class="hero-note">28 حرفاً · 3 مستويات · نطق احترافي · 4 حروف مجانية للتجربة</p>
+      <p class="hero-note">28 حرفاً · 4 أنواع تمارين · نطق احترافي · 4 حروف مجانية بلا تسجيل · iOS وAndroid</p>
     </div>
     <div class="hero-visual">
       <img class="phone" src="img/exercise.png" width="540" height="1080"
@@ -343,58 +421,110 @@ footer{padding-block:var(--s12);border-top:1px solid var(--border);background:va
   <div class="wrap">
     <div class="problem-head reveal">
       <h2>مبني على أساس لغوي سليم</h2>
-      <p>ليس تطبيق ألعاب بواجهة عربية — كل تمرين مصمَّم حول قاعدة إملائية حقيقية.</p>
+      <p>ليس تطبيق ألعاب بواجهة عربية — كل تمرين مصمَّم حول قاعدة إملائية حقيقية، وكل حرف يمرّ بأربعة أنواع من التدريب.</p>
     </div>
-    <div class="feats">
-      <div class="feat reveal">
-        <span class="num">٢٨</span>
-        <h3>كل الحروف في كل مواضعها</h3>
-        <p>
-          تمارين منفصلة لكل موضع: البداية، الوسط بعد حرف متصل، الوسط بعد حرف منفصل،
-          والنهاية بحالتيها — وليس مجرد "تعرّف على الحرف".
-        </p>
+
+    <!-- كيف يتعلّم الطفل — تخطيط غير متماثل: خطوات + شاشة -->
+    <div class="method">
+      <ol class="steps">
+        <li class="step reveal">
+          <span class="step-num">١</span>
+          <div>
+            <h3>يميّز الشكل الصحيح</h3>
+            <p>في كل جولة كلمة حقيقية وأربعة أشكال للحرف، يختار الطفل الصحيح منها — وأمامه دائماً «شجرة أشكال الحرف»: في البداية، والوسط بعد حرف متصل أو منفصل، والنهاية.</p>
+          </div>
+        </li>
+        <li class="step reveal">
+          <span class="step-num">٢</span>
+          <div>
+            <h3>يركّب الكلمة بنفسه</h3>
+            <p>يبني الكلمة حرفاً حرفاً على لوح التركيب، فيرى بعينه كيف يتغيّر شكل الحرف حين يلتصق بما قبله وما بعده.</p>
+          </div>
+        </li>
+        <li class="step reveal">
+          <span class="step-num">٣</span>
+          <div>
+            <h3>يكتب بإصبعه</h3>
+            <p>جولات كتابة مباشرة على الشاشة: يتتبّع الطفل الحرف فوق نموذج مرجعي بكل مواضعه. تدريب على حركة اليد، لا اختبار يُحبط.</p>
+          </div>
+        </li>
+        <li class="step reveal">
+          <span class="step-num">٤</span>
+          <div>
+            <h3>تمرين خاص للحروف الستة</h3>
+            <p>الألف والدال والذال والراء والزاي والواو لا تتصل بما بعدها — قاعدة يخطئ فيها معظم الأطفال، فلها تمرين مستقل يثبّتها.</p>
+          </div>
+        </li>
+      </ol>
+      <div class="method-visual reveal">
+        <img src="img/exercise.png" width="540" height="1080" loading="lazy"
+             alt="جولة تمييز الشكل الصحيح: شجرة أشكال حرف الباء في الأعلى وأربع كلمات للاختيار">
+        <div class="method-facts">
+          <div><strong>٢٨</strong><span>حرفاً</span></div>
+          <div><strong>٣</strong><span>مستويات لكل حرف</span></div>
+          <div><strong>١٥</strong><span>جولة في كل مستوى</span></div>
+        </div>
       </div>
-      <div class="feat reveal">
-        <span class="num">🔊</span>
-        <h3>نطق حقيقي لكل كلمة وجملة</h3>
-        <p>
-          صوت واضح ومشكَّل بدقة لكل سؤال وكلمة وجملة تعليمية — يسمع الطفل الكلمة
-          صحيحة ثم يراها في جملة كاملة تثبّت المعنى.
-        </p>
+    </div>
+
+    <!-- ما يُبقيه مستمرّاً -->
+    <div class="motiv">
+      <div class="motiv-text reveal">
+        <h3 class="motiv-title">ما يجعل الطفل يعود بنفسه</h3>
+        <p>التعلّم يثبت حين يكون ممتعاً. لذلك لكل جولة قلوب ونقاط وشريط تقدّم، ولكل إنجاز شارة باسمها، ولكل الحروف الثمانية والعشرين تاجٌ في النهاية.</p>
+        <ul class="motiv-list">
+          <li><strong>نطق مسجَّل باحتراف</strong> — لكل سؤال وكلمة وجملة، ولكل عبارة مدح وتشجيع، ولكل شارة حين تُمنح.</li>
+          <li><strong>شخصية مرافقة</strong> تفرح مع الإجابة الصحيحة وتتعاطف مع الخطأ — والخطأ يأتي معه تلميح لا عقاب.</li>
+          <li><strong>أخطاء مقصودة</strong> في كلمات الشاشة الرئيسية: حركات خاطئة يكتشفها الطفل ويسأل عنها — فيصبح الحوار مع الأهل جزءاً من التعلّم.</li>
+          <li><strong>شاشة «بطل حروفي»</strong> حين يتقن الحروف كلها.</li>
+        </ul>
       </div>
-      <div class="feat reveal">
-        <span class="num">✓</span>
-        <h3>تصحيح فوري ومشجّع</h3>
-        <p>
-          عند الخطأ يظهر الشكل الصحيح مع تفسير القاعدة فوراً — دون إحباط،
-          ومع تشجيع مستمر بالنقاط والشارات.
-        </p>
+      <div class="badges reveal" aria-label="الشارات الاثنتا عشرة في التطبيق">
+        <span class="badges-cap">١٢ شارة ينالها الطفل واحدةً واحدة</span>
+        <div class="chips">
+          <span>أول خطوة</span><span>بداية الرحلة</span><span>نجم المبتدئين</span>
+          <span>خمسة متتالية</span><span>سلسلة ذهبية</span><span>مواظب أسبوع</span>
+          <span>كاتب الكلمات</span><span>خطّاط الشكل</span><span>حافظ الحروف</span>
+          <span>المتقن الدقيق</span><span>مئة نقطة</span><span class="chip-gold">بطل حروفي</span>
+        </div>
       </div>
-      <div class="feat reveal">
-        <span class="num">٣</span>
-        <h3>ثلاثة مستويات صعوبة</h3>
-        <p>
-          مبتدئ بكلمات قصيرة مألوفة، ثم متوسط ومتقدّم بكلمات أطول وأقل شيوعاً —
-          يكبر التطبيق مع طفلك.
-        </p>
-      </div>
-      <div class="feat reveal">
-        <span class="num">👨‍👩‍👧</span>
-        <h3>عدة أطفال وتقرير للأهل</h3>
-        <p>
-          ملف مستقل لكل طفل بتقدّمه الخاص، وتقرير يوضح للوالدين الحروف التي
-          أتقنها فعلاً والتي تحتاج إعادة.
-        </p>
-      </div>
-      <div class="feat reveal">
-        <span class="num">🚫</span>
+    </div>
+  </div>
+</section>
+
+<!-- ما يُطمئن الأهل -->
+<section class="assure" id="parents">
+  <div class="wrap">
+    <div class="problem-head reveal">
+      <h2>مصمَّم ليطمئنّ الأهل</h2>
+      <p>الطفل يلعب وحده بأمان، والوالد وحده يملك مفاتيح كل شيء.</p>
+    </div>
+    <ul class="assure-grid">
+      <li class="reveal">
+        <h3>يبدأ بلا تسجيل ولا بيانات</h3>
+        <p>افتح التطبيق واضغط «ابدأ اللعب بدون تسجيل». لا بريد ولا اسم ولا أي معلومة — التقدّم يُحفظ على الجهاز نفسه.</p>
+      </li>
+      <li class="reveal">
+        <h3>بوابة ولي الأمر</h3>
+        <p>قبل أي رابط يخرج من التطبيق وقبل أي عملية شراء، يظهر سؤال لا يجيبه إلا بالغ. لا يمكن تعطيلها ولا تذكّر الإجابة.</p>
+      </li>
+      <li class="reveal">
         <h3>بلا إعلانات إطلاقاً</h3>
-        <p>
-          لا إعلانات، ولا مشتريات مفاجئة داخل التطبيق، ولا محتوى خارجي —
-          بيئة آمنة تماماً يديرها الوالد بالكامل.
-        </p>
-      </div>
-    </div>
+        <p>لا إعلانات، ولا محتوى من أطراف أخرى، ولا تواصل مع مستخدمين آخرين. شاشة الطفل هي الحروف وحدها.</p>
+      </li>
+      <li class="reveal">
+        <h3>عدة أطفال بملفّ لكلٍّ منهم</h3>
+        <p>لكل طفل اسمه وتقدّمه ونقاطه وشاراته. التنقّل بينهم بضغطة، ويرحّب التطبيق بكلٍّ منهم باسمه.</p>
+      </li>
+      <li class="reveal">
+        <h3>تقرير للأهل</h3>
+        <p>لكل طفل: الحروف التي أتقنها فعلاً، والحروف التي تحتاج إعادة، وآخر نشاط له — بنظرة واحدة.</p>
+      </li>
+      <li class="reveal">
+        <h3>حساب اختياري يحفظ كل شيء</h3>
+        <p>متى شئت أنشئ حساباً ببريدك فينتقل التقدّم معك إلى أي جهاز. وحذف الحساب بكل بياناته من داخل التطبيق بضغطة.</p>
+      </li>
+    </ul>
   </div>
 </section>
 
@@ -434,18 +564,20 @@ footer{padding-block:var(--s12);border-top:1px solid var(--border);background:va
 <section id="price">
   <div class="wrap">
     <div class="price-box reveal">
-      <div class="price-tag">١٫٩٩ €<small> / شهرياً</small></div>
-      <p class="price-sub">اشتراك واحد يفتح كل الحروف لكل أطفالك</p>
+      <span class="price-eyebrow">ابدأ مجاناً</span>
+      <h2 class="price-title">أربعة حروف كاملة، بلا حساب وبلا دفع</h2>
+      <p class="price-sub">الباء والتاء والثاء والجيم مفتوحة بكل تمارينها ومستوياتها — تكفي لتعرف إن كان التطبيق مناسباً لطفلك.</p>
+      <div class="price-divider"><span>ثم</span></div>
+      <p class="price-support">اشتراك شهري رمزي جداً لدعم تطوير التطبيق</p>
       <ul class="price-list">
-        <li><span class="tick">✓</span><span>الحروف الـ28 كاملة بكل مواضعها</span></li>
-        <li><span class="tick">✓</span><span>المستويات الثلاثة وتمارين الحروف غير المتصلة</span></li>
-        <li><span class="tick">✓</span><span>عدد غير محدود من ملفات الأطفال</span></li>
-        <li><span class="tick">✓</span><span>تقرير تقدّم مفصّل للأهل</span></li>
-        <li><span class="tick">✓</span><span>إلغاء في أي وقت — تبقى مشتركاً حتى نهاية الشهر المدفوع</span></li>
+        <li><span class="tick">✓</span><span>الحروف الـ٢٨ كاملة بكل مواضعها</span></li>
+        <li><span class="tick">✓</span><span>المستويان المتوسط والمتقدّم لكل حرف</span></li>
+        <li><span class="tick">✓</span><span>يفتح كل شيء لكل أطفالك باشتراك واحد</span></li>
+        <li><span class="tick">✓</span><span>إلغاء في أي وقت من داخل التطبيق — وتبقى مشتركاً حتى نهاية الشهر المدفوع</span></li>
       </ul>
-      <a class="btn btn-primary is-live" href="#get" style="width:100%">ابدأ الآن</a>
+      <a class="btn btn-primary is-live" href="#get" style="width:100%">حمّل وجرّب مجاناً</a>
       <span class="btn btn-soon is-soon" style="width:100%">متاح عند الإطلاق</span>
-      <p class="free-note">جرّب 4 حروف كاملة مجاناً قبل أي اشتراك</p>
+      <p class="free-note">لا إعلانات، ولا مشتريات مفاجئة — الشراء دائماً خلف بوابة ولي الأمر</p>
     </div>
   </div>
 </section>
@@ -462,10 +594,23 @@ footer{padding-block:var(--s12);border-top:1px solid var(--border);background:va
       </p>
     </details>
     <details>
+      <summary>هل يحتاج طفلي حساباً ليبدأ؟</summary>
+      <p>
+        لا. اضغط «ابدأ اللعب بدون تسجيل» وادخل فوراً بلا بريد ولا اسم ولا أي بيانات — التقدّم يُحفظ على الجهاز.
+        إن أردت لاحقاً أن ينتقل التقدّم معك إلى جهاز آخر، أنشئ حساباً ببريدك من شاشة «حسابي» ويبقى كل شيء كما هو.
+      </p>
+    </details>
+    <details>
       <summary>هل يمكن تجربته قبل الدفع؟</summary>
       <p>
         نعم. أربعة حروف كاملة (ب، ت، ث، ج) مفتوحة مجاناً بكل تمارينها ومستوياتها —
         تكفي تماماً لتعرف إن كان التطبيق مناسباً لطفلك.
+      </p>
+    </details>
+    <details>
+      <summary>هل يعمل على iPhone وiPad وأندرويد؟</summary>
+      <p>
+        نعم، متاح على App Store وGoogle Play. والحساب الواحد يعمل على المنصّتين — تقدّم أطفالك ينتقل معك.
       </p>
     </details>
     <details>
@@ -478,22 +623,22 @@ footer{padding-block:var(--s12);border-top:1px solid var(--border);background:va
     <details>
       <summary>كيف ألغي الاشتراك؟</summary>
       <p>
-        من داخل التطبيق: "حسابي" ثم "إدارة / إلغاء الاشتراك". يبقى الاشتراك فعّالاً
+        من داخل التطبيق: «حسابي» ثم «إدارة / إلغاء الاشتراك». يبقى الاشتراك فعّالاً
         حتى نهاية الشهر المدفوع ثم يتوقف تلقائياً دون أي خصم إضافي.
       </p>
     </details>
     <details>
       <summary>هل هناك إعلانات أو محتوى خارجي؟</summary>
       <p>
-        لا إطلاقاً. لا إعلانات ولا روابط خارجية ولا تواصل مع مستخدمين آخرين.
-        إنشاء الحساب والدفع والإعدادات كلها بيد الوالد وحده.
+        لا إعلانات، ولا محتوى من أطراف أخرى، ولا تواصل مع مستخدمين آخرين.
+        والروابط القليلة التي تخرج من التطبيق — كسياسة الخصوصية وإدارة الاشتراك — لا تُفتح إلا بعد سؤال لا يجيبه إلا بالغ.
       </p>
     </details>
     <details>
       <summary>ماذا عن بيانات طفلي؟</summary>
       <p>
-        نجمع الحد الأدنى فقط: بريد الوالد لإنشاء الحساب، واسم الطفل وتقدّمه لتخصيص التجربة.
-        بيانات الدفع لا تمرّ بخوادمنا إطلاقاً. يمكنك حذف حسابك وكل بياناتك من داخل التطبيق.
+        بلا حساب لا نطلب منك أي معلومة شخصية. ما يُحفظ هو اسم الطفل — إن اخترت إدخاله — وتقدّمه، لتخصيص التجربة. ومع الحساب يُضاف بريد الوالد فقط.
+        بيانات الدفع لا تمرّ بخوادمنا إطلاقاً. ويمكنك حذف حسابك وكل بياناته من داخل التطبيق.
         <a href="privacy.html" style="color:var(--purple-ink);font-weight:800;text-decoration:underline">سياسة الخصوصية كاملة</a>
       </p>
     </details>
