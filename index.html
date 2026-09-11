@@ -247,25 +247,10 @@ footer{padding-block:var(--s12);border-top:1px solid var(--border);background:va
 .foot-links a:hover{color:var(--purple-ink)}
 .foot-copy{font-size:var(--fs-sm);color:var(--muted);font-weight:600}
 
-/* ═══════ طريقة التعلّم — خطوات + شاشة (غير متماثل) ═══════ */
-.method{display:grid;grid-template-columns:1.1fr .9fr;gap:var(--s16);align-items:start;margin-bottom:var(--s24)}
-.steps{list-style:none;display:grid;gap:var(--s8)}
-.step{display:grid;grid-template-columns:56px 1fr;gap:var(--s4);align-items:start}
-.step-num{
-  font-family:'Amiri',serif;font-size:var(--fs-h3);font-weight:700;line-height:1;
-  color:var(--purple);background:var(--purple-soft);border-radius:var(--radius);
-  width:56px;height:56px;display:grid;place-items:center;
-}
-.step h3{margin-bottom:var(--s2)}
-.step p{color:var(--muted);font-size:.95rem}
-.method-visual{position:sticky;top:88px}
-.method-visual img{
-  width:min(320px,100%);margin-inline:auto;border-radius:26px;
-  border:1px solid var(--border);box-shadow:var(--sh-lg);
-}
+/* ═══════ طريقة التعلّم — أربع بطاقات: عنوان ← شرح ← لقطة ═══════ */
 .method-facts{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s3);
-  margin-top:var(--s6);max-width:360px;margin-inline:auto;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s3);
+  max-width:720px;margin:0 auto var(--s12);
 }
 .method-facts div{
   background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
@@ -276,9 +261,28 @@ footer{padding-block:var(--s12);border-top:1px solid var(--border);background:va
   color:var(--purple);line-height:1.1;font-weight:700;
 }
 .method-facts span{font-size:var(--fs-sm);color:var(--muted);font-weight:700}
+.steps{list-style:none;display:grid;grid-template-columns:repeat(2,1fr);gap:var(--s8);margin-bottom:var(--s24)}
+.step{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:var(--s6);display:flex;flex-direction:column;gap:var(--s4);
+}
+.step-head{display:flex;align-items:center;gap:var(--s4)}
+.step-num{
+  font-family:'Amiri',serif;font-size:var(--fs-h3);font-weight:700;line-height:1;
+  color:var(--purple);background:var(--purple-soft);border-radius:var(--radius);
+  width:56px;height:56px;display:grid;place-items:center;flex-shrink:0;
+}
+.step h3{margin:0}
+.step p{color:var(--muted);font-size:.95rem;margin:0}
+.step img{
+  width:min(300px,100%);margin:var(--s2) auto 0;border-radius:22px;
+  border:1px solid var(--border);box-shadow:var(--sh-lg);
+}
 @media(max-width:900px){
-  .method{grid-template-columns:1fr;gap:var(--s12);margin-bottom:var(--s16)}
-  .method-visual{position:static}
+  .method-facts{grid-template-columns:repeat(2,1fr)}
+  .steps{grid-template-columns:1fr;gap:var(--s6);margin-bottom:var(--s16)}
+  .step{padding:var(--s4)}
+  .step img{width:min(260px,100%)}
 }
 
 /* ═══════ ما يُبقيه مستمرّاً ═══════ */
@@ -424,48 +428,39 @@ footer{padding-block:var(--s12);border-top:1px solid var(--border);background:va
       <p>ليس تطبيق ألعاب بواجهة عربية — كل تمرين مصمَّم حول قاعدة إملائية حقيقية، وكل حرف يمرّ بأربعة أنواع من التدريب.</p>
     </div>
 
-    <!-- كيف يتعلّم الطفل — تخطيط غير متماثل: خطوات + شاشة -->
-    <div class="method">
-      <ol class="steps">
-        <li class="step reveal">
-          <span class="step-num">١</span>
-          <div>
-            <h3>يميّز الشكل الصحيح</h3>
-            <p>في كل جولة كلمة حقيقية وأربعة أشكال للحرف، يختار الطفل الصحيح منها — وأمامه دائماً «شجرة أشكال الحرف»: في البداية، والوسط بعد حرف متصل أو منفصل، والنهاية.</p>
-          </div>
-        </li>
-        <li class="step reveal">
-          <span class="step-num">٢</span>
-          <div>
-            <h3>يركّب الكلمة بنفسه</h3>
-            <p>يبني الكلمة حرفاً حرفاً على لوح التركيب، فيرى بعينه كيف يتغيّر شكل الحرف حين يلتصق بما قبله وما بعده.</p>
-          </div>
-        </li>
-        <li class="step reveal">
-          <span class="step-num">٣</span>
-          <div>
-            <h3>يكتب بإصبعه</h3>
-            <p>جولات كتابة مباشرة على الشاشة: يتتبّع الطفل الحرف فوق نموذج مرجعي بكل مواضعه. تدريب على حركة اليد، لا اختبار يُحبط.</p>
-          </div>
-        </li>
-        <li class="step reveal">
-          <span class="step-num">٤</span>
-          <div>
-            <h3>تمرين خاص للحروف الستة</h3>
-            <p>الألف والدال والذال والراء والزاي والواو لا تتصل بما بعدها — قاعدة يخطئ فيها معظم الأطفال، فلها تمرين مستقل يثبّتها.</p>
-          </div>
-        </li>
-      </ol>
-      <div class="method-visual reveal">
-        <img src="img/exercise.png" width="540" height="1080" loading="lazy"
-             alt="جولة تمييز الشكل الصحيح: شجرة أشكال حرف الباء في الأعلى وأربع كلمات للاختيار">
-        <div class="method-facts">
-          <div><strong>٢٨</strong><span>حرفاً</span></div>
-          <div><strong>٣</strong><span>مستويات لكل حرف</span></div>
-          <div><strong>١٥</strong><span>جولة في كل مستوى</span></div>
-        </div>
-      </div>
+    <!-- كيف يتعلّم الطفل — أربعة تمارين، لكلٍّ لقطته الحقيقية تحت شرحه -->
+    <div class="method-facts reveal" aria-label="أرقام التطبيق">
+      <div><strong>٢٨</strong><span>حرفاً</span></div>
+      <div><strong>٤</strong><span>أنواع تمارين لكل حرف</span></div>
+      <div><strong>٣</strong><span>مستويات</span></div>
+      <div><strong>١٥</strong><span>جولة في كل مستوى</span></div>
     </div>
+    <ol class="steps">
+      <li class="step reveal">
+        <div class="step-head"><span class="step-num">١</span><h3>يميّز الشكل الصحيح</h3></div>
+        <p>في كل جولة كلمة حقيقية وأربعة أشكال للحرف، يختار الطفل الصحيح منها — وأمامه دائماً «شجرة أشكال الحرف»: في البداية، والوسط بعد حرف متصل أو منفصل، والنهاية.</p>
+        <img src="img/exercise.png" width="540" height="1080" loading="lazy"
+             alt="جولة تمييز الشكل: شجرة أشكال الباء في الأعلى، وأربع كتابات لكلمة بُحَيْرَة يختار الطفل الصحيحة منها">
+      </li>
+      <li class="step reveal">
+        <div class="step-head"><span class="step-num">٢</span><h3>يركّب الكلمة بنفسه</h3></div>
+        <p>يبني الكلمة حرفاً حرفاً على لوح التركيب: لكل حرف صفّ بأشكاله كلها، ويختار الطفل الشكل الذي يناسب موضعه — فيرى بعينه كيف يتغيّر الحرف حين يلتصق بما قبله وما بعده.</p>
+        <img src="img/exercise-assemble.png" width="540" height="1080" loading="lazy"
+             alt="لوح تركيب الكلمة: كلمة نسب، وقد وضع الطفل شكلَي النون والسين، وتحتها صفوف الأشكال لكل حرف">
+      </li>
+      <li class="step reveal">
+        <div class="step-head"><span class="step-num">٣</span><h3>يكتب بإصبعه</h3></div>
+        <p>جولات كتابة مباشرة على الشاشة: يتتبّع الطفل الحرف فوق نموذج مرجعي واضح. تدريب على حركة اليد، لا اختبار يُحبط.</p>
+        <img src="img/exercise-trace.png" width="540" height="1080" loading="lazy"
+             alt="لوح التتبّع: شكل الباء في بداية الكلمة مكرّر بلون رمادي خفيف، وفوقه باء رسمها الطفل بإصبعه">
+      </li>
+      <li class="step reveal">
+        <div class="step-head"><span class="step-num">٤</span><h3>تمرين خاص للحروف الستة</h3></div>
+        <p>الألف والدال والذال والراء والزاي والواو لا تتصل بما بعدها — قاعدة يخطئ فيها معظم الأطفال، فلها تمرين مستقل يثبّتها.</p>
+        <img src="img/exercise-special.png" width="540" height="1080" loading="lazy"
+             alt="تمرين الحروف غير المتصلة: حرف الدال، والسؤال يذكّر أنها لا تتصل بما بعدها، وخياران لكلمة دُبّ أحدهما موصول خطأً">
+      </li>
+    </ol>
 
     <!-- ما يُبقيه مستمرّاً -->
     <div class="motiv">
