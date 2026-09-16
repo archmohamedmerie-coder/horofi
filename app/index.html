@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>حمّل التطبيق — صحّح حروفك</title>
+<script>
+(function(){
+  var ua = navigator.userAgent || '';
+  var ios = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var android = /Android/i.test(ua);
+  var to = ios ? 'https://apps.apple.com/app/id6795959824'
+         : android ? 'https://play.google.com/store/apps/details?id=com.horofi.app'
+         : 'https://archmohamedmerie-coder.github.io/horofi/#get';
+  location.replace(to);
+})();
+</script>
+<p style="font-family:system-ui,sans-serif;text-align:center;margin-top:40vh;line-height:2">
+  جارٍ فتح المتجر…<br>
+  <a href="https://apps.apple.com/app/id6795959824">App Store</a> ·
+  <a href="https://play.google.com/store/apps/details?id=com.horofi.app">Google Play</a>
+</p>
+</html>
