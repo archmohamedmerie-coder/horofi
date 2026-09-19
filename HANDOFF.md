@@ -35,9 +35,15 @@ Billing Library ab Version 8.0.0 verwenden» — مهلة 31.08.2026 مضت، و
 
 ### 🔴 يحتاج المستخدم أن يفتحه بنفسه — أول ما يُطلب في الجلسة القادمة
 Play Console:
-2. **«استخدام الذاكرة — خلل في الأداء — 13 (2.0) — مهلة فبراير 2027»**: صفحة
-   الإنتاج ← «عرض الحزمة المتأثّرة» ← لقطة. استُبعد محلياً: ليس محاذاة 16KB
-   (`zipalign -c -P 16` ناجح) ولا مكتبات أصلية (صفر `.so` في AAB وAPK).
+2. ✅ **قُرئ 19.09** — التنبيه الثاني ليس «ذاكرة» بل **«Die DEX-Codeoptimierung liegt
+   unter unserem Grenzwert — Verschleierung (1 %)»**: Google تطلب أن تكون نسبة
+   تعتيم/تقليص كود DEX ≥ 25%، ومهلته **فبراير 2027**، وعقوبته تأثير في الظهور
+   والنشر (ليس رفضاً فورياً). السبب مؤكَّد في الكود: `minifyEnabled false` في
+   `android-app/android/app/build.gradle:37`. **الإصلاح يدخل نسخة 14**: تفعيل R8
+   (`minifyEnabled true` + `shrinkResources true`) ثم اختبار كامل على المحاكي
+   (Capacitor والإضافات تحمل قواعد consumer-proguard، لكن يُختبر فعلياً: الإقلاع،
+   الاشتراك عبر `@squareetlabs/capacitor-subscriptions`، Firebase، الصوت). ملف
+   الـmapping يُضمَّن في الـAAB تلقائياً فيزول تحذير «Deobfuscation» أيضاً.
 3. نصّ المراجعة الوحيدة في «التقييمات والمراجعات».
 
 ### ما بقي — بالترتيب (Google قبلت، فالإصلاحات مفتوحة الآن)
