@@ -219,7 +219,7 @@ test('6) شاشة الدخول: للمسجَّل زرّ عودة ظاهر وزر
    كل «جهاز» سياق متصفح مستقل (localStorage منفصل)؛ السحابة تُنقَل بينها يدوياً
    لأن المحاكي في الذاكرة لكل صفحة. */
 test('7) جهازان بحساب واحد: الجهاز القديم لا يمحو تقدّم الجهاز الأحدث', async ({ browser }) => {
-  test.fail(true, 'مؤكَّد 19.09.2026: pullChildrenFromCloud تكتب المحلي الأقدم فوق السحابة — يُصلَح في نسخة 14');
+  /* أُصلح 19.09.2026: pullChildrenFromCloud تدمج الجهتين بمبدأ «لا يُنقص أبداً» (mergeChildrenLists). */
   const FIVE = ['ب', 'ت', 'ث', 'ج', 'ح'];
   const cloudPath = `users/${UID}`;
 
@@ -242,6 +242,18 @@ test('7) جهازان بحساب واحد: الجهاز القديم لا يمح
   await signInAs(pageB, { uid: UID, email: 'a@x.y' }, 'home');
   await pageB.waitForTimeout(2500); // أطول من مهلة syncChildrenToCloud (2000ms)
   const cloudAfterB = await pageB.evaluate((p) => window.__fb.store[p], cloudPath);
+  // الجهاز B نفسه يكتسب تقدّم A — «لا يُنقص أبداً» في الاتجاهين
+  expect((await state(pageB)).completed).toEqual(FIVE);
+  // قواعد الدمج على طفل واحد: النقاط الأكبر، الشارات اتحاد، الاسم من الأحدث نشاطاً
+  const merged = await pageB.evaluate(() => mergeChild(
+    { id: 'c1', name: 'قديم', progress: ['ب'], stats: { lastPlayed: 1, points: 30, totalCorrect: 5, earnedBadges: ['a'], started: 100 }, writingBadges: { 'ب': ['w1'] } },
+    { id: 'c1', name: 'جديد', progress: ['ت'], stats: { lastPlayed: 2, points: 10, totalCorrect: 9, earnedBadges: ['b'], started: 200 }, writingBadges: { 'ب': ['w2'], 'ت': ['w3'] } },
+  ));
+  expect(merged.name).toBe('جديد');
+  expect(merged.progress.sort()).toEqual(['ب', 'ت']);
+  expect(merged.stats).toMatchObject({ lastPlayed: 2, points: 30, totalCorrect: 9, started: 100 });
+  expect(merged.stats.earnedBadges.sort()).toEqual(['a', 'b']);
+  expect(merged.writingBadges).toEqual({ 'ب': ['w1', 'w2'], 'ت': ['w3'] });
   await ctxB.close();
 
   // السحابة يجب أن تبقى على الأحرف الخمسة — الجهاز B لا يملك ما هو أحدث
