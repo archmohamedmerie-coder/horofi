@@ -1,21 +1,21 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# قواعد R8 لتطبيق صحّح حروفك (Capacitor + WebView)
+# قواعد Capacitor نفسها تأتي من consumer-rules داخل :capacitor-android
+# (تُبقي كل @CapacitorPlugin وكل ما يرث Plugin)، وقواعد Billing/Firebase من ملفات AAR الخاصة بها.
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# أسماء الملفات وأرقام الأسطر لتقارير Crashlytics المقروءة
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# جسر JavaScript ↔ WebView: أي دالة موسومة @JavascriptInterface يجب أن تحتفظ باسمها
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# إضافات التطبيق الأصلية (احتياط صريح فوق قاعدة Capacitor العامة)
+-keep class com.squareetlabs.capacitor.subscriptions.** { *; }
+-keep class io.capawesome.capacitorjs.plugins.firebase.** { *; }
+-keep class com.horofi.app.** { *; }
+
+# Google Play Billing: الأصناف التي تُبنى عبر JSON/التأمّل
+-keep class com.android.vending.billing.** { *; }
+-keep class com.android.billingclient.** { *; }
