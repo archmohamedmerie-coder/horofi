@@ -221,3 +221,49 @@ test('6) شاشة الدخول: للمسجَّل زرّ عودة ظاهر وزر
   expect(s.backBtn).toBe('none');
   expect(s.guestSec).toBe('');
 });
+
+/* ─────────────────────────────────────────────────────────────
+   7) حساب واحد على جهازين: لا يُفقَد التقدّم الأحدث
+   الشبهة (11.09): pullChildrenFromCloud تُفضّل المحلي على السحابي متى وُجد
+   الاثنان وتكتبه فوق السحابة بلا مقارنة — فجهاز قديم يُعيد تقدّماً أقدم
+   فوق الأحدث، ثم يرث أي جهاز جديد النسخة الناقصة.
+   كل «جهاز» سياق متصفح مستقل (localStorage منفصل)؛ السحابة تُنقَل بينها يدوياً
+   لأن المحاكي في الذاكرة لكل صفحة. */
+test('7) جهازان بحساب واحد: الجهاز القديم لا يمحو تقدّم الجهاز الأحدث', async ({ browser }) => {
+  test.fail(true, 'مؤكَّد 19.09.2026: pullChildrenFromCloud تكتب المحلي الأقدم فوق السحابة — يُصلَح في نسخة 14');
+  const FIVE = ['ب', 'ت', 'ث', 'ج', 'ح'];
+  const cloudPath = `users/${UID}`;
+
+  // الجهاز A: الطفل أنجز خمسة أحرف، ورُفعت للسحابة
+  const ctxA = await browser.newContext({ locale: 'ar' });
+  const pageA = await ctxA.newPage();
+  await openApp(pageA, { seed: { [`horofiChildren_${UID}`]: [child({ progress: FIVE })], [`horofiActiveChild_${UID}`]: 'c1' } });
+  await signInAs(pageA, { uid: UID, email: 'a@x.y' }, 'home');
+  expect((await state(pageA)).completed).toEqual(FIVE);
+  await pageA.waitForFunction((p) => !!window.__fb.store[p]?.childrenData, cloudPath);
+  const cloudAfterA = await pageA.evaluate((p) => window.__fb.store[p], cloudPath);
+  expect(cloudAfterA.childrenData[0].progress).toEqual(FIVE);
+  await ctxA.close();
+
+  // الجهاز B: نسخة محلية قديمة بحرفين فقط، ثم يسجّل الدخول بالحساب نفسه
+  const ctxB = await browser.newContext({ locale: 'ar' });
+  const pageB = await ctxB.newPage();
+  await openApp(pageB, { seed: { [`horofiChildren_${UID}`]: [child({ progress: ['ب', 'ت'] })], [`horofiActiveChild_${UID}`]: 'c1' } });
+  await pageB.evaluate(([p, d]) => window.__fb.serverWrite(p, d), [cloudPath, cloudAfterA]);
+  await signInAs(pageB, { uid: UID, email: 'a@x.y' }, 'home');
+  await pageB.waitForTimeout(2500); // أطول من مهلة syncChildrenToCloud (2000ms)
+  const cloudAfterB = await pageB.evaluate((p) => window.__fb.store[p], cloudPath);
+  await ctxB.close();
+
+  // السحابة يجب أن تبقى على الأحرف الخمسة — الجهاز B لا يملك ما هو أحدث
+  expect(cloudAfterB.childrenData[0].progress).toEqual(FIVE);
+
+  // الجهاز A أُعيد تثبيته (لا بيانات محلية) → يستعيد من السحابة: يجب أن يجد الخمسة
+  const ctxA2 = await browser.newContext({ locale: 'ar' });
+  const pageA2 = await ctxA2.newPage();
+  await openApp(pageA2);
+  await pageA2.evaluate(([p, d]) => window.__fb.serverWrite(p, d), [cloudPath, cloudAfterB]);
+  await signInAs(pageA2, { uid: UID, email: 'a@x.y' }, 'home');
+  expect((await state(pageA2)).completed).toEqual(FIVE);
+  await ctxA2.close();
+});
