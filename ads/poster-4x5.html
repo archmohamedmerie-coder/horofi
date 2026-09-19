@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>إعلان صحّح حروفك 4:5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;800;900&display=swap" rel="stylesheet">
+<style>
+  /* لوحة إعلان 1080×1350 (4:5) — نفس هوية البوستر الأصلي: بنفسجي، صندوق أصفر، أخضر للاسم */
+  :root{
+    --purple-1:#4c1d95; --purple-2:#6d28d9; --purple-3:#8b5cf6;
+    --yellow:#f6b600; --ink:#2b1a4a; --green:#22c55e; --white:#fff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:1080px;height:1350px;overflow:hidden;background:var(--purple-1)}
+  body{
+    font-family:'Tajawal',sans-serif;color:var(--white);position:relative;
+    background:
+      radial-gradient(520px 520px at 88% 12%, rgba(139,92,246,.55), transparent 70%),
+      radial-gradient(600px 600px at 8% 95%, rgba(139,92,246,.45), transparent 70%),
+      linear-gradient(160deg, var(--purple-1) 0%, var(--purple-2) 55%, #3b1478 100%);
+  }
+  .ring{position:absolute;border-radius:50%;border:60px solid rgba(255,255,255,.05)}
+  .ring.a{width:720px;height:720px;right:-260px;top:-300px}
+  .ring.b{width:560px;height:560px;left:-220px;bottom:-200px}
+
+  /* الشعار */
+  .logo{position:absolute;top:44px;left:44px;width:150px;height:150px;border-radius:32px;
+    background:var(--white);box-shadow:0 14px 30px rgba(0,0,0,.28);display:grid;place-items:center}
+  .logo img{width:120px;height:120px;border-radius:24px}
+
+  /* الخطّاف */
+  .hook{position:absolute;top:44px;right:44px;width:790px;padding:30px 44px 24px;
+    background:var(--yellow);color:var(--ink);border-radius:44px;
+    font-weight:900;font-size:58px;line-height:1.25;
+    box-shadow:0 18px 40px rgba(0,0,0,.28)}
+  .hook::after{content:"";position:absolute;bottom:-26px;right:120px;
+    border:26px solid transparent;border-top-color:var(--yellow);border-bottom:0}
+
+  /* لقطة التطبيق الحقيقية — بطلة الصورة */
+  .phone{position:absolute;top:395px;right:64px;width:430px;height:640px;
+    border-radius:48px;overflow:hidden;background:#000;
+    border:12px solid #1a1030;box-shadow:0 40px 80px rgba(0,0,0,.45), 0 0 0 3px rgba(255,255,255,.12);
+    transform:rotate(-3deg)}
+  .phone img{width:100%;height:auto;display:block;transform:translateY(-19%)}
+
+  /* روضة ووالدها — قصاصة من البوستر الأصلي */
+  .kids{position:absolute;left:44px;top:470px;width:420px;height:540px;border-radius:44px;
+    background-image:url("poster-original.png");
+    background-size:1280px 720px;background-position:-22px -78px;
+    box-shadow:0 30px 60px rgba(0,0,0,.45);border:10px solid rgba(255,255,255,.9)}
+
+  /* الفائدة والاسم */
+  .benefit{position:absolute;top:1062px;right:60px;left:60px;text-align:right}
+  .benefit .line{font-weight:800;font-size:40px;line-height:1.15;white-space:nowrap;margin-top:6px;text-shadow:0 4px 14px rgba(0,0,0,.35)}
+  .benefit .brand{font-weight:900;font-size:84px;line-height:1;
+    text-shadow:0 6px 18px rgba(0,0,0,.4)}
+  .benefit .brand em{font-style:normal;color:var(--green)}
+
+  /* العرض والفئة العمرية */
+  .offer{position:absolute;right:44px;bottom:48px;display:flex;align-items:center;gap:20px}
+  .pill{background:var(--white);color:#b91c1c;font-weight:900;font-size:44px;line-height:1;
+    padding:20px 36px;border-radius:999px;box-shadow:0 16px 34px rgba(0,0,0,.3)}
+  .age{font-weight:700;font-size:28px;color:rgba(255,255,255,.88)}
+
+  /* شارتا المتجرين — قصاصتان من البوستر الأصلي */
+  .badges{position:absolute;left:44px;bottom:48px;display:flex;gap:14px}
+  .badge{width:210px;height:50px;border-radius:999px;background-image:url("poster-original.png");
+    background-size:1280px 720px;box-shadow:0 10px 22px rgba(0,0,0,.3)}
+  .badge.play{background-position:-770px -635px}
+  .badge.ios{background-position:-1016px -635px}
+</style>
+</head>
+<body>
+  <div class="ring a"></div><div class="ring b"></div>
+
+  <div class="hook">هل يعاني طفلك صعوبة في تغيُّر أشكال الحروف في الكلمة؟</div>
+  <div class="logo"><img src="../img/icon.png" alt=""></div>
+
+  <div class="phone"><img src="../img/exercise.png" alt=""></div>
+  <div class="kids"></div>
+
+  <div class="benefit">
+    <div class="brand"><em>صحّح</em> حروفك</div>
+    <div class="line">يتعلّم أشكال الحروف باللعب — لأطفال 4 إلى 8 سنوات</div>
+  </div>
+
+  <div class="offer">
+    <div class="pill">4 أحرف مجاناً</div>
+  </div>
+  <div class="badges"><div class="badge ios"></div><div class="badge play"></div></div>
+</body>
+</html>
