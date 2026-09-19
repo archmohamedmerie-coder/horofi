@@ -59,8 +59,10 @@
 3. الحملة الإعلانية.
 
 ### ملاحظات تشغيلية مهمّة
-- **حساب Play Console ليس `arch.mohamedmerie@gmail.com`** — ذلك الحساب يفتح صفحة
-  «إنشاء حساب مطوّر». المستخدم يدخل Play Console من متصفح آخر بحساب آخر.
+- **Play Console**: حساب المطوّر `5377349411335463270` (تطبيق `4974253902240968411`) يملكه حساب Google آخر. منذ 19.09.2026 حساب `arch.mohamedmerie@gmail.com` **مدعوّ بصلاحية قراءة فقط** (App-Informationen ansehen؛ بلا Finanzdaten، بلا نشر) — فالإحصاءات تُقرأ من Chrome مباشرة:
+  `https://play.google.com/console/u/0/developers/5377349411335463270/app/4974253902240968411/statistics`
+  أما رفع النسخ فيبقى بيد المستخدم من متصفحه. (سابقاً كان ذلك الحساب يفتح صفحة
+  «إنشاء حساب مطوّر».)
 - أداة رفع الملفات في متصفّح Claude محدودة بـ10 MB — الـAAB (128 MB) يرفعه المستخدم.
 - تحذير Play «لا ملف Offenlegung/mapping» آمن: `minifyEnabled false`.
 - معاينة صفحة الهبوط محلياً: `preview_start landing` (في `.claude/launch.json`) —
