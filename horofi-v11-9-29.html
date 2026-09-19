@@ -3015,7 +3015,9 @@ function doRegister(){
           var guestSec = document.getElementById('guestSection');
           if (guestSec) guestSec.style.display = '';
           var hasProfile = loadProfile();
-          if (hasProfile && PROFILE.name){ loadProgress(); buildHome(); nav('home'); }
+          /* CHILDREN.length كما في onAuthStateChanged: من تخطّى التعريف لديه طفل
+             محفوظ بلا اسم، فلا يُعاد إلى التهيئة بعد أن رقّى حسابه. */
+          if ((hasProfile && PROFILE.name) || CHILDREN.length > 0){ loadProgress(); buildHome(); nav('home'); }
           else { resetGenderPicker(); nav('onboarding'); }
         }, 1200);
       }

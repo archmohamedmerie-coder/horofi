@@ -95,12 +95,7 @@ test('2) logoutUser يمسح كل أثر للطفل السابق ولا يسرّ
    الخطأ الذي يمنعه: إنشاء uid جديد عند التسجيل يُفقد الاشتراك المدفوع
    (users/{uid}) وتقدّم الأطفال (المفاتيح المرتبطة بـuid). */
 test('3) doRegister لضيف يستخدم linkWithCredential ولا يغيّر الـuid', async ({ page }) => {
-  /* ⚠️ خطأ مؤكَّد في التطبيق (11.09.2026) — يُصلَح بعد قبول Google لنسخة 2.0 (13):
-     الترقية نفسها صحيحة (linkWithCredential، نفس الـuid)، لكن إعادة التوجيه بعدها في
-     doRegister() تفحص PROFILE.name فقط وتنسى CHILDREN.length، فيُعاد من تخطّى
-     التهيئة إلى التهيئة. الإصلاح: نفس شرط onAuthStateChanged.
-     حين يُصلَح، احذف test.fail(). */
-  test.fail(true, 'خطأ مؤكَّد: إعادة التوجيه بعد الترقية تتجاهل CHILDREN.length');
+  /* أُصلح 19.09.2026: إعادة التوجيه بعد الترقية تفحص CHILDREN.length كما في onAuthStateChanged. */
   await openApp(page);
   await signInAs(page, { uid: 'anon_77', isAnonymous: true }, 'onboarding');
   await page.evaluate(() => skipOnboarding());
