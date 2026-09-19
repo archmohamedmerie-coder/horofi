@@ -2719,6 +2719,11 @@ function migrateRewardsIfNeeded(){
   if (changed) saveChildren();
 }
 function saveChildren(){
+  /* قبل معرفة المستخدم (الإقلاع قبل ردّ Firebase) لا نكتب شيئاً في localStorage:
+     الكتابة هنا كانت تُنشئ نسخة بلا uid تحت المفتاحين القديمين، يرثها المستخدم
+     أو الضيف التالي على نفس الجهاز عبر مسار الترحيل في loadChildren() — تسريب
+     خصوصية. تبقى البيانات في الذاكرة فقط، وتُحفظ فور معرفة الـuid. */
+  if (!CURRENT_UID) return;
   try{ localStorage.setItem(_chKey('horofiChildren'), JSON.stringify(CHILDREN)); }catch(e){}
   try{ if (ACTIVE_CHILD_ID) localStorage.setItem(_chKey('horofiActiveChild'), ACTIVE_CHILD_ID); }catch(e){}
   syncChildrenToCloud();
@@ -2746,17 +2751,73 @@ function syncChildrenToCloud(){
   }, 2000);
 }
 
+/* دمج نسختين من قائمة الأطفال (محلية وسحابية) بمبدأ «لا يُنقص أبداً»:
+   - الطفل الموجود في جهة واحدة فقط يبقى.
+   - للطفل الموجود في الجهتين (نفس id): الأحرف المنجزة والشارات اتحاد الجهتين،
+     العدّادات والنقاط الأكبر من الجهتين، وبيانات التعريف من الجهة الأحدث نشاطاً.
+   الناتج ≥ كل جهة على حدة، فكتابته فوق السحابة والجهاز آمنة دائماً. */
+function _mergeUnion(a, b){
+  const out = Array.isArray(a) ? a.slice() : [];
+  (Array.isArray(b) ? b : []).forEach(x => { if (!out.some(y => JSON.stringify(y) === JSON.stringify(x))) out.push(x); });
+  return out;
+}
+function _mergeMax(a, b){ return Math.max(Number(a)||0, Number(b)||0); }
+function _mergeBadgeMap(a, b){            // {key: [...]}  ←  اتحاد المصفوفات لكل مفتاح
+  const out = {}; const keys = new Set([...Object.keys(a||{}), ...Object.keys(b||{})]);
+  keys.forEach(k => { out[k] = _mergeUnion(a && a[k], b && b[k]); });
+  return out;
+}
+function _mergeCounters(a, b){            // {key: number|object}  ←  الأكبر للأرقام، تكراراً للكائنات
+  const out = {}; const keys = new Set([...Object.keys(a||{}), ...Object.keys(b||{})]);
+  keys.forEach(k => {
+    const x = a && a[k], y = b && b[k];
+    if (typeof x === 'number' || typeof y === 'number') out[k] = _mergeMax(x, y);
+    else if ((x && typeof x === 'object') || (y && typeof y === 'object')) out[k] = _mergeCounters(x, y);
+    else out[k] = (x !== undefined) ? x : y;
+  });
+  return out;
+}
+function mergeChild(a, b){
+  const sa = a.stats || {}, sb = b.stats || {};
+  const newer = ((sb.lastPlayed||0) > (sa.lastPlayed||0)) ? b : a;
+  const out = Object.assign({}, a, b, newer);       // بيانات التعريف من الأحدث نشاطاً
+  out.progress = _mergeUnion(newer.progress, newer === a ? b.progress : a.progress);
+  out.stats = _mergeCounters(sa, sb);
+  out.stats.earnedBadges = _mergeUnion(sa.earnedBadges, sb.earnedBadges);
+  if (sa.started || sb.started) out.stats.started = Math.min(sa.started || Infinity, sb.started || Infinity);
+  if (a.levelBadges || b.levelBadges){
+    out.levelBadges = {};
+    new Set([...Object.keys(a.levelBadges||{}), ...Object.keys(b.levelBadges||{})])
+      .forEach(l => { out.levelBadges[l] = _mergeBadgeMap(a.levelBadges && a.levelBadges[l], b.levelBadges && b.levelBadges[l]); });
+  }
+  if (a.writingBadges || b.writingBadges) out.writingBadges = _mergeBadgeMap(a.writingBadges, b.writingBadges);
+  if (a.levelStats || b.levelStats) out.levelStats = _mergeCounters(a.levelStats, b.levelStats);
+  return out;
+}
+function mergeChildrenLists(local, cloud){
+  const out = [];
+  const seen = new Set();
+  (local||[]).forEach(lc => {
+    const cc = (cloud||[]).find(x => x && x.id === lc.id);
+    out.push(cc ? mergeChild(lc, cc) : lc);
+    seen.add(lc.id);
+  });
+  (cloud||[]).forEach(cc => { if (cc && !seen.has(cc.id)) out.push(cc); });
+  return out;
+}
+
 /* تُستدعى مرة واحدة عند تسجيل الدخول، قبل قراءة loadProfile() المحلية —
-   تُقارن النسخة المحلية بالسحابية وتقرّر أيّهما تعتمد:
+   تُقارن النسخة المحلية بالسحابية:
    - جهاز جديد/تطبيق مُعاد تثبيته (لا بيانات محلية) ويوجد نسخة سحابية → تُستعاد من السحابة.
-   - أول مرة تُفعَّل فيها هذه الميزة (بيانات محلية قديمة، لا نسخة سحابية بعد) → تُرفَع للسحابة كما هي.
-   - كلاهما موجود → الجهاز الحالي هو الأحدث فعلياً (يُستخدَم الآن)، فتبقى بياناته
-     المحلية كما هي وتُعاد كتابتها فوق النسخة السحابية لتوحيد المصدرين. */
+   - بيانات محلية ولا نسخة سحابية بعد → تُرفَع للسحابة كما هي.
+   - كلاهما موجود → تُدمَجان بمبدأ «لا يُنقص أبداً» (mergeChildrenLists) ويُحفَظ الناتج
+     محلياً وسحابياً. (سابقاً كان المحلي يكتب فوق السحابي بلا مقارنة، فالجهاز الأقدم
+     كان يمحو تقدّم الجهاز الأحدث — الاختبار 7.) */
 async function pullChildrenFromCloud(){
   if (!CURRENT_UID) return;
-  let localRaw = null;
-  try{ localRaw = localStorage.getItem(_chKey('horofiChildren')); }catch(e){}
-  const hasLocal = !!(localRaw && JSON.parse(localRaw).length);
+  let localChildren = [];
+  try{ const raw = localStorage.getItem(_chKey('horofiChildren')); if (raw) localChildren = JSON.parse(raw) || []; }catch(e){ localChildren = []; }
+  const hasLocal = localChildren.length > 0;
 
   let cloudChildren = null;
   try{
@@ -2768,14 +2829,18 @@ async function pullChildrenFromCloud(){
 
   if (!hasLocal && cloudChildren){
     try{ localStorage.setItem(_chKey('horofiChildren'), JSON.stringify(cloudChildren)); }catch(e){}
-  } else if (hasLocal){
-    // الجهاز الحالي يبقى المرجع؛ نُعيد رفعه فوراً (بلا انتظار) لتوحيد النسخة السحابية معه
-    CHILDREN = JSON.parse(localRaw);
-    db.collection('users').doc(CURRENT_UID).set({
-      childrenData: CHILDREN,
-      childrenUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, {merge:true}).catch(err=>console.warn('تعذّرت مزامنة بيانات الأطفال سحابياً:', err.message));
+    return;
   }
+  if (!hasLocal) return;
+
+  const merged = cloudChildren ? mergeChildrenLists(localChildren, cloudChildren) : localChildren;
+  CHILDREN = merged;
+  try{ localStorage.setItem(_chKey('horofiChildren'), JSON.stringify(merged)); }catch(e){}
+  // الناتج ≥ النسخة السحابية، فرفعه فوراً (بلا انتظار) آمن ويوحّد المصدرين
+  db.collection('users').doc(CURRENT_UID).set({
+    childrenData: merged,
+    childrenUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, {merge:true}).catch(err=>console.warn('تعذّرت مزامنة بيانات الأطفال سحابياً:', err.message));
 }
 
 /* إنشاء طفل جديد من بيانات PROFILE الحالية وتنشيطه */
@@ -3010,7 +3075,9 @@ function doRegister(){
           var guestSec = document.getElementById('guestSection');
           if (guestSec) guestSec.style.display = '';
           var hasProfile = loadProfile();
-          if (hasProfile && PROFILE.name){ loadProgress(); buildHome(); nav('home'); }
+          /* CHILDREN.length كما في onAuthStateChanged: من تخطّى التعريف لديه طفل
+             محفوظ بلا اسم، فلا يُعاد إلى التهيئة بعد أن رقّى حسابه. */
+          if ((hasProfile && PROFILE.name) || CHILDREN.length > 0){ loadProgress(); buildHome(); nav('home'); }
           else { resetGenderPicker(); nav('onboarding'); }
         }, 1200);
       }
@@ -3085,6 +3152,10 @@ function logoutUser(){
        يُنشئ للمستخدم أو الضيف التالي طفلاً من بيانات الطفل السابق. */
     try{ localStorage.removeItem('horofiProfile'); }catch(e){}
     try{ localStorage.removeItem('horofiProgress'); }catch(e){}
+    /* والنسخة بلا uid التي كان الإقلاع يكتبها من المفتاحين أعلاه (راجع saveChildren) —
+       بدون حذفها يرثها الضيف التالي عبر الفرع الأول من الترحيل في loadChildren(). */
+    try{ localStorage.removeItem('horofiChildren'); }catch(e){}
+    try{ localStorage.removeItem('horofiActiveChild'); }catch(e){}
     const _obName = document.getElementById('obName'); if (_obName) _obName.value = '';
     const _obCountry = document.getElementById('obCountry'); if (_obCountry) _obCountry.value = '';
     resetGenderPicker();
@@ -3305,6 +3376,8 @@ function deleteAccount(){
   try{ localStorage.removeItem('horofiActiveChild_'+uid); }catch(e){}
   try{ localStorage.removeItem('horofiProfile'); }catch(e){}
   try{ localStorage.removeItem('horofiProgress'); }catch(e){}
+  try{ localStorage.removeItem('horofiChildren'); }catch(e){}
+  try{ localStorage.removeItem('horofiActiveChild'); }catch(e){}
   db.collection('users').doc(uid).delete().catch(function(){});
   user.delete()
     .then(function(){
