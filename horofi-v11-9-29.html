@@ -2719,6 +2719,11 @@ function migrateRewardsIfNeeded(){
   if (changed) saveChildren();
 }
 function saveChildren(){
+  /* قبل معرفة المستخدم (الإقلاع قبل ردّ Firebase) لا نكتب شيئاً في localStorage:
+     الكتابة هنا كانت تُنشئ نسخة بلا uid تحت المفتاحين القديمين، يرثها المستخدم
+     أو الضيف التالي على نفس الجهاز عبر مسار الترحيل في loadChildren() — تسريب
+     خصوصية. تبقى البيانات في الذاكرة فقط، وتُحفظ فور معرفة الـuid. */
+  if (!CURRENT_UID) return;
   try{ localStorage.setItem(_chKey('horofiChildren'), JSON.stringify(CHILDREN)); }catch(e){}
   try{ if (ACTIVE_CHILD_ID) localStorage.setItem(_chKey('horofiActiveChild'), ACTIVE_CHILD_ID); }catch(e){}
   syncChildrenToCloud();
@@ -3085,6 +3090,10 @@ function logoutUser(){
        يُنشئ للمستخدم أو الضيف التالي طفلاً من بيانات الطفل السابق. */
     try{ localStorage.removeItem('horofiProfile'); }catch(e){}
     try{ localStorage.removeItem('horofiProgress'); }catch(e){}
+    /* والنسخة بلا uid التي كان الإقلاع يكتبها من المفتاحين أعلاه (راجع saveChildren) —
+       بدون حذفها يرثها الضيف التالي عبر الفرع الأول من الترحيل في loadChildren(). */
+    try{ localStorage.removeItem('horofiChildren'); }catch(e){}
+    try{ localStorage.removeItem('horofiActiveChild'); }catch(e){}
     const _obName = document.getElementById('obName'); if (_obName) _obName.value = '';
     const _obCountry = document.getElementById('obCountry'); if (_obCountry) _obCountry.value = '';
     resetGenderPicker();
@@ -3305,6 +3314,8 @@ function deleteAccount(){
   try{ localStorage.removeItem('horofiActiveChild_'+uid); }catch(e){}
   try{ localStorage.removeItem('horofiProfile'); }catch(e){}
   try{ localStorage.removeItem('horofiProgress'); }catch(e){}
+  try{ localStorage.removeItem('horofiChildren'); }catch(e){}
+  try{ localStorage.removeItem('horofiActiveChild'); }catch(e){}
   db.collection('users').doc(uid).delete().catch(function(){});
   user.delete()
     .then(function(){

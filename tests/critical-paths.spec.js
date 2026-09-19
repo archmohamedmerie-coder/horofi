@@ -56,13 +56,7 @@ test('1) onAuthStateChanged يوجّه صحيحاً: اسم / تخطّي بلا 
    الخطأ الذي يمنعه: تسريب اسم طفل المستخدم السابق إلى المستخدم/الضيف التالي
    على نفس الجهاز عبر PROFILE أو المفتاحين القديمين غير المرتبطين بـuid. */
 test('2) logoutUser يمسح كل أثر للطفل السابق ولا يسرّبه للمستخدم التالي', async ({ page }) => {
-  /* ⚠️ خطأ مؤكَّد في التطبيق (11.09.2026) — يُصلَح بعد قبول Google لنسخة 2.0 (13):
-     عند الإقلاع (قبل استجابة Firebase) تُنشئ loadProfile() من المفتاح القديم
-     horofiProfile طفلاً وتحفظه تحت horofiChildren/horofiActiveChild (بلا uid)،
-     وlogoutUser() لا يحذف هذين المفتاحين، فيرثهما الضيف التالي عبر مسار الترحيل
-     في loadChildren(). الإصلاح: حذف المفتاحين في logoutUser (وربما عدم كتابتهما
-     أصلاً حين CURRENT_UID فارغ). حين يُصلَح، احذف test.fail() ليعود الاختبار حارساً. */
-  test.fail(true, 'خطأ مؤكَّد: المفتاحان القديمان horofiChildren/horofiActiveChild لا يُحذفان عند الخروج');
+  /* أُصلح 19.09.2026: saveChildren لا تكتب بلا uid، وlogoutUser/deleteAccount يحذفان المفتاحين القديمين. */
   await openApp(page, { seed: {
     [`horofiChildren_${UID}`]: [child({ name: 'ليلى', progress: ['ب', 'ت', 'ث'] })],
     [`horofiActiveChild_${UID}`]: 'c1',
