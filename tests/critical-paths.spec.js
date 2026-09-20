@@ -134,7 +134,7 @@ test('3) doRegister لضيف يستخدم linkWithCredential ولا يغيّر �
    اشتراكه بينما الجهاز يحتفظ بقيمة قديمة. */
 test('4) isLetterFree لا يمنح وصولاً من localStorage وحده — لقطة Firestore تحكم', async ({ page }) => {
   await openApp(page, { seed: { horofiSubscribed: '1' } }); // قيمة مزوَّرة/قديمة
-  expect(await page.evaluate(() => FREE_LETTERS)).toEqual(['ب', 'ت', 'ث', 'ج']);
+  expect(await page.evaluate(() => FREE_LETTERS)).toEqual(['ب', 'ت']); // قرار 20.09: حرفان
 
   // لا مستند للمستخدم في Firestore → غير مشترك رغم localStorage
   await signInAs(page, { uid: 'sub_user', email: 's@x.y' }, 'onboarding');

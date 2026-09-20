@@ -4087,8 +4087,8 @@ function buildHome(){
 
 /* ── LETTER GRID ── */
 const ALPHABET_ORDER = ['ا','ب','ت','ث','ج','ح','خ','د','ذ','ر','ز','س','ش','ص','ض','ط','ظ','ع','غ','ف','ق','ك','ل','م','ن','ه','و','ي'];
-const FREE_LETTER_COUNT = 5;
-const FREE_LETTERS = ['ب','ت','ث','ج'];
+/* الحرفان المجانيان (قرار 20.09.2026: كانا أربعة ب ت ث ج) — البوابة في isLetterFree */
+const FREE_LETTERS = ['ب','ت'];
 let isSubscribed = false;
 function buildLetterGrid(){
   const gc=document.getElementById('lgridConnecting');
@@ -6436,7 +6436,7 @@ async function checkSubscriptionReturn(){
     <div class="sub-card">
       <div class="sub-icon">🔓</div>
       <div class="sub-title">افتح جميع الحروف</div>
-      <div class="sub-desc">لقد استكملت الحروف المجانية (ب، ت، ث، ج).<br>اشترك للوصول إلى جميع الحروف الـ 28.</div>
+      <div class="sub-desc">لقد استكملت الحرفين المجانيين (ب، ت).<br>اشترك للوصول إلى جميع الحروف الـ 28.</div>
       <ul class="sub-features">
         <li>✅ جميع الحروف الـ 28 بلا حدود</li>
         <li>✅ جميع المستويات (مبتدئ، متوسط، متقدم)</li>
