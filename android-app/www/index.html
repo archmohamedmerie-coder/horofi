@@ -2739,6 +2739,11 @@ function activeChild(){ return CHILDREN.find(ch=>ch.id===ACTIVE_CHILD_ID) || nul
    هذا الحقل هو الوحيد المسموح للعميل بكتابته مباشرة على وثيقة users/{uid}؛
    حقول الاشتراك تبقى محمية بالكامل (Cloud Function فقط).
    ══════════════════════════════════ */
+/* منصّة الجهاز — حقل بيانات عادي (لا حدث تتبّع) يُحفَظ مع كل مزامنة سحابية،
+   ليتسنّى لاحقاً معرفة توزّع الاستخدام الفعلي بين أندرويد وiOS من Firestore
+   نفسه دون الحاجة لمكتبة Firebase Analytics على iOS (راجع HANDOFF.md). */
+function _currentPlatform(){ return (window.Capacitor && window.Capacitor.getPlatform) ? window.Capacitor.getPlatform() : 'web'; }
+
 let _childrenSyncTimer = null;
 function syncChildrenToCloud(){
   if (!CURRENT_UID) return;
@@ -2746,7 +2751,8 @@ function syncChildrenToCloud(){
   _childrenSyncTimer = setTimeout(()=>{
     db.collection('users').doc(CURRENT_UID).set({
       childrenData: CHILDREN,
-      childrenUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      childrenUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      platform: _currentPlatform()
     }, {merge:true}).catch(err=>console.warn('تعذّرت مزامنة بيانات الأطفال سحابياً:', err.message));
   }, 2000);
 }
@@ -2839,7 +2845,8 @@ async function pullChildrenFromCloud(){
   // الناتج ≥ النسخة السحابية، فرفعه فوراً (بلا انتظار) آمن ويوحّد المصدرين
   db.collection('users').doc(CURRENT_UID).set({
     childrenData: merged,
-    childrenUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    childrenUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    platform: _currentPlatform()
   }, {merge:true}).catch(err=>console.warn('تعذّرت مزامنة بيانات الأطفال سحابياً:', err.message));
 }
 
@@ -4087,8 +4094,8 @@ function buildHome(){
 
 /* ── LETTER GRID ── */
 const ALPHABET_ORDER = ['ا','ب','ت','ث','ج','ح','خ','د','ذ','ر','ز','س','ش','ص','ض','ط','ظ','ع','غ','ف','ق','ك','ل','م','ن','ه','و','ي'];
-const FREE_LETTER_COUNT = 5;
-const FREE_LETTERS = ['ب','ت','ث','ج'];
+/* الحرفان المجانيان (قرار 20.09.2026: كانا أربعة ب ت ث ج) — البوابة في isLetterFree */
+const FREE_LETTERS = ['ب','ت'];
 let isSubscribed = false;
 function buildLetterGrid(){
   const gc=document.getElementById('lgridConnecting');
@@ -6436,7 +6443,7 @@ async function checkSubscriptionReturn(){
     <div class="sub-card">
       <div class="sub-icon">🔓</div>
       <div class="sub-title">افتح جميع الحروف</div>
-      <div class="sub-desc">لقد استكملت الحروف المجانية (ب، ت، ث، ج).<br>اشترك للوصول إلى جميع الحروف الـ 28.</div>
+      <div class="sub-desc">لقد استكملت الحرفين المجانيين (ب، ت).<br>اشترك للوصول إلى جميع الحروف الـ 28.</div>
       <ul class="sub-features">
         <li>✅ جميع الحروف الـ 28 بلا حدود</li>
         <li>✅ جميع المستويات (مبتدئ، متوسط، متقدم)</li>
