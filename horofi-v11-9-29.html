@@ -2739,6 +2739,11 @@ function activeChild(){ return CHILDREN.find(ch=>ch.id===ACTIVE_CHILD_ID) || nul
    هذا الحقل هو الوحيد المسموح للعميل بكتابته مباشرة على وثيقة users/{uid}؛
    حقول الاشتراك تبقى محمية بالكامل (Cloud Function فقط).
    ══════════════════════════════════ */
+/* منصّة الجهاز — حقل بيانات عادي (لا حدث تتبّع) يُحفَظ مع كل مزامنة سحابية،
+   ليتسنّى لاحقاً معرفة توزّع الاستخدام الفعلي بين أندرويد وiOS من Firestore
+   نفسه دون الحاجة لمكتبة Firebase Analytics على iOS (راجع HANDOFF.md). */
+function _currentPlatform(){ return (window.Capacitor && window.Capacitor.getPlatform) ? window.Capacitor.getPlatform() : 'web'; }
+
 let _childrenSyncTimer = null;
 function syncChildrenToCloud(){
   if (!CURRENT_UID) return;
@@ -2746,7 +2751,8 @@ function syncChildrenToCloud(){
   _childrenSyncTimer = setTimeout(()=>{
     db.collection('users').doc(CURRENT_UID).set({
       childrenData: CHILDREN,
-      childrenUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      childrenUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      platform: _currentPlatform()
     }, {merge:true}).catch(err=>console.warn('تعذّرت مزامنة بيانات الأطفال سحابياً:', err.message));
   }, 2000);
 }
@@ -2839,7 +2845,8 @@ async function pullChildrenFromCloud(){
   // الناتج ≥ النسخة السحابية، فرفعه فوراً (بلا انتظار) آمن ويوحّد المصدرين
   db.collection('users').doc(CURRENT_UID).set({
     childrenData: merged,
-    childrenUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    childrenUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    platform: _currentPlatform()
   }, {merge:true}).catch(err=>console.warn('تعذّرت مزامنة بيانات الأطفال سحابياً:', err.message));
 }
 

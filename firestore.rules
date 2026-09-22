@@ -8,13 +8,14 @@ service cloud.firestore {
       // حقول الاشتراك (subscribed, stripeCustomerId, subscribedAt, stripeSessionId)
       // محمية بالكامل — التفعيل الوحيد المسموح به يأتي من Cloud Function عبر Admin SDK
       // (Admin SDK يتجاوز قواعد الأمان هذه بالكامل). العميل مسموح له فقط بكتابة
-      // نسخة احتياطية سحابية من بيانات أطفاله (childrenData) — راجع pullChildrenFromCloud/
-      // syncChildrenToCloud في horofi-v11-9-29.html.
+      // نسخة احتياطية سحابية من بيانات أطفاله (childrenData) ومنصّة الجهاز (platform،
+      // حقل بيانات عادي لا حدث تتبّع) — راجع pullChildrenFromCloud/syncChildrenToCloud
+      // في horofi-v11-9-29.html.
       allow create: if request.auth != null && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['childrenData', 'childrenUpdatedAt']);
+        && request.resource.data.keys().hasOnly(['childrenData', 'childrenUpdatedAt', 'platform']);
 
       allow update: if request.auth != null && request.auth.uid == uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['childrenData', 'childrenUpdatedAt'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['childrenData', 'childrenUpdatedAt', 'platform'])
         && (!('subscribed' in resource.data) || request.resource.data.subscribed == resource.data.subscribed)
         && (!('stripeCustomerId' in resource.data) || request.resource.data.stripeCustomerId == resource.data.stripeCustomerId)
         && (!('subscribedAt' in resource.data) || request.resource.data.subscribedAt == resource.data.subscribedAt)
