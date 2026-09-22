@@ -24,5 +24,13 @@ service cloud.firestore {
       // حذف الحساب: المستخدم يملك حذف وثيقته بالكامل (طلب "حذف الحساب نهائياً" في الواجهة).
       allow delete: if request.auth != null && request.auth.uid == uid;
     }
+
+    // إعدادات عامة للقراءة فقط (حالياً: config/appVersion = أرقام البناء المنشورة
+    // في المتجرين، يقرأها checkForAppUpdate). لا بيانات شخصية هنا إطلاقاً، والكتابة
+    // ممنوعة على العميل نهائياً — تُحدَّث يدوياً من Firebase Console بعد نشر كل إصدار.
+    match /config/{document} {
+      allow read: if true;
+      allow write: if false;
+    }
   }
 }
