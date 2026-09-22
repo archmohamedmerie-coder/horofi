@@ -81,6 +81,14 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 @keyframes pop{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
 .progress-summary{background:#fff;border-radius:16px;padding:10px 20px;margin-bottom:24px;box-shadow:var(--sh);font-size:.85rem;font-weight:700;color:var(--muted)}
 .progress-summary strong{color:var(--purple)}
+/* شريط «يتوفّر تحديث» — داخل شاشة الرئيسية فقط (لا position:fixed كي لا يزاحم
+   .gtop ولا .global-mute-btn ولا بوابة ولي الأمر). مخفيّ افتراضياً. */
+.update-bar{display:none;width:100%;max-width:340px;background:#fff;border:2px solid var(--sun);border-radius:16px;padding:12px 14px;margin-bottom:18px;box-shadow:var(--sh);text-align:center}
+.update-bar .update-txt{font-size:.9rem;font-weight:800;color:var(--ink);margin-bottom:10px;line-height:1.5}
+.update-bar .update-row{display:flex;gap:8px;justify-content:center}
+.update-bar button{font-family:'Tajawal',sans-serif;font-weight:800;border-radius:12px;padding:8px 16px;font-size:.85rem;cursor:pointer;border:none}
+.update-bar .update-go{background:var(--purple);color:#fff;box-shadow:0 3px 0 var(--purple-d)}
+.update-bar .update-skip{background:#fff;color:var(--muted);border:2px solid var(--border)}
 .btn{background:var(--purple);color:#fff;border:none;border-radius:18px;padding:16px 52px;font-size:1.2rem;font-weight:800;font-family:'Tajawal',sans-serif;cursor:pointer;box-shadow:0 6px 0 var(--purple-d);transition:transform .13s,box-shadow .13s}
 .btn:hover{transform:translateY(-2px);box-shadow:0 8px 0 var(--purple-d)}
 .btn:active{transform:translateY(1px);box-shadow:0 3px 0 var(--purple-d)}
@@ -847,6 +855,15 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 </div>
 
 <div id="home" class="screen">
+  <!-- شريط التحديث — يظهر فقط على المنصّات الأصلية حين يكون رقم البناء المنشور
+       أحدث من المثبَّت. زرّ التحديث يمرّ من بوابة ولي الأمر إلزاماً (فئة الأطفال). -->
+  <div class="update-bar" id="updateBar">
+    <div class="update-txt">✨ يتوفّر إصدار جديد من التطبيق</div>
+    <div class="update-row">
+      <button class="update-go" onclick="openStoreForUpdate()">تحديث الآن</button>
+      <button class="update-skip" onclick="dismissUpdateBanner()">لاحقاً</button>
+    </div>
+  </div>
   <div class="mascot-wrap">
     <div class="logo-img-wrap2">
   <img class="logo-bg2" src="Logo.jpeg">
@@ -3302,6 +3319,75 @@ function openPrivacyPolicy(){
 const TERMS_OF_USE_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
 function openTermsOfUse(){
   parentalGate(()=> pgOpenExternal(TERMS_OF_USE_URL));
+}
+/* ══════════════════════════════════
+   تنبيه توفّر إصدار جديد
+   ────────────────────────────────
+   المتجران لا يحدّثان تلقائياً إلا لمن فعّل ذلك في إعدادات جهازه، وGoogle تطرح
+   التحديث تدريجياً — فمن يُطفئ التحديث التلقائي يبقى على نسخة قديمة بلا أن يدري.
+   هذا الشريط يُعلمه فقط (لا يفرض شيئاً ولا يحجب التطبيق).
+
+   قواعد ثابتة لا تُكسَر:
+   1) زرّ التحديث يمرّ من parentalGate إلزاماً — أي رابط يخرج من التطبيق في فئة
+      أطفال آبل يجب أن يكون خلف بوابة (Build 8 رُفض لهذا السبب بالضبط).
+   2) رقم البناء يُقرأ من النظام نفسه (App.getInfo) لا من ثابت في هذه الصفحة،
+      كي لا ينحرف عن build.gradle/project.pbxproj عند كل إصدار.
+   3) المنصّتان ترقيمهما مختلف (أندرويد 13 مقابل iOS 10) فالمقارنة لكلٍّ بحقله.
+   4) فشل آمن: أي خطأ أو غياب مستند أو منصّة ويب ⇒ لا شريط إطلاقاً.
+
+   **تشغيلياً**: مستند `config/appVersion` في Firestore يحمل {android, ios} =
+   أرقام البناء **المنشورة فعلياً في المتجرين**. يُرفَع الرقم **بعد** قبول النسخة
+   ونشرها، لا قبله — وإلا طُلب من المستخدم تحديثٌ غير متاح بعد.
+   ══════════════════════════════════ */
+const STORE_URLS = {
+  ios: 'https://apps.apple.com/app/id6795959824',
+  android: 'https://play.google.com/store/apps/details?id=com.horofi.app'
+};
+let _updatePlatform = null;
+let _updateLatestBuild = null;
+
+async function checkForAppUpdate(){
+  try{
+    if (!window.Capacitor?.isNativePlatform()) return;          // الويب لا يُحدَّث من متجر
+    const CapApp = window.Capacitor?.Plugins?.App;
+    if (!CapApp || typeof CapApp.getInfo !== 'function') return;
+
+    const plat = _currentPlatform();
+    if (plat !== 'ios' && plat !== 'android') return;
+
+    const info = await CapApp.getInfo();
+    const localBuild = Number(info && info.build);
+    if (!Number.isFinite(localBuild)) return;
+
+    const doc = await db.collection('config').doc('appVersion').get();
+    if (!doc.exists) return;
+    const latestBuild = Number(doc.data()[plat]);
+    if (!Number.isFinite(latestBuild) || latestBuild <= localBuild) return;
+
+    // احترام «لاحقاً» لنفس الإصدار فقط — إصدار أحدث لاحقاً يُظهر الشريط من جديد
+    try{
+      if (localStorage.getItem('horofiUpdateSkipped') === String(latestBuild)) return;
+    }catch(e){}
+
+    _updatePlatform = plat;
+    _updateLatestBuild = latestBuild;
+    const bar = document.getElementById('updateBar');
+    if (bar) bar.style.display = 'block';
+  }catch(e){ /* فشل آمن: لا شريط */ }
+}
+
+function openStoreForUpdate(){
+  const url = STORE_URLS[_updatePlatform];
+  if (!url) return;
+  parentalGate(()=> pgOpenExternal(url));   // قاعدة (1) أعلاه — لا استثناء
+}
+
+function dismissUpdateBanner(){
+  const bar = document.getElementById('updateBar');
+  if (bar) bar.style.display = 'none';
+  try{
+    if (_updateLatestBuild != null) localStorage.setItem('horofiUpdateSkipped', String(_updateLatestBuild));
+  }catch(e){}
 }
 /* ── فتح بوابة إدارة/إلغاء الاشتراك من Stripe ── */
 function openBillingPortal(){
@@ -6381,6 +6467,9 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) sile
 if (window.Capacitor?.isNativePlatform() && window.Capacitor.Plugins?.App) {
   window.Capacitor.Plugins.App.addListener('resume', silentSubscriptionCheck);
   window.Capacitor.Plugins.App.addListener('backButton', handleHardwareBack);
+  /* فحص التحديث مرة واحدة عند الإقلاع، ومؤجَّل كي لا يزاحم الإقلاع نفسه.
+     قراءة واحدة من Firestore لا أكثر — والفشل صامت (لا شريط). */
+  setTimeout(checkForAppUpdate, 4000);
 }
 
 /* ── زر الرجوع الفعلي في الهاتف: يتصرف مثل أزرار "رجوع" داخل التطبيق ── */
