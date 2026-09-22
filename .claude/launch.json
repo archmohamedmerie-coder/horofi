@@ -6,6 +6,13 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["--yes", "serve", "-l", "5173", "-s", "."],
       "port": 5173
+    },
+    {
+      "_comment": "التطبيق نفسه — بلا -s كي لا تُعاد كتابة المسارات إلى صفحة الهبوط",
+      "name": "app",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "serve", "-l", "4174", "--no-clipboard", "."],
+      "port": 4174
     }
   ]
 }
