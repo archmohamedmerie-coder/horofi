@@ -57,6 +57,44 @@ Analytics الحقيقية (14→10 نشطين) تأتي حصراً من مكت�
 `appId` من نوع `...:web:...`، يعمل نظرياً على كلتا المنصّتين عبر WebView) لا يسجّل أي حدث أيضاً** — سبب
 منفصل لم يُشخَّص بعد (لا استدعاء `logEvent`/`gtag` صريح، أو WebView يمنع طلبات القياس).
 
+### 🧭 خطة: الدفع في أندرويد عبر Google Play Billing مثل Apple — إصدار 15 (قرار 23.09، لم يبدأ التنفيذ)
+**القرار**: أندرويد يشتري عبر Google Play (لا Stripe)، **والسعر موحَّد 2.99 €** على المنصّتين. السبب الأساسي
+سياسة Google Play (الدفع الخارجي لمحتوى رقمي ممنوع إلا ببرامج EEA خاصة — **نفترض أن الحساب غير مسجّل فيها**)؛
+والثانوي موثوقية التجديد (فترة سماح، إشعار المستخدم، وسائل دفع Google). **ليس حلاً مضموناً لرفض البنوك**
+(بطاقة Sparkasse Debit قد تُرفض في Google أيضاً). اشتراك Stripe الوحيد الحيّ (المستخدم نفسه، 1.99 €) يبقى
+يعمل عبر `stripeWebhook` حتى ينتهي.
+
+**حقائق تقنية تحقّقتُ منها (تحكم التصميم)**:
+- الإضافة `@squareetlabs/capacitor-subscriptions` تدعم أندرويد، وBilling 9.1.0 مدمج ومُصلح (patch-package)،
+  وإذن `com.android.vending.BILLING` موجود في manifest الـrelease.
+- **في أندرويد `purchaseProduct` لا يُرجع نتيجة الشراء** — يُرجع 0 = «فُتحت نافذة Google» فقط. النتيجة تصل
+  بحدث `ANDROID-PURCHASE-RESPONSE`، والإضافة **تؤكّد الاستلام (acknowledge) تلقائياً** إلا للمشتريات المعلّقة
+  (`purchaseState == 2`). بلا تأكيد خلال 3 أيام تستردّ Google المال ← الخادم يؤكّد أيضاً احتياطاً.
+- `getLatestTransaction` يُرجع `purchaseToken` (ويعمل كـ«استعادة»). **لا تضبط `setGoogleVerificationDetails`**:
+  يطلب الشبكة داخل ردّ Billing؛ بدونه يعيد `expiryDate = null` بأمان (يلتقط الاستثناء) ولا نحتاجه.
+- الإضافة تختار **أول عرض** في المنتج ← خطة أساسية واحدة بلا عروض/تجربة مجانية.
+- معرّف Apple `com.Horofi.monthly2eur` **غير صالح في Google** (حرف كبير) ← معرّف مستقل، مقترح `horofi_monthly`.
+- محاكي `Pixel_8` فيه Play Store (`PlayStore.enabled=true`)؛ `Pixel_8_stable` لا.
+
+**المراحل**:
+0. **الحسابات (بموافقة المستخدم، لا تمسّ أحداً)**: منتج اشتراك + خطة شهرية 2.99 € (فترة سماح، Account hold،
+   بلا إيقاف مؤقت)؛ تفعيل Google Play Android Developer API في مشروع `horofi`؛ موضوع Pub/Sub `play-rtdn` مع صلاحية
+   نشر لـ`google-play-developer-notifications@system.gserviceaccount.com`؛ دعوة حساب خدمة Cloud Functions في
+   Play Console (عرض البيانات المالية + إدارة الطلبات والاشتراكات) — بلا مفاتيح سرية؛ ربط RTDN بالموضوع؛
+   إضافة بريد المستخدم كـLicense tester.
+1. **الخادم** (`horofi/index.js`): `verifyGoogleSubscription` (onCall — `subscriptionsv2.get`، تحقّق من الحزمة
+   والمنتج والحالة، acknowledge احتياطي، `subscribed:true` + `googlePlatform` + فهرس `googlePurchases/{token}→uid`)؛
+   `googlePlayNotifications` (Pub/Sub — يسأل Google عن **الحالة الحقيقية** في كل إشعار: ACTIVE/IN_GRACE_PERIOD ⇒
+   true، ON_HOLD/EXPIRED/REVOKED ⇒ false، CANCELED ⇒ يبقى true حتى الانتهاء، `linkedPurchaseToken` ⇒ نقل الربط).
+2. **التطبيق**: فرع أندرويد في `showSubscriptionPage` (إخفاء Stripe، زرّ شراء + استعادة)؛ شراء خلف `parentalGate`
+   ← حدث ← `getLatestTransaction` ← الخادم؛ «إدارة الاشتراك» ← صفحة اشتراكات Play؛ السعر من المتجر بعملة البلد
+   وبديله «2.99 €»؛ نصوص التجديد تذكر Google Play. الويب (خارج المتجرين) قرار ثانوي.
+3. **الاختبار**: اختبار Playwright ثامن يحاكي الإضافة (لا فتح قبل ردّ الخادم، البوابة قبل الشراء، لا Stripe في
+   أندرويد) + الـ16 الحالية؛ ثم شراء تجريبي حقيقي على مسار Internal testing بحساب License tester (بلا خصم، التجديد
+   يتسارع لدقائق): شراء، تجديد، إلغاء ← انتهاء ← قفل، استعادة بعد إعادة تثبيت، بطاقة مرفوضة ← فترة سماح.
+   كل انتقال يُتحقَّق منه في Firestore الإنتاج.
+4. **الإصدار**: Data safety (سجلّ المشتريات)، أندرويد 15 (2.2) **بعد قبول 14**، ثم `config/appVersion`.
+
 ### 💶 رصيد Firebase ينتهي 01.10.2026 — الأثر المالي ≈ صفر (تحقُّق 22.09)
 **السؤال**: ماذا يحدث للمال حين ينتهي رصيد Blaze (262,49 € متبقية، 9 أيام)؟
 **الأرقام الحقيقية من صفحة الاستهلاك** (لا تقدير): **تكلفة سبتمبر كلّه = 0,02 €**.
