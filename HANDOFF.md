@@ -230,7 +230,9 @@ Billing). `google-services` → 4.4.2 (مهمة رفع mapping لـCrashlytics �
 3. ✅ أندرويد: `npx cap copy android` ← `gradlew bundleRelease` ← فحص الحزمة ← اختبار المحاكي (قسم
    «جاهزية الإصدار» أعلاه). ⏳ **الرفع بيد المستخدم**. ✅ iOS: Codemagic Build #34 (`6b57212`) — IPA موقَّع 120 MB،
    السجلّ: `Version: 1.1` / `Version code: 11` و«UPLOAD SUCCEEDED with no errors» (23.09 18:29)؛ يُرسَل لـTestFlight
-   تلقائياً بعد معالجة آبل. ⏳ إنشاء نسخة 1.1 في App Store Connect، ربط البناء 11، نصّ «ما الجديد»، ثم إرسال للمراجعة.
+   تلقائياً بعد معالجة آبل. بريد آبل 18:30 «has one or more issues» = **ITMS-90984** فقط (تطبيقات فئة الأطفال لا تُعرض
+   على Vision Pro) — «for your information only»، لا يمسّ iPhone/iPad ولا يحتاج أي إجراء. ⏳ إنشاء نسخة 1.1 في App Store
+   Connect، ربط البناء 11، نصّ «ما الجديد»، ثم إرسال للمراجعة.
 4. ⏳ **وصف المتجرين الحيّ**: إن ذكر «4 حروف مجانية» يُصحَّح إلى حرفين (ا، ب). نسخة المستودع
    `store_listing_ar.md` لا تذكر الحروف المجانية أصلاً.
 5. ⏳ بعد قبول 14 في **المتجرين معاً**: `git merge landing-two-free-letters` + push (صفحة الهبوط —
