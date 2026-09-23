@@ -233,7 +233,11 @@ Billing). `google-services` → 4.4.2 (مهمة رفع mapping لـCrashlytics �
    السجلّ: `Version: 1.1` / `Version code: 11` و«UPLOAD SUCCEEDED with no errors» (23.09 18:29)؛ يُرسَل لـTestFlight
    تلقائياً بعد معالجة آبل. بريد آبل 18:30 «has one or more issues» = **ITMS-90984** فقط (تطبيقات فئة الأطفال لا تُعرض
    على Vision Pro) — «for your information only»، لا يمسّ iPhone/iPad ولا يحتاج أي إجراء. ⏳ إنشاء نسخة 1.1 في App Store
-   Connect، ربط البناء 11، نصّ «ما الجديد»، ثم إرسال للمراجعة.
+   Connect ✅ (23.09): نسخة 1.1 أُنشئت، البناء 11 مربوط، التوافق التصديري «Keinen der oben genannten Algorithmen» (كما في
+   البناءات السابقة)، «ما الجديد» بأربعة أسطر (بلا سطر «الأداء والاستقرار» لأنه يخصّ R8 في أندرويد فقط)، و**ملاحظات
+   المراجِع أُعيدت كتابتها** — كانت تقول «Four letters (ب، ت، ث، ج) are free… remaining 24» وتتحدّث عن Build 10؛ صارت
+   تصف ا وب و26 حرفاً مقفلاً وشريط التحديث. كل ذلك ثابت بعد إعادة تحميل. نوع النشر «MANUAL» (موروث من 1.0).
+   ⏳ **ضغط «Zur Prüfung hinzufügen» بموافقة المستخدم.**
 4. ⏳ **وصف المتجرين الحيّ**: إن ذكر «4 حروف مجانية» يُصحَّح إلى حرفين (ا، ب). نسخة المستودع
    `store_listing_ar.md` لا تذكر الحروف المجانية أصلاً.
 5. ⏳ بعد قبول 14 في **المتجرين معاً**: `git merge landing-two-free-letters` + push (صفحة الهبوط —
