@@ -12,7 +12,7 @@ index bed8416..522de1c 100644
      testImplementation "junit:junit:$junitVersion"
      androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
 diff --git a/node_modules/@squareetlabs/capacitor-subscriptions/android/src/main/java/com/squareetlabs/capacitor/subscriptions/Subscriptions.java b/node_modules/@squareetlabs/capacitor-subscriptions/android/src/main/java/com/squareetlabs/capacitor/subscriptions/Subscriptions.java
-index ecbb082..172673b 100644
+index ecbb082..04fd636 100644
 --- a/node_modules/@squareetlabs/capacitor-subscriptions/android/src/main/java/com/squareetlabs/capacitor/subscriptions/Subscriptions.java
 +++ b/node_modules/@squareetlabs/capacitor-subscriptions/android/src/main/java/com/squareetlabs/capacitor/subscriptions/Subscriptions.java
 @@ -10,9 +10,7 @@ import com.android.billingclient.api.BillingFlowParams;
@@ -25,7 +25,69 @@ index ecbb082..172673b 100644
  import com.android.billingclient.api.QueryPurchasesParams;
  import com.getcapacitor.JSObject;
  import com.getcapacitor.Logger;
-@@ -103,7 +101,7 @@ public class Subscriptions {
+@@ -45,30 +43,45 @@ public class Subscriptions {
+     private String googleVerifyEndpoint = "";
+     private String googleBid = "";
+ 
++    // Horofi patch: the listener is kept so the connection can be restarted. The original only
++    // connected once and never reconnected, and purchaseProduct/getLatestTransaction had no branch
++    // for "not connected", so their JS promises never resolved and the purchase button hung.
++    private final BillingClientStateListener stateListener = new BillingClientStateListener() {
++        @Override
++        public void onBillingSetupFinished(@NonNull BillingResult billingResult) {
++            if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
++                billingClientIsConnected = 1;
++            } else {
++                billingClientIsConnected = billingResult.getResponseCode();
++            }
++        }
++
++        @Override
++        public void onBillingServiceDisconnected() {
++            billingClientIsConnected = 0;
++        }
++    };
++
+     public Subscriptions(SubscriptionsPlugin plugin, BillingClient billingClient) {
+ 
+         this.billingClient = billingClient;
+-        this.billingClient.startConnection(new BillingClientStateListener() {
+-            @Override
+-            public void onBillingSetupFinished(@NonNull BillingResult billingResult) {
+-                if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+-                    billingClientIsConnected = 1;
+-                } else {
+-                    billingClientIsConnected = billingResult.getResponseCode();
+-                }
+-            }
+-
+-            @Override
+-            public void onBillingServiceDisconnected() {
+-                // Try to restart the connection on the next request to
+-                // Google Play by calling the startConnection() method.
+-            }
+-        });
++        this.billingClient.startConnection(stateListener);
+         this.activity = plugin.getActivity();
+         this.context = plugin.getContext();
+ 
+     }
+ 
++    // Horofi patch: start a new connection attempt if not connected. The current call still
++    // resolves with an error at once; the next call (the user retrying) finds it connected.
++    private void reconnectIfNeeded() {
++        if (billingClientIsConnected == 1) return;
++        try {
++            billingClient.startConnection(stateListener);
++        } catch (Exception e) {
++            Logger.error("Billing reconnect failed: " + e.getMessage());
++        }
++    }
++
+     public String echo(String value) {
+         Log.i("Echo", value);
+         return value;
+@@ -103,7 +116,7 @@ public class Subscriptions {
  
                          try {
  
@@ -34,7 +96,22 @@ index ecbb082..172673b 100644
                              String productId = productDetails.getProductId();
                              String title = productDetails.getTitle();
                              String desc = productDetails.getDescription();
-@@ -159,57 +157,46 @@ public class Subscriptions {
+@@ -137,12 +150,14 @@ public class Subscriptions {
+ 
+         } else if (billingClientIsConnected == 2) {
+ 
++            reconnectIfNeeded(); // Horofi patch
+             response.put("responseCode", 500);
+             response.put("responseMessage", "Android: BillingClient failed to initialise");
+             call.resolve(response);
+ 
+         } else {
+ 
++            reconnectIfNeeded(); // Horofi patch
+             response.put("responseCode", billingClientIsConnected);
+             response.put("responseMessage", "Android: BillingClient failed to initialise");
+ 
+@@ -159,57 +174,46 @@ public class Subscriptions {
  
          if (billingClientIsConnected == 1) {
  
@@ -68,7 +145,8 @@ index ecbb082..172673b 100644
 -                        if (currentPurchaseHistoryRecord.get("productId").equals(productIdentifier)) {
 -
 -                            found = true;
--
++                        found = true;
+ 
 -                            JSObject data = new JSObject();
 -                            String expiryDate = getExpiryDateFromGoogle(productIdentifier, currentPurchaseHistoryRecord.get("purchaseToken").toString());
 -                            if (expiryDate != null) {
@@ -82,8 +160,7 @@ index ecbb082..172673b 100644
 -                            data.put("transactionId", orderId);
 -                            data.put("developerPayload",currentPurchaseHistoryRecord.optString("developerPayload", ""));  // Usamos optString para obtener un valor por defecto si la clave no existe
 -                            data.put("purchaseToken", currentPurchaseHistoryRecord.get("purchaseToken").toString());
-+                        found = true;
- 
+-
 -                            response.put("responseCode", 0);
 -                            response.put("responseMessage", "Successfully found the latest transaction matching given productIdentifier");
 -                            response.put("data", data);
@@ -118,7 +195,20 @@ index ecbb082..172673b 100644
                  if (!found) {
                      response.put("responseCode", 3);
                      response.put("responseMessage", "No transaction for given productIdentifier, or it could not be verified");
-@@ -318,7 +305,7 @@ public class Subscriptions {
+@@ -219,6 +223,12 @@ public class Subscriptions {
+ 
+             });
+ 
++        } else {
++            // Horofi patch: resolve instead of leaving the JS promise pending forever
++            reconnectIfNeeded();
++            response.put("responseCode", 4);
++            response.put("responseMessage", "Billing service not connected");
++            call.resolve(response);
+         }
+ 
+     }
+@@ -318,7 +328,7 @@ public class Subscriptions {
                      (billingResult1, productDetailsList) -> {
  
                          try {
@@ -127,3 +217,16 @@ index ecbb082..172673b 100644
                              BillingFlowParams billingFlowParams = BillingFlowParams.newBuilder()
                                      .setProductDetailsParamsList(
                                              List.of(
+@@ -343,6 +353,12 @@ public class Subscriptions {
+ 
+                         call.resolve(response);
+                     });
++        } else {
++            // Horofi patch: resolve instead of leaving the JS promise pending forever
++            reconnectIfNeeded();
++            response.put("responseCode", 1);
++            response.put("responseMessage", "Failed to open native popover");
++            call.resolve(response);
+         }
+ 
+     }
