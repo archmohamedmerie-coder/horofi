@@ -3402,7 +3402,9 @@ function openBillingPortal(){
    عند تعذّر الكشف نفترض آبل: إرسال مشترك آبل إلى Stripe مخالفة، أمّا عرض ورقة
    آبل لمشترك Stripe فإرباك بسيط لا أكثر. الخطآن غير متكافئين. */
 async function doManageSubscription(){
-  if (window.Capacitor?.getPlatform?.() !== 'ios') return doOpenBillingPortal();
+  const plat = window.Capacitor?.getPlatform?.();
+  if (plat === 'android') return doManageAndroidSubscription();
+  if (plat !== 'ios') return doOpenBillingPortal();
 
   const btn = document.getElementById('manageSubBtn');
   let useApple = true;
@@ -3434,7 +3436,29 @@ async function doManageSubscription(){
   }
 }
 
-/* مسار Stripe — لأندرويد والويب، ولمن اشترك عبر Stripe وفتح iOS */
+/* أندرويد: مصدر الاشتراك يُقرأ من مستند المستخدم الذي يكتبه الخادم وحده —
+   googlePlatform (Google Play) أو stripeCustomerId (اشتراك Stripe قديم قبل إصدار 15).
+   أدقّ من سؤال الإضافة، الذي قد يفشل عند انقطاع اتصال المتجر فيرسل المشترك للمكان الخطأ.
+   عند تعذّر القراءة: Google (كل اشتراك أندرويد جديد يمرّ عبره). */
+async function doManageAndroidSubscription(){
+  let source = 'google';
+  try{
+    const d = await db.collection('users').doc(CURRENT_UID).get();
+    const u = (d.exists && d.data()) || {};
+    if (!u.googlePlatform && u.stripeCustomerId) source = 'stripe';
+  }catch(e){}
+  if (source === 'stripe') return doOpenBillingPortal();
+  const Sub = window.Capacitor?.Plugins?.Subscriptions;
+  if (!Sub || typeof Sub.manageSubscriptions !== 'function'){
+    alert('تعذّر فتح صفحة الاشتراكات في Google Play.');
+    return;
+  }
+  // لا ننتظر النتيجة: manageSubscriptions في أندرويد يفتح Google Play ولا يُنهي استدعاءه أبداً
+  Promise.resolve(Sub.manageSubscriptions({ productIdentifier: GOOGLE_SUBSCRIPTION_PRODUCT_ID, bid: HOROFI_PACKAGE_ID }))
+    .catch(() => alert('تعذّر فتح صفحة الاشتراكات في Google Play.'));
+}
+
+/* مسار Stripe — للويب، ولمن اشترك عبر Stripe قبل إصدار 15 (أندرويد) أو فتح iOS بحساب Stripe */
 async function doOpenBillingPortal(){
   const btn = document.getElementById('manageSubBtn');
   if (btn){ btn.disabled = true; btn.textContent = '⏳ جارٍ التحضير...'; }
@@ -6370,58 +6394,131 @@ function isLetterFree(char){
   if (isSubscribed) return true;
   return FREE_LETTERS.includes(char);
 }
-/* Apple لا يسمح بشراء محتوى رقمي خارج التطبيق (خارج In-App Purchase) — راجع
-   Guideline 2.1(b)/3.1.1. على iOS نستخدم StoreKit 2 عبر @squareetlabs/capacitor-subscriptions
-   (اشترِ من purchaseIOSSubscription أدناه)، بسعر مختلف عن أندرويد (2.99€ بدل 2€) تعويضاً
-   لعمولة آبل. أندرويد لا يتأثر إطلاقاً (يستمر عبر Stripe كما هو). */
-const APPLE_SUBSCRIPTION_PRODUCT_ID = 'com.Horofi.monthly2eur';
+/* ══════════════════════════════════
+   الاشتراك — عبر متجر المنصّة وحده
+   ────────────────────────────────
+   iOS: StoreKit 2 (App Store). أندرويد: Google Play Billing. كلاهما عبر
+   @squareetlabs/capacitor-subscriptions، وبسعر موحَّد 2.99 € (قرار 23.09.2026).
+   Stripe أُزيل من التطبيق: المتجران يمنعان شراء المحتوى الرقمي خارج نظام دفعهما
+   (Apple 3.1.1 / سياسة المدفوعات في Google Play). اشتراك Stripe قديم يبقى يعمل
+   ويُدار من «حسابي» عبر createPortalSession.
+   لا يُفعَّل شيء محلياً أبداً: التطبيق يرسل معرّف المعاملة/رمز الشراء فقط، والخادم
+   يتحقّق من المتجر نفسه قبل كتابة subscribed:true.
+   ══════════════════════════════════ */
+const APPLE_SUBSCRIPTION_PRODUCT_ID = 'com.Horofi.monthly2eur'; // اسم قديم؛ السعر الفعلي 2.99 € في App Store Connect
+const GOOGLE_SUBSCRIPTION_PRODUCT_ID = 'horofi_monthly';        // Google لا يقبل الأحرف الكبيرة في المعرّف
+const SUBSCRIPTION_FALLBACK_PRICE = '2.99 €';
+const HOROFI_PACKAGE_ID = 'com.horofi.app';
+
+/* 'ios' | 'android' | 'web' — الويب (متصفح) لا يبيع شيئاً */
+function storePlatform(){
+  const p = _currentPlatform();
+  return (p === 'ios' || p === 'android') ? p : 'web';
+}
+function storeProductId(){
+  return storePlatform() === 'android' ? GOOGLE_SUBSCRIPTION_PRODUCT_ID : APPLE_SUBSCRIPTION_PRODUCT_ID;
+}
+/* استدعاءات الإضافة الأصلية قد لا تنتهي (انقطاع اتصال المتجر) — مهلة قصوى كي لا يعلق
+   زرّ أمام وليّ الأمر. الإضافة في أندرويد مُصلحة أيضاً (android-app/patches/). */
+function withTimeout(promise, ms, label){
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(label || 'انتهت مهلة الاتصال بالمتجر')), ms); })
+  ]).finally(() => clearTimeout(timer));
+}
+function _storeMsg(text, isError){
+  const el = document.getElementById('subStoreMsg');
+  if (!el) return;
+  el.style.color = isError ? '#e53935' : '#888';
+  el.textContent = text || '';
+}
+function _storeBusy(on){
+  const btn = document.getElementById('subStoreBuyBtn');
+  if (!btn) return;
+  btn.disabled = !!on;
+  const first = btn.querySelector('span');
+  if (first) first.textContent = on ? '⏳ جارٍ المعالجة...' : '🔒 اشترك الآن';
+}
+
 function showSubscriptionPage(){
   stopAllAudio();
-  const isIOS = window.Capacitor?.getPlatform() === 'ios';
-  const buyBtns = document.getElementById('subBuyButtons');
-  const iosNotice = document.getElementById('subIosNotice');
+  const plat = storePlatform();
+  const storeBox = document.getElementById('subStoreBox');
+  const webBox = document.getElementById('subWebBox');
+  if (storeBox) storeBox.style.display = plat === 'web' ? 'none' : '';
+  if (webBox) webBox.style.display = plat === 'web' ? '' : 'none';
+  const storeName = document.getElementById('subStoreName');
+  if (storeName) storeName.textContent = plat === 'android' ? 'شراء آمن عبر Google Play' : 'شراء آمن عبر App Store';
+  // «24 ساعة» قاعدة آبل؛ في Google Play يكفي الإلغاء قبل موعد التجديد
+  const renew = document.getElementById('subRenewNote');
+  if (renew) renew.textContent = plat === 'android' ? 'ما لم تُلغه قبل موعد التجديد' : 'ما لم تُلغه قبل 24 ساعة من نهاية المدة';
+  const cancel = document.getElementById('subCancelNote');
+  if (cancel) cancel.textContent = plat === 'android'
+    ? 'يمكنك الإلغاء في أي وقت من اشتراكات Google Play.'
+    : 'يمكنك الإلغاء في أي وقت من إعدادات حسابك.';
   const priceLabel = document.getElementById('subPriceLabel');
-  if (buyBtns) buyBtns.style.display = isIOS ? 'none' : '';
-  if (iosNotice) iosNotice.style.display = isIOS ? '' : 'none';
-  if (priceLabel) priceLabel.textContent = isIOS ? '2.99 يورو / شهر' : '1.99 يورو / شهر';
+  if (priceLabel) priceLabel.textContent = SUBSCRIPTION_FALLBACK_PRICE + ' / شهر';
+  _storeMsg('');
   nav('subscription');
+  refreshStorePrice();
 }
-/* ── الشراء الفعلي على iOS عبر StoreKit 2 ── */
-function purchaseIOSSubscription(){
-  parentalGate(doPurchaseIOSSubscription); // شراء داخل التطبيق — Guideline 1.3
+/* السعر كما يعرضه المتجر بعملة بلد المستخدم (كرونة في السويد مثلاً)؛ عند التعذّر يبقى 2.99 € */
+async function refreshStorePrice(){
+  if (storePlatform() === 'web') return;
+  const Sub = window.Capacitor?.Plugins?.Subscriptions;
+  if (!Sub || typeof Sub.getProductDetails !== 'function') return;
+  try{
+    const r = await withTimeout(Sub.getProductDetails({ productIdentifier: storeProductId() }), 8000);
+    const price = r && r.responseCode === 0 && r.data && r.data.price;
+    const label = document.getElementById('subPriceLabel');
+    if (price && label) label.textContent = price + ' / شهر';
+  }catch(e){ /* يبقى السعر الاحتياطي */ }
 }
+
+/* صفحة التطبيق في المتجر — من نسخة الويب فقط، وخلف بوابة وليّ الأمر كأي رابط خارجي */
+function openStoreListing(which){
+  const url = STORE_URLS[which];
+  if (url) parentalGate(() => pgOpenExternal(url));
+}
+
+/* ── الشراء: بوابة وليّ الأمر أولاً (Apple 1.3 / سياسة العائلات في Google Play) ── */
+function purchaseStoreSubscription(){
+  const plat = storePlatform();
+  if (plat === 'ios') return parentalGate(doPurchaseIOSSubscription);
+  if (plat === 'android') return parentalGate(doPurchaseGoogleSubscription);
+}
+
 async function doPurchaseIOSSubscription(){
   const Sub = window.Capacitor?.Plugins?.Subscriptions;
-  const btn = document.getElementById('subIosBuyBtn');
-  const msgEl = document.getElementById('subIosMsg');
-  if (!Sub){ if (msgEl){ msgEl.style.color='#e53935'; msgEl.textContent='تعذّر الوصول لمتجر آبل'; } return; }
-  if (btn){ btn.disabled = true; btn.querySelector('span').textContent = '⏳ جارٍ المعالجة...'; }
-  if (msgEl){ msgEl.style.color='#888'; msgEl.textContent=''; }
+  if (!Sub){ _storeMsg('تعذّر الوصول لمتجر آبل', true); return; }
+  _storeBusy(true); _storeMsg('');
   try{
     const res = await Sub.purchaseProduct({ productIdentifier: APPLE_SUBSCRIPTION_PRODUCT_ID });
-    if (res.responseCode === 3){ if (msgEl) msgEl.textContent = 'تم إلغاء عملية الشراء'; return; }
-    if (res.responseCode === 4){ if (msgEl){ msgEl.textContent = 'بانتظار موافقة ولي الأمر (Ask to Buy)'; } return; }
+    if (res.responseCode === 3){ _storeMsg('تم إلغاء عملية الشراء'); return; }
+    if (res.responseCode === 4){ _storeMsg('بانتظار موافقة ولي الأمر (Ask to Buy)'); return; }
     if (res.responseCode !== 0){ throw new Error('فشل الشراء (كود ' + res.responseCode + ')'); }
     await confirmAppleTransactionWithServer();
   }catch(err){
-    if (msgEl){ msgEl.style.color='#e53935'; msgEl.textContent='تعذّر إتمام الشراء: ' + (err.message||err); }
+    _storeMsg('تعذّر إتمام الشراء: ' + (err.message||err), true);
   }finally{
-    if (btn){ btn.disabled = false; btn.querySelector('span').textContent = '🔒 اشترك الآن'; }
+    _storeBusy(false);
   }
 }
 /* لا نُفعّل الاشتراك محلياً أبداً — نرسل transactionId فقط، والخادم يتحقق منه
-   حقيقةً عبر App Store Server API قبل كتابة subscribed:true (مطابق لمنطق Stripe). */
+   حقيقةً عبر App Store Server API قبل كتابة subscribed:true. */
 async function confirmAppleTransactionWithServer(){
   const Sub = window.Capacitor?.Plugins?.Subscriptions;
-  const msgEl = document.getElementById('subIosMsg');
   const tx = await Sub.getLatestTransaction({ productIdentifier: APPLE_SUBSCRIPTION_PRODUCT_ID });
   if (tx.responseCode !== 0 || !tx.data || !tx.data.transactionId){
     throw new Error('لم يُعثر على معاملة صالحة');
   }
-  if (msgEl){ msgEl.style.color='#888'; msgEl.textContent='⏳ جارٍ التحقق من الخادم...'; }
+  _storeMsg('⏳ جارٍ التحقق من الخادم...');
   const call = functionsApi.httpsCallable('verifyAppleSubscription');
-  const result = await call({ transactionId: tx.data.transactionId });
-  if (result.data && result.data.subscribed){
+  _applyServerSubscription(await call({ transactionId: tx.data.transactionId }));
+}
+function _applyServerSubscription(result){
+  if (result && result.data && result.data.subscribed){
     isSubscribed = true;
     try { localStorage.setItem('horofiSubscribed', '1'); } catch(e){}
     buildLetterGrid();
@@ -6430,30 +6527,63 @@ async function confirmAppleTransactionWithServer(){
     throw new Error('لم يتأكد الخادم من الاشتراك بعد');
   }
 }
-/* StoreKit 2 لا يملك "استعادة" منفصلة — استعلام أحدث معاملة لهذا المنتج يعكس
-   تلقائياً مشتريات حساب Apple ID الحالي، فنعيد استخدام نفس مسار التحقق. */
-async function restoreIOSPurchases(){
-  const msgEl = document.getElementById('subIosMsg');
-  if (msgEl){ msgEl.style.color='#888'; msgEl.textContent='⏳ جارٍ التحقق من مشتريات سابقة...'; }
+
+/* أندرويد: purchaseProduct يُرجع فقط «فُتحت نافذة Google» (responseCode 0)؛ النتيجة
+   تصل لاحقاً بحدث ANDROID-PURCHASE-RESPONSE بعد أن تؤكّد الإضافة استلام الشراء:
+   successful === 0 نجح، false أُلغي أو فشل أو بقي «معلّقاً» (يُلتقط لاحقاً عبر recoverGooglePurchase). */
+function _waitForAndroidPurchase(Sub){
+  let handle = null;
+  const promise = new Promise(resolve => {
+    Promise.resolve(Sub.addListener('ANDROID-PURCHASE-RESPONSE', ev => resolve(ev || {})))
+      .then(h => { handle = h; }).catch(() => {});
+  });
+  return { promise, remove(){ try{ if (handle) handle.remove(); }catch(e){} } };
+}
+async function doPurchaseGoogleSubscription(){
+  const Sub = window.Capacitor?.Plugins?.Subscriptions;
+  if (!Sub){ _storeMsg('تعذّر الوصول لمتجر Google Play', true); return; }
+  _storeBusy(true); _storeMsg('');
+  const waiter = _waitForAndroidPurchase(Sub);
   try{
-    await confirmAppleTransactionWithServer();
+    const res = await withTimeout(Sub.purchaseProduct({ productIdentifier: GOOGLE_SUBSCRIPTION_PRODUCT_ID }), 20000);
+    if (!res || res.responseCode !== 0){
+      throw new Error('تعذّر فتح نافذة الشراء في Google Play — تأكّد من الاتصال بالإنترنت وحاول مجدداً');
+    }
+    // وليّ الأمر يُكمل الدفع في نافذة Google — قد يستغرق دقائق
+    const ev = await withTimeout(waiter.promise, 15 * 60 * 1000);
+    if (ev.successful === false){ _storeMsg('لم تكتمل عملية الشراء'); return; }
+    await confirmGoogleWithServer();
   }catch(err){
-    if (msgEl){ msgEl.style.color='#e53935'; msgEl.textContent='لم نجد اشتراكاً سابقاً على هذا الحساب'; }
+    _storeMsg('تعذّر إتمام الشراء: ' + (err.message||err), true);
+  }finally{
+    waiter.remove();
+    _storeBusy(false);
   }
 }
-const STRIPE_URL = 'https://buy.stripe.com/aFa28r2MQdUuassdcK3F600';
-function activateSubscription(){
-  parentalGate(doActivateSubscription); // شراء + خروج من التطبيق — Guideline 1.3
+async function confirmGoogleWithServer(){
+  const Sub = window.Capacitor?.Plugins?.Subscriptions;
+  const tx = await withTimeout(Sub.getLatestTransaction({ productIdentifier: GOOGLE_SUBSCRIPTION_PRODUCT_ID }), 20000);
+  if (!tx || tx.responseCode !== 0 || !tx.data || !tx.data.purchaseToken){
+    throw new Error('لم يُعثر على شراء صالح');
+  }
+  _storeMsg('⏳ جارٍ التحقق من الخادم...');
+  const call = functionsApi.httpsCallable('verifyGoogleSubscription');
+  _applyServerSubscription(await call({ purchaseToken: tx.data.purchaseToken }));
 }
-function doActivateSubscription(){
-  const url = CURRENT_UID
-    ? `${STRIPE_URL}?client_reference_id=${encodeURIComponent(CURRENT_UID)}`
-    : STRIPE_URL;
-  // داخل تطبيق Android: افتح متصفحاً خارجياً حقيقياً (Chrome Custom Tabs) بدل الـ WebView الداخلي —
-  // هذا يسمح بعودة موثوقة عبر حدث 'resume' والكشف التلقائي عن حالة الاشتراك
-  pgOpenExternal(url);
+
+/* استعادة: StoreKit 2 وGoogle Play كلاهما يعيد مشتريات الحساب الحالي عند الاستعلام،
+   فنعيد استخدام مسار التحقق نفسه. */
+async function restoreStorePurchases(){
+  _storeMsg('⏳ جارٍ التحقق من مشتريات سابقة...');
+  try{
+    if (storePlatform() === 'android') await confirmGoogleWithServer();
+    else await confirmAppleTransactionWithServer();
+  }catch(err){
+    _storeMsg('لم نجد اشتراكاً سابقاً على هذا الحساب', true);
+  }
 }
-/* ── كشف تلقائي لحالة الاشتراك عند عودة المستخدم من الدفع ── */
+
+/* ── كشف تلقائي لحالة الاشتراك عند العودة للتطبيق ── */
 async function silentSubscriptionCheck(){
   if (!CURRENT_UID || isSubscribed) return;
   try {
@@ -6463,8 +6593,32 @@ async function silentSubscriptionCheck(){
       try { localStorage.setItem('horofiSubscribed', '1'); } catch(e){}
       buildLetterGrid();
       if (document.getElementById('subscription')?.classList.contains('active')) nav('letters');
+      return;
     }
   } catch(e){}
+  recoverGooglePurchase();
+}
+/* شراء Google اكتمل لكن لم يصل للخادم: دفع كان «معلّقاً» واكتمل لاحقاً، أو أُغلق التطبيق
+   قبل ردّ الخادم. نبحث بصمت عن شراء على حساب Google في الجهاز ونرسله للتحقق —
+   مرة كل دقيقة على الأكثر. الخادم وحده يقرّر (قد يكون منتهياً فيرفضه). */
+let _lastGoogleRecovery = 0;
+async function recoverGooglePurchase(){
+  if (storePlatform() !== 'android' || !CURRENT_UID || isSubscribed) return;
+  if (Date.now() - _lastGoogleRecovery < 60000) return;
+  _lastGoogleRecovery = Date.now();
+  const Sub = window.Capacitor?.Plugins?.Subscriptions;
+  if (!Sub || typeof Sub.getLatestTransaction !== 'function') return;
+  try{
+    const tx = await withTimeout(Sub.getLatestTransaction({ productIdentifier: GOOGLE_SUBSCRIPTION_PRODUCT_ID }), 15000);
+    if (!tx || tx.responseCode !== 0 || !tx.data || !tx.data.purchaseToken) return;
+    const result = await functionsApi.httpsCallable('verifyGoogleSubscription')({ purchaseToken: tx.data.purchaseToken });
+    if (result && result.data && result.data.subscribed){
+      isSubscribed = true;
+      try { localStorage.setItem('horofiSubscribed', '1'); } catch(e){}
+      buildLetterGrid();
+      if (document.getElementById('subscription')?.classList.contains('active')) nav('letters');
+    }
+  }catch(e){ /* صامت: المحاولة التالية عند العودة للتطبيق */ }
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) silentSubscriptionCheck(); });
 if (window.Capacitor?.isNativePlatform() && window.Capacitor.Plugins?.App) {
@@ -6473,6 +6627,8 @@ if (window.Capacitor?.isNativePlatform() && window.Capacitor.Plugins?.App) {
   /* فحص التحديث مرة واحدة عند الإقلاع، ومؤجَّل كي لا يزاحم الإقلاع نفسه.
      قراءة واحدة من Firestore لا أكثر — والفشل صامت (لا شريط). */
   setTimeout(checkForAppUpdate, 4000);
+  // شراء Google لم يصل للخادم في جلسة سابقة (أُغلق التطبيق قبل التحقق) — أندرويد فقط، ويتوقف فوراً لغيره
+  setTimeout(recoverGooglePurchase, 8000);
 }
 
 /* ── زر الرجوع الفعلي في الهاتف: يتصرف مثل أزرار "رجوع" داخل التطبيق ── */
@@ -6497,31 +6653,6 @@ function handleHardwareBack(){
   if (target){ stopAllAudio(); nav(target); }
   else { window.Capacitor.Plugins.App.exitApp(); }
 }
-/* عند العودة من الدفع — لا نُفعّل الاشتراك محلياً أبداً، فقط نعيد قراءة الحالة الحقيقية
-   من Firestore (التي يكتبها الـ Webhook بعد تأكيد الدفع). قد يستغرق ثوانٍ قليلة. */
-async function checkSubscriptionReturn(){
-  const msgEl = document.getElementById('subCheckMsg');
-  if (msgEl){ msgEl.textContent = '⏳ جارٍ التحقق من عملية الدفع...'; msgEl.style.color = '#888'; }
-  if (!CURRENT_UID) return;
-
-  for (let attempt = 0; attempt < 6; attempt++) {
-    await new Promise(r => setTimeout(r, 1500));
-    try {
-      const doc = await db.collection('users').doc(CURRENT_UID).get();
-      if (doc.exists && doc.data().subscribed === true) {
-        isSubscribed = true;
-        try { localStorage.setItem('horofiSubscribed', '1'); } catch(e){}
-        buildLetterGrid();
-        nav('letters');
-        return;
-      }
-    } catch(e){}
-  }
-  if (msgEl){
-    msgEl.style.color = '#e53935';
-    msgEl.textContent = 'لم نتأكد من الدفع بعد — إذا أتممتَ الدفع فعلاً انتظر قليلاً وأعد المحاولة';
-  }
-}
 
 </script>
 
@@ -6544,30 +6675,29 @@ async function checkSubscriptionReturn(){
         <li>✅ تقارير تقدم الأطفال</li>
         <li>✅ دعم صوتي كامل</li>
       </ul>
-      <div class="sub-price" id="subPriceLabel">1.99 يورو / شهر</div>
+      <div class="sub-price" id="subPriceLabel">2.99 € / شهر</div>
       <!-- Apple Guideline 3.1.2: يجب أن يعرض التطبيق نفسه اسم الاشتراك ومدّته
            وسعره وروابط سياسة الخصوصية وشروط الاستخدام. -->
       <div style="font-size:.82rem;color:var(--muted);font-weight:600;line-height:1.75;margin:8px 2px 12px;text-align:center">
         <strong>اشتراك «فتح جميع الحروف»</strong> — مدّته <strong>شهر واحد</strong>،
-        ويتجدّد تلقائياً كل شهر بنفس السعر ما لم تُلغه قبل 24 ساعة من نهاية المدة.
-        يمكنك الإلغاء في أي وقت من إعدادات حسابك.
+        ويتجدّد تلقائياً كل شهر بنفس السعر <span id="subRenewNote">ما لم تُلغه قبل 24 ساعة من نهاية المدة</span>.
+        <span id="subCancelNote">يمكنك الإلغاء في أي وقت من إعدادات حسابك.</span>
       </div>
-      <div id="subBuyButtons">
-        <button class="sub-web-btn" style="margin-top:4px" onclick="activateSubscription()">
-          <span>🔒 اشترك الآن عبر موقعنا الآمن</span>
-          <span class="sub-web-sub">دفع مشفّر بالكامل عبر Stripe — يفتح في المتصفح</span>
-        </button>
-        <div class="sub-secure-note">🛡️ ستعود تلقائياً إلى التطبيق فور إتمام الدفع</div>
-        <button class="btn2" style="width:100%;margin-top:6px;font-size:.88rem" onclick="checkSubscriptionReturn()">لقد دفعتُ، تحقّق يدوياً ✅</button>
-        <div id="subCheckMsg" style="min-height:18px;font-size:.85rem;text-align:center;margin-top:6px"></div>
-      </div>
-      <div id="subIosNotice" style="display:none">
-        <button class="sub-web-btn" id="subIosBuyBtn" style="margin-top:4px" onclick="purchaseIOSSubscription()">
+      <!-- الشراء عبر متجر المنصّة وحده: App Store في iOS، وGoogle Play في أندرويد.
+           Stripe أُزيل من التطبيق (سياسة المتجرين للمحتوى الرقمي). -->
+      <div id="subStoreBox" style="display:none">
+        <button class="sub-web-btn" id="subStoreBuyBtn" style="margin-top:4px" onclick="purchaseStoreSubscription()">
           <span>🔒 اشترك الآن</span>
-          <span class="sub-web-sub">شراء آمن عبر App Store</span>
+          <span class="sub-web-sub" id="subStoreName">شراء آمن عبر App Store</span>
         </button>
-        <button class="btn2" style="width:100%;margin-top:6px;font-size:.88rem" onclick="restoreIOSPurchases()">استعادة مشترياتي السابقة</button>
-        <div id="subIosMsg" style="min-height:18px;font-size:.85rem;text-align:center;margin-top:6px"></div>
+        <button class="btn2" style="width:100%;margin-top:6px;font-size:.88rem" onclick="restoreStorePurchases()">استعادة مشترياتي السابقة</button>
+        <div id="subStoreMsg" style="min-height:18px;font-size:.85rem;text-align:center;margin-top:6px"></div>
+      </div>
+      <!-- نسخة المتصفح لا تبيع شيئاً: الاشتراك من داخل التطبيق فقط -->
+      <div id="subWebBox" style="display:none">
+        <div class="sub-secure-note" style="margin-bottom:8px">الاشتراك متاح من داخل التطبيق فقط. حمّل «صحّح حروفك» من متجر جهازك:</div>
+        <button class="btn2" style="width:100%;margin-top:4px;font-size:.88rem" onclick="openStoreListing('ios')">App Store (iPhone / iPad)</button>
+        <button class="btn2" style="width:100%;margin-top:6px;font-size:.88rem" onclick="openStoreListing('android')">Google Play (Android)</button>
       </div>
       <button class="login-link" onclick="stopAllAudio();nav('letters')">العودة للحروف المجانية</button>
       <div style="display:flex;gap:14px;justify-content:center;align-items:center;margin-top:12px;flex-wrap:wrap">

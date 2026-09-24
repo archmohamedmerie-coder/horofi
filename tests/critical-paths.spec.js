@@ -269,3 +269,174 @@ test('7) جهازان بحساب واحد: الجهاز القديم لا يمح
   expect((await state(pageA2)).completed).toEqual(FIVE);
   await ctxA2.close();
 });
+
+/* ─────────────────────────────────────────────────────────────
+   8–11) الاشتراك عبر المتجرين (إصدار 15 — Google Play Billing مثل Apple)
+   بديل Capacitor وهمي يحاكي @squareetlabs/capacitor-subscriptions كما يتصرّف فعلاً:
+   في أندرويد purchaseProduct يُرجع «فُتحت النافذة» فقط، والنتيجة تصل بحدث
+   ANDROID-PURCHASE-RESPONSE؛ و getLatestTransaction لا يجد شيئاً قبل الشراء. */
+async function openNative(page, platform, seed) {
+  await page.addInitScript((platform) => {
+    const listeners = {};
+    const sub = {
+      calls: [],
+      owned: null,           // purchaseToken بعد اكتمال الشراء
+      price: platform === 'android' ? '29,90 kr' : '2,99 €',
+      async getProductDetails(o) { sub.calls.push(['getProductDetails', o]); return { responseCode: 0, data: { price: sub.price } }; },
+      async purchaseProduct(o) { sub.calls.push(['purchaseProduct', o]); return platform === 'ios' ? { responseCode: 0 } : { responseCode: 0, responseMessage: 'Successfully opened native popover' }; },
+      async getLatestTransaction(o) {
+        sub.calls.push(['getLatestTransaction', o]);
+        if (platform === 'ios') return { responseCode: 0, data: { transactionId: 'tx_ios_1' } };
+        return sub.owned ? { responseCode: 0, data: { purchaseToken: sub.owned } } : { responseCode: 3 };
+      },
+      manageSubscriptions(o) { sub.calls.push(['manageSubscriptions', o]); return new Promise(() => {}); }, // لا ينتهي أبداً في أندرويد
+      async addListener(ev, cb) { (listeners[ev] = listeners[ev] || []).push(cb); return { remove() { listeners[ev] = (listeners[ev] || []).filter((x) => x !== cb); } }; },
+      // يحاكي Google بعد أن يُكمل وليّ الأمر الدفع أو يلغيه
+      finish(result, token) { if (token) sub.owned = token; (listeners['ANDROID-PURCHASE-RESPONSE'] || []).forEach((cb) => cb(result)); },
+    };
+    window.__sub = sub;
+    window.__opened = [];
+    window.Capacitor = {
+      isNativePlatform: () => true,
+      getPlatform: () => platform,
+      Plugins: {
+        App: { addListener: () => {}, exitApp: () => {}, getInfo: async () => ({ build: '999' }) },
+        Browser: { open: (o) => { window.__opened.push(o.url); } },
+        Subscriptions: sub,
+      },
+    };
+  }, platform);
+  await openApp(page, { seed });
+}
+const solveGate = (page) => page.evaluate(() => { document.getElementById('pgInput').value = String(PG_ANSWER); pgConfirm(); });
+const subCalls = (page, name) => page.evaluate((n) => window.__sub.calls.filter((c) => c[0] === n).map((c) => c[1]), name);
+const callsTo = (page, name) => page.evaluate((n) => window.__fb.callLog.filter((c) => c.name === n).map((c) => c.data), name);
+
+test('8) أندرويد: الشراء عبر Google Play — البوابة أولاً، ولا فتح قبل تأكيد الخادم، ولا Stripe', async ({ page }) => {
+  await openNative(page, 'android');
+  await signInAs(page, { uid: 'g_user', email: 'g@x.y' }, 'onboarding');
+  await page.evaluate(() => skipOnboarding());
+  await waitForScreen(page, 'home');
+
+  // الخادم يؤكّد فقط الرمز الذي أصدرته Google فعلاً
+  await page.evaluate(() => {
+    window.__fb.callables.verifyGoogleSubscription = async (d) => ({ data: { subscribed: d.purchaseToken === 'gp_token_OK_1234567890' } });
+  });
+
+  await page.evaluate(() => showSubscriptionPage());
+  await waitForScreen(page, 'subscription');
+  const ui = await page.evaluate(() => ({
+    store: document.getElementById('subStoreBox').style.display,
+    web: document.getElementById('subWebBox').style.display,
+    storeName: document.getElementById('subStoreName').textContent,
+    renew: document.getElementById('subRenewNote').textContent,
+    stripeInPage: /stripe/i.test(document.getElementById('subscription').innerText) || /buy.stripe.com|activateSubscription/.test(document.documentElement.outerHTML),
+  }));
+  expect(ui).toEqual({ store: '', web: 'none', storeName: 'شراء آمن عبر Google Play', renew: 'ما لم تُلغه قبل موعد التجديد', stripeInPage: false });
+  // السعر بعملة بلد المستخدم كما يرسله المتجر
+  await page.waitForFunction(() => document.getElementById('subPriceLabel').textContent === '29,90 kr / شهر');
+  expect(await subCalls(page, 'getProductDetails')).toEqual([{ productIdentifier: 'horofi_monthly' }]);
+
+  // (أ) الشراء يمرّ من بوابة وليّ الأمر أولاً — لا شيء يصل للمتجر قبل حلّها
+  await page.evaluate(() => purchaseStoreSubscription());
+  expect(await page.evaluate(() => document.getElementById('pgOverlay').style.display)).toBe('flex');
+  expect(await subCalls(page, 'purchaseProduct')).toEqual([]);
+  await solveGate(page);
+  await page.waitForFunction(() => window.__sub.calls.some((c) => c[0] === 'purchaseProduct'));
+  expect(await subCalls(page, 'purchaseProduct')).toEqual([{ productIdentifier: 'horofi_monthly' }]);
+
+  // (ب) نافذة Google مفتوحة ولم يكتمل الدفع: لا فتح إطلاقاً
+  expect(await page.evaluate(() => [isSubscribed, isLetterFree('ع')])).toEqual([false, false]);
+
+  // (ج) وليّ الأمر ألغى: رسالة، ولا استدعاء للخادم
+  await page.evaluate(() => window.__sub.finish({ successful: false }));
+  await page.waitForFunction(() => document.getElementById('subStoreMsg').textContent === 'لم تكتمل عملية الشراء');
+  expect(await callsTo(page, 'verifyGoogleSubscription')).toEqual([]);
+  expect(await page.evaluate(() => document.getElementById('subStoreBuyBtn').disabled)).toBe(false);
+
+  // (د) المحاولة الثانية تكتمل: الرمز يُرسل للخادم، والخادم وحده يفتح
+  await page.evaluate(() => purchaseStoreSubscription());
+  await solveGate(page);
+  await page.waitForFunction(() => window.__sub.calls.filter((c) => c[0] === 'purchaseProduct').length === 2);
+  await page.evaluate(() => window.__sub.finish({ successful: 0 }, 'gp_token_OK_1234567890'));
+  await page.waitForFunction(() => isSubscribed === true);
+  expect(await callsTo(page, 'verifyGoogleSubscription')).toEqual([{ purchaseToken: 'gp_token_OK_1234567890' }]);
+  expect(await page.evaluate(() => isLetterFree('ع'))).toBe(true);
+  await waitForScreen(page, 'letters');
+});
+
+test('9) أندرويد: الخادم يرفض ⇒ يبقى مقفلاً؛ و«إدارة الاشتراك» تذهب لمصدره الصحيح', async ({ page }) => {
+  await openNative(page, 'android');
+  await signInAs(page, { uid: 'g_user2', email: 'g2@x.y' }, 'onboarding');
+  await page.evaluate(() => skipOnboarding());
+  await waitForScreen(page, 'home');
+
+  // الخادم يرفض (مثلاً اشتراك منتهٍ) ⇒ لا فتح محلي أبداً
+  await page.evaluate(() => { window.__fb.callables.verifyGoogleSubscription = async () => ({ data: { subscribed: false } }); });
+  await page.evaluate(() => showSubscriptionPage());
+  await page.evaluate(() => purchaseStoreSubscription());
+  await solveGate(page);
+  await page.waitForFunction(() => window.__sub.calls.some((c) => c[0] === 'purchaseProduct'));
+  await page.evaluate(() => window.__sub.finish({ successful: 0 }, 'gp_token_expired_1234567890'));
+  await page.waitForFunction(() => /تعذّر إتمام الشراء/.test(document.getElementById('subStoreMsg').textContent));
+  expect(await page.evaluate(() => [isSubscribed, isLetterFree('ع')])).toEqual([false, false]);
+
+  // مشترك Google ⇒ صفحة اشتراكات Google Play (بلا انتظار — الاستدعاء لا ينتهي في أندرويد)
+  await page.evaluate(() => window.__fb.serverWrite('users/g_user2', { googlePlatform: true }));
+  await page.evaluate(() => doManageSubscription());
+  await page.waitForFunction(() => window.__sub.calls.some((c) => c[0] === 'manageSubscriptions'));
+  expect(await subCalls(page, 'manageSubscriptions')).toEqual([{ productIdentifier: 'horofi_monthly', bid: 'com.horofi.app' }]);
+  expect(await callsTo(page, 'createPortalSession')).toEqual([]);
+
+  // مشترك Stripe قديم (قبل إصدار 15) ⇒ بوابة Stripe كما كانت
+  await page.evaluate(() => { window.__fb.store['users/g_user2'] = { stripeCustomerId: 'cus_old' }; });
+  await page.evaluate(() => doManageSubscription());
+  await page.waitForFunction(() => window.__fb.callLog.some((c) => c.name === 'createPortalSession'));
+  expect((await subCalls(page, 'manageSubscriptions')).length).toBe(1);
+});
+
+test('10) iOS: مسار Apple لم يتغيّر — البوابة، ثم StoreKit، ثم تحقّق الخادم بمعرّف المعاملة', async ({ page }) => {
+  await openNative(page, 'ios');
+  await signInAs(page, { uid: 'a_user', email: 'a@x.y' }, 'onboarding');
+  await page.evaluate(() => skipOnboarding());
+  await waitForScreen(page, 'home');
+  await page.evaluate(() => { window.__fb.callables.verifyAppleSubscription = async (d) => ({ data: { subscribed: d.transactionId === 'tx_ios_1' } }); });
+
+  await page.evaluate(() => showSubscriptionPage());
+  const ui = await page.evaluate(() => ({
+    storeName: document.getElementById('subStoreName').textContent,
+    renew: document.getElementById('subRenewNote').textContent,
+    web: document.getElementById('subWebBox').style.display,
+  }));
+  expect(ui).toEqual({ storeName: 'شراء آمن عبر App Store', renew: 'ما لم تُلغه قبل 24 ساعة من نهاية المدة', web: 'none' });
+  await page.waitForFunction(() => document.getElementById('subPriceLabel').textContent === '2,99 € / شهر');
+
+  await page.evaluate(() => purchaseStoreSubscription());
+  expect(await subCalls(page, 'purchaseProduct')).toEqual([]);
+  await solveGate(page);
+  await page.waitForFunction(() => isSubscribed === true);
+  expect(await subCalls(page, 'purchaseProduct')).toEqual([{ productIdentifier: 'com.Horofi.monthly2eur' }]);
+  expect(await callsTo(page, 'verifyAppleSubscription')).toEqual([{ transactionId: 'tx_ios_1' }]);
+  expect(await callsTo(page, 'verifyGoogleSubscription')).toEqual([]);
+});
+
+test('11) الويب: لا بيع إطلاقاً — روابط المتجرين فقط وخلف بوابة وليّ الأمر', async ({ page }) => {
+  await openApp(page);
+  await signInAs(page, { uid: 'w_user', email: 'w@x.y' }, 'onboarding');
+  await page.evaluate(() => skipOnboarding());
+  await waitForScreen(page, 'home');
+  await page.evaluate(() => showSubscriptionPage());
+  const ui = await page.evaluate(() => ({
+    store: document.getElementById('subStoreBox').style.display,
+    web: document.getElementById('subWebBox').style.display,
+    price: document.getElementById('subPriceLabel').textContent,
+    stripeInPage: /stripe/i.test(document.getElementById('subscription').innerText) || /buy.stripe.com|activateSubscription/.test(document.documentElement.outerHTML),
+    stripeConst: typeof STRIPE_URL,
+  }));
+  expect(ui).toEqual({ store: 'none', web: '', price: '2.99 € / شهر', stripeInPage: false, stripeConst: 'undefined' });
+
+  await page.evaluate(() => { window.__opened = []; window.open = (u) => { window.__opened.push(u); }; openStoreListing('android'); });
+  expect(await page.evaluate(() => [document.getElementById('pgOverlay').style.display, window.__opened.length])).toEqual(['flex', 0]);
+  await solveGate(page);
+  expect(await page.evaluate(() => window.__opened)).toEqual(['https://play.google.com/store/apps/details?id=com.horofi.app']);
+});
