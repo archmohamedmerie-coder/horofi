@@ -30,7 +30,7 @@ function googleEntitlement(sub, now = Date.now()) {
   return { valid: true, entitled, state, expiry };
 }
 
-/* SUBSCRIPTION_STATE_IN_GRACE_PERIOD ← "in_grace_period" — نفس أسلوب paymentStatus لآبل وStripe */
+/* SUBSCRIPTION_STATE_IN_GRACE_PERIOD ← "in_grace_period" — نفس أسلوب paymentStatus لآبل */
 function googleStatusLabel(state) {
   return String(state || "").replace(/^SUBSCRIPTION_STATE_/, "").toLowerCase() || "unspecified";
 }

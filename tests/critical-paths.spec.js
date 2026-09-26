@@ -386,13 +386,6 @@ test('9) أندرويد: الخادم يرفض ⇒ يبقى مقفلاً؛ و«�
   await page.evaluate(() => doManageSubscription());
   await page.waitForFunction(() => window.__sub.calls.some((c) => c[0] === 'manageSubscriptions'));
   expect(await subCalls(page, 'manageSubscriptions')).toEqual([{ productIdentifier: 'horofi_monthly', bid: 'com.horofi.app' }]);
-  expect(await callsTo(page, 'createPortalSession')).toEqual([]);
-
-  // مشترك Stripe قديم (قبل إصدار 15) ⇒ بوابة Stripe كما كانت
-  await page.evaluate(() => { window.__fb.store['users/g_user2'] = { stripeCustomerId: 'cus_old' }; });
-  await page.evaluate(() => doManageSubscription());
-  await page.waitForFunction(() => window.__fb.callLog.some((c) => c.name === 'createPortalSession'));
-  expect((await subCalls(page, 'manageSubscriptions')).length).toBe(1);
 });
 
 test('10) iOS: مسار Apple لم يتغيّر — البوابة، ثم StoreKit، ثم تحقّق الخادم بمعرّف المعاملة', async ({ page }) => {

@@ -3389,39 +3389,18 @@ function dismissUpdateBanner(){
     if (_updateLatestBuild != null) localStorage.setItem('horofiUpdateSkipped', String(_updateLatestBuild));
   }catch(e){}
 }
-/* ── فتح بوابة إدارة/إلغاء الاشتراك من Stripe ── */
+/* ── فتح إدارة/إلغاء الاشتراك عند متجر المنصّة ── */
 function openBillingPortal(){
   parentalGate(doManageSubscription); // إدارة اشتراك = تجارة — Guideline 1.3
 }
 
-/* توجيه إدارة الاشتراك — Apple Guideline 3.1.1
-   اشتراك اشتُري عبر StoreKit يجب أن يُدار عند آبل، لا عبر صفحة دفع خارجية.
-   لكن لا نحكم بالمنصّة وحدها: نفس الحساب قد يكون اشترك عبر Stripe من أندرويد
-   أو الويب ثم فتح iOS. فنسأل StoreKit نفسه — بنفس الدالة التي يستخدمها
-   confirmAppleTransactionWithServer — هل لهذا الحساب معاملة على منتجنا.
-   عند تعذّر الكشف نفترض آبل: إرسال مشترك آبل إلى Stripe مخالفة، أمّا عرض ورقة
-   آبل لمشترك Stripe فإرباك بسيط لا أكثر. الخطآن غير متكافئين. */
+/* توجيه إدارة الاشتراك — Apple Guideline 3.1.1: اشتراك اشتُري عبر StoreKit
+   يجب أن يُدار عند آبل، لا عبر صفحة خارجية. الويب لا يبيع شيئاً فلا صفحة
+   إدارة له. */
 async function doManageSubscription(){
   const plat = window.Capacitor?.getPlatform?.();
   if (plat === 'android') return doManageAndroidSubscription();
-  if (plat !== 'ios') return doOpenBillingPortal();
-
-  const btn = document.getElementById('manageSubBtn');
-  let useApple = true;
-  if (btn){ btn.disabled = true; btn.textContent = '⏳ لحظة...'; }
-  try{
-    const Sub = window.Capacitor?.Plugins?.Subscriptions;
-    if (Sub && typeof Sub.getLatestTransaction === 'function'){
-      const tx = await Sub.getLatestTransaction({ productIdentifier: APPLE_SUBSCRIPTION_PRODUCT_ID });
-      useApple = !!(tx && tx.responseCode === 0 && tx.data && tx.data.transactionId);
-    }
-  }catch(e){
-    useApple = true; // انظر التعليق أعلاه
-  }finally{
-    if (btn){ btn.disabled = false; btn.textContent = '💳 إدارة / إلغاء الاشتراك'; }
-  }
-
-  if (!useApple) return doOpenBillingPortal();
+  if (plat !== 'ios'){ alert('إدارة الاشتراك متاحة من داخل التطبيق على الهاتف فقط.'); return; }
 
   const Sub = window.Capacitor?.Plugins?.Subscriptions;
   if (!Sub || typeof Sub.manageSubscriptions !== 'function'){
@@ -3436,18 +3415,7 @@ async function doManageSubscription(){
   }
 }
 
-/* أندرويد: مصدر الاشتراك يُقرأ من مستند المستخدم الذي يكتبه الخادم وحده —
-   googlePlatform (Google Play) أو stripeCustomerId (اشتراك Stripe قديم قبل إصدار 15).
-   أدقّ من سؤال الإضافة، الذي قد يفشل عند انقطاع اتصال المتجر فيرسل المشترك للمكان الخطأ.
-   عند تعذّر القراءة: Google (كل اشتراك أندرويد جديد يمرّ عبره). */
 async function doManageAndroidSubscription(){
-  let source = 'google';
-  try{
-    const d = await db.collection('users').doc(CURRENT_UID).get();
-    const u = (d.exists && d.data()) || {};
-    if (!u.googlePlatform && u.stripeCustomerId) source = 'stripe';
-  }catch(e){}
-  if (source === 'stripe') return doOpenBillingPortal();
   const Sub = window.Capacitor?.Plugins?.Subscriptions;
   if (!Sub || typeof Sub.manageSubscriptions !== 'function'){
     alert('تعذّر فتح صفحة الاشتراكات في Google Play.');
@@ -3456,23 +3424,6 @@ async function doManageAndroidSubscription(){
   // لا ننتظر النتيجة: manageSubscriptions في أندرويد يفتح Google Play ولا يُنهي استدعاءه أبداً
   Promise.resolve(Sub.manageSubscriptions({ productIdentifier: GOOGLE_SUBSCRIPTION_PRODUCT_ID, bid: HOROFI_PACKAGE_ID }))
     .catch(() => alert('تعذّر فتح صفحة الاشتراكات في Google Play.'));
-}
-
-/* مسار Stripe — للويب، ولمن اشترك عبر Stripe قبل إصدار 15 (أندرويد) أو فتح iOS بحساب Stripe */
-async function doOpenBillingPortal(){
-  const btn = document.getElementById('manageSubBtn');
-  if (btn){ btn.disabled = true; btn.textContent = '⏳ جارٍ التحضير...'; }
-  try{
-    const call = functionsApi.httpsCallable('createPortalSession');
-    const res = await call();
-    const url = res.data && res.data.url;
-    if (!url) throw new Error('لم يصل رابط من الخادم');
-    pgOpenExternal(url);
-  }catch(err){
-    alert('تعذّر فتح صفحة إدارة الاشتراك: ' + (err.message||err));
-  }finally{
-    if (btn){ btn.disabled = false; btn.textContent = '💳 إدارة / إلغاء الاشتراك'; }
-  }
 }
 function changeMyPassword(){
   const user = auth.currentUser;
@@ -6366,7 +6317,7 @@ function elStatus() {
 /* ══════════════════════════════════
    FREEMIUM LOGIC — التحقق من الاشتراك يتم فقط عبر Firestore
    (الحقل subscribed لا يمكن كتابته إلا من Cloud Function بعد
-   تأكيد دفع حقيقي من Stripe — راجع functions/index.js)
+   تأكيد دفع حقيقي من متجر المنصّة — راجع functions/index.js)
    ══════════════════════════════════ */
 function loadSubscription(){
   // localStorage تُستخدم فقط كـ cache سريع لأول رسم قبل وصول رد Firestore
@@ -6399,9 +6350,8 @@ function isLetterFree(char){
    ────────────────────────────────
    iOS: StoreKit 2 (App Store). أندرويد: Google Play Billing. كلاهما عبر
    @squareetlabs/capacitor-subscriptions، وبسعر موحَّد 2.99 € (قرار 23.09.2026).
-   Stripe أُزيل من التطبيق: المتجران يمنعان شراء المحتوى الرقمي خارج نظام دفعهما
-   (Apple 3.1.1 / سياسة المدفوعات في Google Play). اشتراك Stripe قديم يبقى يعمل
-   ويُدار من «حسابي» عبر createPortalSession.
+   المتجران يمنعان شراء المحتوى الرقمي خارج نظام دفعهما
+   (Apple 3.1.1 / سياسة المدفوعات في Google Play).
    لا يُفعَّل شيء محلياً أبداً: التطبيق يرسل معرّف المعاملة/رمز الشراء فقط، والخادم
    يتحقّق من المتجر نفسه قبل كتابة subscribed:true.
    ══════════════════════════════════ */
@@ -6683,8 +6633,8 @@ function handleHardwareBack(){
         ويتجدّد تلقائياً كل شهر بنفس السعر <span id="subRenewNote">ما لم تُلغه قبل 24 ساعة من نهاية المدة</span>.
         <span id="subCancelNote">يمكنك الإلغاء في أي وقت من إعدادات حسابك.</span>
       </div>
-      <!-- الشراء عبر متجر المنصّة وحده: App Store في iOS، وGoogle Play في أندرويد.
-           Stripe أُزيل من التطبيق (سياسة المتجرين للمحتوى الرقمي). -->
+      <!-- الشراء عبر متجر المنصّة وحده: App Store في iOS، وGoogle Play في أندرويد
+           (سياسة المتجرين للمحتوى الرقمي). -->
       <div id="subStoreBox" style="display:none">
         <button class="sub-web-btn" id="subStoreBuyBtn" style="margin-top:4px" onclick="purchaseStoreSubscription()">
           <span>🔒 اشترك الآن</span>
