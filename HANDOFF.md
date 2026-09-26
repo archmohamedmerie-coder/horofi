@@ -70,11 +70,13 @@
 5. iOS 1.1 (11) قيد مراجعة آبل **لا يتأثر** (يبيع عبر StoreKit) — يُترك.
 
 ### ⚠️ ما يبقى مفتوحاً لجلسة قادمة
-1. **دفع الفرع**: `git push origin feature/google-play-billing` (كوميتان محليان: `5a43886`، `42ec688`) — لم يُنفَّذ بعد.
-2. **تأكيد الحساب البنكي** في Payment Profile عند وصول تحويل Google (راجع البند 7 أعلاه).
-3. **دمج الفرع في `main`** — بعد قبول نسخة 14 في الإنتاج (حسب خطة القسم أدناه)، أو أي وقت يقرّره المستخدم بما أن نسخة 15 مُختبَرة فعلاً وجاهزة.
-4. **تنظيف اختياري**: حذف سرّي `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` من Secret Manager (لم يعودا مُستخدَمين، لا ضرر من بقائهما).
-5. بقية بنود «قائمة يوم الإصدار» في قسم 23.09 أدناه (وصف Google Play، دمج `landing-two-free-letters`، رفع `config/appVersion`) — لا تزال تنتظر قبول نسخة 14.
+(محدَّث 26.09 ليلاً — الفرع مدفوع بالكامل إلى origin.)
+1. **🔴 تأكيد الحساب البنكي** قبل 25.10.2026 — تذكير مجدول صباح الثلاثاء 29.09 (مهمة `horofi-bank-verification-reminder`). راجع القسم «🔴 عاجل».
+2. **بعد قبول 16 ونشرها**: `config/appVersion.android = 16`، ثم دمج `feature/google-play-billing` في `main`، ثم `git merge landing-two-free-letters` (صفحة الهبوط — كلا المتجرين قبلا حينها).
+3. **اختياري — Data safety/Crashlytics**: لا شيء مُصرَّح تحت «App-Informationen und -Leistung» بينما التطبيق يضمّ Crashlytics الذي يرسل بيانات جلسات (رأيتُ `SessionFirelogPublisher` في logcat). قرّر: التصريح بـ«Absturzprotokolle/Diagnose» أو تعطيل الجمع.
+4. **اختياري — «Pause payments»**: الإيقاف المؤقت مفعّل على مستوى إعدادات الاشتراكات خلافاً للخطة الأصلية. الخادم يعامل `PAUSED` كغير مشترك، فلا خطأ وظيفي؛ القرار للمستخدم (Play Console ← إعدادات تحقيق الربح ← إيقاف مؤقت).
+5. **اختياري — خطأ إملائي** في `privacy.html` القسم 3: «الأعطاء» ← «الأعطال» (يحتاج نشراً على `main`).
+6. **اختياري — تنظيف**: حذف سرّي `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` من Secret Manager (غير مُستخدَمين).
 
 ---
 
