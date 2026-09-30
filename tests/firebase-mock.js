@@ -78,16 +78,26 @@
   const fsFn = () => db;
   fsFn.FieldValue = { serverTimestamp: () => '__server_ts__' };
 
+  /* دوال الخادم (httpsCallable): تُسجَّل كل الاستدعاءات، والردّ الافتراضي { data: {} } كما كان.
+     الاختبار يستطيع تحديد ردّ دالة بعينها عبر __fb.callables[name] = async (data) => ({ data: ... }) */
+  const callables = Object.create(null);
+  const callLog = [];
+
   window.firebase = {
     initializeApp() { return {}; },
     auth: authFn,
     firestore: fsFn,
-    functions: () => ({ httpsCallable: () => async () => ({ data: {} }) }),
+    functions: () => ({
+      httpsCallable: (name) => async (data) => {
+        callLog.push({ name, data });
+        return callables[name] ? callables[name](data) : { data: {} };
+      },
+    }),
   };
 
   /* مقبض الاختبار */
   window.__fb = {
-    setUser, mkUser, store, calls,
+    setUser, mkUser, store, calls, callables, callLog,
     get currentUser() { return currentUser; },
     /* كتابة مستند مع إخطار المستمعين — يحاكي تغييراً من الخادم (مثل Cloud Function تكتب subscribed) */
     serverWrite(path, data) { store[path] = Object.assign({}, store[path] || {}, data); notify(path); },
