@@ -76,7 +76,7 @@
 ### ⚠️ ما يبقى مفتوحاً لجلسة قادمة
 (محدَّث 26.09 ليلاً — الفرع مدفوع بالكامل إلى origin.)
 1. ✅ ~~تأكيد الحساب البنكي~~ — **أُنجز 28.09** (0,92 €)، وخطر الحذف زال (تحقّقتُ). التذكير المجدول صار لتفقّد قبول 16 فقط.
-2. **بعد قبول 16 ونشرها**: `config/appVersion.android = 16`، ثم دمج `feature/google-play-billing` في `main`، ثم `git merge landing-two-free-letters` (صفحة الهبوط — كلا المتجرين قبلا حينها).
+2. **16 (2.2) نُشرت ✅** — «متوفّر على Google Play» منذ 30.09 01:15، 178 بلداً، ولا تغييرات معلّقة في المراجعة (Data safety نُشرت معها) — تحقّقتُ 30.09. **الباقي**: `config/appVersion.android = 16`، ثم دمج `feature/google-play-billing` في `main`، ثم `git merge landing-two-free-letters` (صفحة الهبوط — كلا المتجرين قبلا حينها).
 3. **اختياري — Data safety/Crashlytics**: لا شيء مُصرَّح تحت «App-Informationen und -Leistung» بينما التطبيق يضمّ Crashlytics الذي يرسل بيانات جلسات (رأيتُ `SessionFirelogPublisher` في logcat). قرّر: التصريح بـ«Absturzprotokolle/Diagnose» أو تعطيل الجمع.
 4. **اختياري — «Pause payments»**: الإيقاف المؤقت مفعّل على مستوى إعدادات الاشتراكات خلافاً للخطة الأصلية. الخادم يعامل `PAUSED` كغير مشترك، فلا خطأ وظيفي؛ القرار للمستخدم (Play Console ← إعدادات تحقيق الربح ← إيقاف مؤقت).
 5. **اختياري — خطأ إملائي** في `privacy.html` القسم 3: «الأعطاء» ← «الأعطال» (يحتاج نشراً على `main`).
