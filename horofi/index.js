@@ -1,8 +1,10 @@
 /*
-  الاشتراك يُباع حصرياً عبر متجرَي المنصّتين (App Store وGoogle Play) — راجع
-  verifyAppleSubscription وverifyGoogleSubscription أدناه. الواجهة الأمامية
-  (horofi-v11-9-29.html) لا تستطيع أبداً تفعيل الاشتراك بنفسها — فقط تقرأ
-  الحالة التي يكتبها هذا الملف بعد تحقّق حقيقي من متجر المنصّة.
+  الوصول المدفوع يُباع حصرياً عبر متجرَي المنصّتين (App Store وGoogle Play) بثلاثة
+  خيارات: شهري، سنوي، وشراء دائم لمرة واحدة — راجع verifyAppleSubscription
+  وverifyGoogleSubscription أدناه (الاسمان قديمان ويشملان الخيارات الثلاثة كي تبقى
+  النسخ المنشورة من التطبيق تعمل). الواجهة الأمامية (horofi-v11-9-29.html) لا
+  تستطيع أبداً تفعيل الوصول بنفسها — فقط تقرأ الحالة التي يكتبها هذا الملف بعد
+  تحقّق حقيقي من متجر المنصّة. قاعدة الحساب (subscribed مشتقّ من مصدرين) في entitlements.js.
 
   النشر:
     firebase deploy --only functions:horofi
@@ -18,12 +20,40 @@ const path = require("path");
 admin.initializeApp();
 const db = admin.firestore();
 
+const {
+  mergeEntitlement,
+  appleTransactionVerdict,
+  appleNotificationPatch,
+  mappedUids,
+} = require("./entitlements");
+
+/* كل كتابة تمسّ الوصول تمرّ من هنا: قراءة الحالة الحالية وكتابة subscribed المشتقّ
+   في معاملة واحدة، كي لا يُفسد إشعاران متزامنان أحدهما الآخر.
+   onlyExisting: الإشعارات لا تُنشئ مستنداً لحساب حذفه صاحبه. */
+async function applyEntitlement(uid, patch, { onlyExisting = false } = {}) {
+  const ref = db.collection("users").doc(uid);
+  return db.runTransaction(async (t) => {
+    const snap = await t.get(ref);
+    if (!snap.exists && onlyExisting) return null;
+    const write = mergeEntitlement(snap.exists ? snap.data() : {}, patch);
+    t.set(ref, write, { merge: true });
+    return write;
+  });
+}
+
+/* نفس التغيير لكل الحسابات المرتبطة بشراء واحد (انظر mappedUids) */
+async function applyEntitlementToAll(uids, patch) {
+  for (const uid of uids) {
+    await applyEntitlement(uid, patch, { onlyExisting: true });
+  }
+}
+
 // ── مفاتيح آبل (App Store Connect API Key، من إعداد المستخدم في Users and Access → Integrations → In-App Purchase) ──
 const appleIssuerId   = defineSecret("APPLE_ISSUER_ID");
 const appleKeyId      = defineSecret("APPLE_KEY_ID");
 const applePrivateKey = defineSecret("APPLE_PRIVATE_KEY"); // محتوى ملف .p8 كاملاً (بما فيه أسطر BEGIN/END)
 const APPLE_BUNDLE_ID = "com.horofi.app";
-const APPLE_SUBSCRIPTION_PRODUCT_ID = "com.Horofi.monthly2eur";
+// معرّفات منتجات آبل الثلاثة في APPLE_PRODUCTS (entitlements.js)
 
 /*
   ══════════════════════════════════════════════════════════════════════════
@@ -103,30 +133,43 @@ exports.verifyAppleSubscription = onCall(
     }
     const { decoded, environment } = result;
 
-    if (decoded.bundleId !== APPLE_BUNDLE_ID || decoded.productId !== APPLE_SUBSCRIPTION_PRODUCT_ID) {
-      logger.error(`❌ معاملة لا تطابق التطبيق/المنتج: ${JSON.stringify(decoded)}`);
-      throw new HttpsError("permission-denied", "المعاملة لا تخص هذا الاشتراك");
+    const verdict = appleTransactionVerdict(decoded, APPLE_BUNDLE_ID);
+    if (!verdict.valid) {
+      logger.error(`❌ معاملة لا تطابق التطبيق/المنتج (${verdict.reason}): ${JSON.stringify(decoded)}`);
+      throw new HttpsError("permission-denied", "المعاملة لا تخص هذا التطبيق");
     }
-    if (decoded.revocationReason !== undefined || (decoded.expiresDate && decoded.expiresDate < Date.now())) {
-      throw new HttpsError("failed-precondition", "الاشتراك غير فعّال حالياً");
+    if (!verdict.entitled) {
+      throw new HttpsError("failed-precondition", "الشراء غير فعّال حالياً");
     }
 
-    await db.collection("users").doc(uid).set(
-      {
-        subscribed: true,
-        subscribedAt: admin.firestore.FieldValue.serverTimestamp(),
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    const patch = verdict.kind === "lifetime"
+      ? {
+        lifetime: true,
+        lifetimeAt: now,
+        applePlatform: true,
+        appleLifetimeTransactionId: decoded.originalTransactionId,
+        appleEnvironment: environment,
+      }
+      : {
+        subscriptionActive: true,
+        subscriptionPlan: verdict.plan,
+        subscribedAt: now,
+        paymentStatus: "active",
         applePlatform: true,
         appleOriginalTransactionId: decoded.originalTransactionId,
         appleEnvironment: environment,
-      },
+      };
+    await applyEntitlement(uid, patch);
+    // فهرس عكسي: يسمح لإشعارات آبل اللاحقة (تجديد/إلغاء/استرداد) بإيجاد كل الحسابات
+    // المرتبطة عبر originalTransactionId فقط (لا تحمل الإشعارات uid الخاص بنا مطلقاً).
+    await db.collection("appleTransactions").doc(decoded.originalTransactionId).set(
+      { uid, uids: admin.firestore.FieldValue.arrayUnion(uid), productId: decoded.productId, kind: verdict.kind },
       { merge: true }
     );
-    // فهرس عكسي: يسمح لإشعارات آبل اللاحقة (تجديد/إلغاء) بإيجاد المستخدم عبر
-    // originalTransactionId فقط (لا تحمل الإشعارات uid الخاص بنا مطلقاً).
-    await db.collection("appleTransactions").doc(decoded.originalTransactionId).set({ uid }, { merge: true });
 
-    logger.info(`✅ تم تفعيل اشتراك آبل للمستخدم ${uid} (${environment})`);
-    return { subscribed: true };
+    logger.info(`✅ آبل: تفعيل ${verdict.plan} للمستخدم ${uid} (${environment})`);
+    return { subscribed: true, plan: verdict.plan };
   }
 );
 
@@ -171,39 +214,27 @@ exports.appleServerNotifications = onRequest(
       res.status(200).send("OK (no uid mapping)");
       return;
     }
-    const uid = mapDoc.data().uid;
+    const uids = mappedUids(mapDoc.data());
     const type = notification.notificationType;
+    // الأثر يُحدَّد حسب منتج المعاملة: استرداد الشراء الدائم لا يمسّ الاشتراك، وانتهاء
+    // الاشتراك لا يمسّ الشراء الدائم (entitlements.js)
+    const patch = appleNotificationPatch(type, notification.subtype, transaction.productId);
+    if (!patch) {
+      // تغييرات معلوماتية (DID_CHANGE_RENEWAL_STATUS...) أو منتج مجهول — تُسجَّل فقط
+      logger.info(`ℹ️ إشعار آبل ${type}/${notification.subtype || "-"} (${transaction.productId}) للحسابات ${uids.join(",")} — بلا أثر`);
+      res.status(200).send("OK (no effect)");
+      return;
+    }
+    if (patch.paymentStatus === "failed") {
+      patch.lastPaymentFailedAt = admin.firestore.FieldValue.serverTimestamp();
+    }
+    if (patch.subscriptionActive === true || patch.lifetime === true) {
+      patch.appleEnvironment = environment;
+    }
 
     try {
-      if (type === "SUBSCRIBED" || type === "DID_RENEW") {
-        await db.collection("users").doc(uid).set(
-          { subscribed: true, paymentStatus: "active", appleEnvironment: environment },
-          { merge: true }
-        );
-        logger.info(`✅ آبل: تفعيل/تجديد اشتراك ${uid}`);
-      } else if (type === "EXPIRED" || type === "GRACE_PERIOD_EXPIRED" || type === "REVOKE") {
-        await db.collection("users").doc(uid).set(
-          { subscribed: false, paymentStatus: type.toLowerCase() },
-          { merge: true }
-        );
-        logger.info(`⛔ آبل: إلغاء اشتراك ${uid} (${type})`);
-      } else if (type === "REFUND") {
-        await db.collection("users").doc(uid).set(
-          { subscribed: false, paymentStatus: "refunded" },
-          { merge: true }
-        );
-        logger.info(`↩️ آبل: استرداد اشتراك ${uid}`);
-      } else if (type === "DID_FAIL_TO_RENEW") {
-        // لا نُلغي فوراً: آبل تعيد المحاولة تلقائياً
-        await db.collection("users").doc(uid).set(
-          { paymentStatus: "failed", lastPaymentFailedAt: admin.firestore.FieldValue.serverTimestamp() },
-          { merge: true }
-        );
-        logger.warn(`⚠️ آبل: فشل تجديد دفع ${uid}`);
-      } else {
-        // تغييرات معلوماتية أخرى (DID_CHANGE_RENEWAL_STATUS...) — تُسجَّل فقط دون تأثير على subscribed
-        logger.info(`ℹ️ إشعار آبل ${type} للمستخدم ${uid} — بلا تأثير على subscribed`);
-      }
+      await applyEntitlementToAll(uids, patch);
+      logger.info(`🍎 آبل ${type} (${transaction.productId}) ← ${JSON.stringify(patch)} للحسابات ${uids.join(",")}`);
     } catch (err) {
       logger.error("خطأ في كتابة Firestore (إشعار آبل):", err);
       res.status(500).send("Firestore write failed");
@@ -217,8 +248,11 @@ exports.appleServerNotifications = onRequest(
 /* ══════════════════════════════════════════════════════════════════════
    Google Play Billing — نفس مبدأ آبل: التطبيق لا يفعّل شيئاً بنفسه
    ──────────────────────────────────────────────────────────────────────
-   verifyGoogleSubscription: التطبيق يرسل purchaseToken فقط؛ الخادم يسأل Google
-     (purchases.subscriptionsv2) ويقرّر عبر googleEntitlement في googlePlay.js.
+   verifyGoogleSubscription: التطبيق يرسل purchaseToken (ومعرّف المنتج في النسخ الجديدة)؛
+     الخادم يسأل Google ويقرّر عبر googlePlay.js:
+       - اشتراك (شهري/سنوي): purchases.subscriptionsv2 ← googleEntitlement.
+       - الشراء الدائم (productId = horofi_lifetime): purchases.products ← googleLifetimeEntitlement.
+     النسخ المنشورة قبل هذا التغيير لا ترسل productId ⇒ مسار الاشتراك كما كان.
    googlePlayNotifications: إشعارات Google الفورية (RTDN) عبر Pub/Sub — تجديد،
      فترة سماح، تعليق، إلغاء، انتهاء، استرداد. في كل إشعار نسأل Google عن الحالة
      الحقيقية بدل الوثوق بنوع الإشعار (الإشعارات قد تصل متأخرة أو بغير ترتيب).
@@ -228,9 +262,12 @@ const { onMessagePublished } = require("firebase-functions/v2/pubsub");
 const { GoogleAuth } = require("google-auth-library");
 const {
   GOOGLE_PACKAGE_NAME,
-  GOOGLE_SUBSCRIPTION_PRODUCT_ID,
+  GOOGLE_LIFETIME_PRODUCT_ID,
+  isGoogleSubscriptionProduct,
   googleEntitlement,
+  googleLifetimeEntitlement,
   googleStatusLabel,
+  googleVoidedKind,
   googleTokenKey,
   isPlausiblePurchaseToken,
 } = require("./googlePlay");
@@ -239,29 +276,83 @@ const GOOGLE_RTDN_TOPIC = "play-rtdn";
 const ANDROID_PUBLISHER = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${GOOGLE_PACKAGE_NAME}`;
 const googleAuth = new GoogleAuth({ scopes: ["https://www.googleapis.com/auth/androidpublisher"] });
 
-async function fetchGoogleSubscription(purchaseToken) {
+async function googleRequest(pathAndQuery, method = "GET") {
   const client = await googleAuth.getClient();
   const res = await client.request({
-    url: `${ANDROID_PUBLISHER}/purchases/subscriptionsv2/tokens/${encodeURIComponent(purchaseToken)}`,
+    url: `${ANDROID_PUBLISHER}/${pathAndQuery}`,
+    method,
+    ...(method === "POST" ? { data: {} } : {}),
   });
   return res.data;
 }
+const tokenPath = (t) => encodeURIComponent(t);
+
+function fetchGoogleSubscription(purchaseToken) {
+  return googleRequest(`purchases/subscriptionsv2/tokens/${tokenPath(purchaseToken)}`);
+}
+function fetchGoogleProductPurchase(productId, purchaseToken) {
+  return googleRequest(`purchases/products/${productId}/tokens/${tokenPath(purchaseToken)}`);
+}
 
 /* بلا تأكيد خلال 3 أيام تستردّ Google المال تلقائياً. الإضافة تؤكّد من الجهاز، وهذا احتياط
-   لو أُغلق التطبيق قبل ذلك أو كان الشراء معلّقاً. */
-async function acknowledgeGoogleSubscription(purchaseToken) {
-  const client = await googleAuth.getClient();
-  await client.request({
-    url: `${ANDROID_PUBLISHER}/purchases/subscriptions/${GOOGLE_SUBSCRIPTION_PRODUCT_ID}/tokens/${encodeURIComponent(purchaseToken)}:acknowledge`,
-    method: "POST",
-    data: {},
-  });
+   لو أُغلق التطبيق قبل ذلك أو كان الشراء معلّقاً. نقطة التأكيد تختلف بين الاشتراك والشراء الدائم. */
+function acknowledgeGoogleSubscription(productId, purchaseToken) {
+  return googleRequest(`purchases/subscriptions/${productId}/tokens/${tokenPath(purchaseToken)}:acknowledge`, "POST");
+}
+function acknowledgeGoogleProduct(productId, purchaseToken) {
+  return googleRequest(`purchases/products/${productId}/tokens/${tokenPath(purchaseToken)}:acknowledge`, "POST");
 }
 
 /* خطأ نهائي من Google (رمز غير صالح/غير موجود) — لا فائدة من إعادة المحاولة */
 function isPermanentGoogleError(err) {
   const status = err && err.response && err.response.status;
   return status === 400 || status === 404 || status === 410;
+}
+
+/* فهرس عكسي كـappleTransactions: الإشعارات تحمل purchaseToken فقط، لا uid الخاص بنا.
+   uids يحفظ كل حساب فُتح بهذا الشراء (الاستعادة الصامتة قد تفتحه لحساب ضيف جديد). */
+function linkGooglePurchase(key, uid, purchaseToken, kind, productId) {
+  return db.collection("googlePurchases").doc(key).set(
+    { uid, uids: admin.firestore.FieldValue.arrayUnion(uid), purchaseToken, kind, productId },
+    { merge: true }
+  );
+}
+
+async function verifyGoogleLifetime(uid, purchaseToken) {
+  let purchase;
+  try {
+    purchase = await fetchGoogleProductPurchase(GOOGLE_LIFETIME_PRODUCT_ID, purchaseToken);
+  } catch (err) {
+    logger.warn(`⚠️ تعذّر جلب شراء Google الدائم (${err && err.response && err.response.status}):`, err.message);
+    throw new HttpsError("not-found", "تعذّر التحقق من الشراء لدى Google");
+  }
+  const ent = googleLifetimeEntitlement(purchase);
+  if (!ent.valid) throw new HttpsError("permission-denied", "الشراء لا يخص هذا التطبيق");
+  if (ent.pending) throw new HttpsError("failed-precondition", "الدفع ما زال معلّقاً لدى Google");
+  if (!ent.entitled) throw new HttpsError("failed-precondition", "الشراء ملغى");
+
+  if (ent.needsAck) {
+    try {
+      await acknowledgeGoogleProduct(GOOGLE_LIFETIME_PRODUCT_ID, purchaseToken);
+      logger.info(`✅ Google: أُكِّد استلام الشراء الدائم من الخادم للمستخدم ${uid}`);
+    } catch (err) {
+      // لا نُفشل التفعيل بسببه: الإضافة تؤكّد من الجهاز أيضاً
+      logger.warn("⚠️ تعذّر تأكيد استلام شراء Google الدائم:", err.message);
+    }
+  }
+
+  const key = googleTokenKey(purchaseToken);
+  await applyEntitlement(uid, {
+    lifetime: true,
+    lifetimeAt: admin.firestore.FieldValue.serverTimestamp(),
+    googlePlatform: true,
+    googleLifetimeKey: key,
+    googleTestPurchase: ent.test,
+  });
+  await linkGooglePurchase(key, uid, purchaseToken, "lifetime", GOOGLE_LIFETIME_PRODUCT_ID);
+
+  logger.info(`✅ Google: تفعيل الشراء الدائم للمستخدم ${uid}${ent.test ? " (شراء اختباري)" : ""}`);
+  return { subscribed: true, plan: "lifetime" };
 }
 
 exports.verifyGoogleSubscription = onCall(async (request) => {
@@ -272,6 +363,14 @@ exports.verifyGoogleSubscription = onCall(async (request) => {
   const purchaseToken = request.data && request.data.purchaseToken;
   if (!isPlausiblePurchaseToken(purchaseToken)) {
     throw new HttpsError("invalid-argument", "purchaseToken مفقود أو غير صالح");
+  }
+  const productId = request.data && request.data.productId;
+  if (productId === GOOGLE_LIFETIME_PRODUCT_ID) {
+    return verifyGoogleLifetime(uid, purchaseToken);
+  }
+  // غياب productId = نسخة قديمة من التطبيق (الشهري وحده) ⇒ مسار الاشتراك
+  if (productId !== undefined && productId !== null && !isGoogleSubscriptionProduct(productId)) {
+    throw new HttpsError("invalid-argument", "منتج غير معروف");
   }
 
   let sub;
@@ -293,8 +392,8 @@ exports.verifyGoogleSubscription = onCall(async (request) => {
 
   if (sub.acknowledgementState === "ACKNOWLEDGEMENT_STATE_PENDING") {
     try {
-      await acknowledgeGoogleSubscription(purchaseToken);
-      logger.info(`✅ Google: أُكِّد استلام الشراء من الخادم للمستخدم ${uid}`);
+      await acknowledgeGoogleSubscription(ent.productId, purchaseToken);
+      logger.info(`✅ Google: أُكِّد استلام الاشتراك من الخادم للمستخدم ${uid}`);
     } catch (err) {
       // لا نُفشل التفعيل بسببه: الإضافة تؤكّد من الجهاز أيضاً، والإشعارات اللاحقة تعيد المحاولة
       logger.warn("⚠️ تعذّر تأكيد استلام شراء Google:", err.message);
@@ -302,22 +401,20 @@ exports.verifyGoogleSubscription = onCall(async (request) => {
   }
 
   const key = googleTokenKey(purchaseToken);
-  await db.collection("users").doc(uid).set(
-    {
-      subscribed: true,
-      subscribedAt: admin.firestore.FieldValue.serverTimestamp(),
-      googlePlatform: true,
-      googlePurchaseKey: key,
-      googleTestPurchase: !!sub.testPurchase,
-      paymentStatus: googleStatusLabel(ent.state),
-    },
-    { merge: true }
-  );
-  // فهرس عكسي كـappleTransactions: الإشعارات تحمل purchaseToken فقط، لا uid الخاص بنا
-  await db.collection("googlePurchases").doc(key).set({ uid, purchaseToken }, { merge: true });
+  await applyEntitlement(uid, {
+    subscriptionActive: true,
+    subscriptionPlan: ent.plan,
+    subscribedAt: admin.firestore.FieldValue.serverTimestamp(),
+    googlePlatform: true,
+    googlePurchaseKey: key,
+    googleSubscriptionProductId: ent.productId,
+    googleTestPurchase: !!sub.testPurchase,
+    paymentStatus: googleStatusLabel(ent.state),
+  });
+  await linkGooglePurchase(key, uid, purchaseToken, "subscription", ent.productId);
 
-  logger.info(`✅ تم تفعيل اشتراك Google للمستخدم ${uid}${sub.testPurchase ? " (شراء اختباري)" : ""}`);
-  return { subscribed: true };
+  logger.info(`✅ Google: تفعيل ${ent.plan} للمستخدم ${uid}${sub.testPurchase ? " (شراء اختباري)" : ""}`);
+  return { subscribed: true, plan: ent.plan };
 });
 
 exports.googlePlayNotifications = onMessagePublished(
@@ -339,17 +436,27 @@ exports.googlePlayNotifications = onMessagePublished(
       return;
     }
 
-    // استرداد/إبطال من Google أو البنك: يُقفل فوراً
+    // استرداد/إبطال من Google أو البنك: يُقفل فوراً — الاشتراك أو الشراء الدائم حسب نوع المنتج،
+    // ولكل الحسابات التي فُتحت بهذا الشراء
     if (msg.voidedPurchaseNotification) {
-      const token = msg.voidedPurchaseNotification.purchaseToken;
-      const map = token ? await db.collection("googlePurchases").doc(googleTokenKey(token)).get() : null;
+      const v = msg.voidedPurchaseNotification;
+      const map = v.purchaseToken ? await db.collection("googlePurchases").doc(googleTokenKey(v.purchaseToken)).get() : null;
       if (map && map.exists) {
-        await db.collection("users").doc(map.data().uid).set(
-          { subscribed: false, paymentStatus: "refunded" },
-          { merge: true }
-        );
-        logger.info(`↩️ Google: استرداد/إبطال شراء للمستخدم ${map.data().uid}`);
+        const kind = googleVoidedKind(v.productType, map.data().kind);
+        const patch = kind === "lifetime"
+          ? { lifetime: false, paymentStatus: "refunded" }
+          : { subscriptionActive: false, paymentStatus: "refunded" };
+        const uids = mappedUids(map.data());
+        await applyEntitlementToAll(uids, patch);
+        logger.info(`↩️ Google: استرداد/إبطال (${kind}) للحسابات ${uids.join(",")}`);
       }
+      return;
+    }
+
+    // الشراء الدائم يُفعَّل عبر verifyGoogleSubscription فقط (من التطبيق أو الاستعادة الصامتة)،
+    // واسترداده يصل عبر voidedPurchaseNotification أعلاه — فإشعاراته الأخرى معلوماتية.
+    if (msg.oneTimeProductNotification) {
+      logger.info(`ℹ️ Google RTDN شراء لمرة واحدة (نوع ${msg.oneTimeProductNotification.notificationType}، ${msg.oneTimeProductNotification.sku}) — بلا أثر`);
       return;
     }
 
@@ -376,8 +483,9 @@ exports.googlePlayNotifications = onMessagePublished(
     if (!map.exists && sub.linkedPurchaseToken) {
       const old = await db.collection("googlePurchases").doc(googleTokenKey(sub.linkedPurchaseToken)).get();
       if (old.exists) {
+        const oldUids = mappedUids(old.data());
         await db.collection("googlePurchases").doc(key).set(
-          { uid: old.data().uid, purchaseToken: n.purchaseToken },
+          { uid: old.data().uid, uids: oldUids, purchaseToken: n.purchaseToken, kind: "subscription" },
           { merge: true }
         );
         map = await db.collection("googlePurchases").doc(key).get();
@@ -389,22 +497,24 @@ exports.googlePlayNotifications = onMessagePublished(
       return;
     }
 
-    const uid = map.data().uid;
+    const uids = mappedUids(map.data());
     const ent = googleEntitlement(sub);
     if (!ent.valid) {
-      logger.warn(`⚠️ Google RTDN لمنتج غير متوقع للمستخدم ${uid} — تجاهل`);
+      logger.warn(`⚠️ Google RTDN لمنتج غير متوقع للحسابات ${uids.join(",")} — تجاهل`);
       return;
     }
-    const update = {
-      subscribed: ent.entitled,
+    const patch = {
+      subscriptionActive: ent.entitled,
+      subscriptionPlan: ent.plan,
       paymentStatus: googleStatusLabel(ent.state),
       googlePlatform: true,
       googlePurchaseKey: key,
+      googleSubscriptionProductId: ent.productId,
     };
     if (ent.state === "SUBSCRIPTION_STATE_IN_GRACE_PERIOD" || ent.state === "SUBSCRIPTION_STATE_ON_HOLD") {
-      update.lastPaymentFailedAt = admin.firestore.FieldValue.serverTimestamp();
+      patch.lastPaymentFailedAt = admin.firestore.FieldValue.serverTimestamp();
     }
-    await db.collection("users").doc(uid).set(update, { merge: true });
-    logger.info(`${ent.entitled ? "✅" : "⛔"} Google RTDN نوع ${n.notificationType}: ${uid} ← ${update.paymentStatus}`);
+    await applyEntitlementToAll(uids, patch);
+    logger.info(`${ent.entitled ? "✅" : "⛔"} Google RTDN نوع ${n.notificationType} (${ent.productId}): ${uids.join(",")} ← ${patch.paymentStatus}`);
   }
 );
