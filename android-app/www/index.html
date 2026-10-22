@@ -609,6 +609,13 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 .sub-web-btn{width:100%;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;border-radius:18px;padding:16px 20px;font-size:1.08rem;font-weight:900;font-family:'Tajawal',sans-serif;cursor:pointer;box-shadow:0 6px 0 #15803d;transition:transform .13s,box-shadow .13s;display:flex;flex-direction:column;align-items:center;gap:2px}
 .sub-web-btn:active{transform:translateY(4px);box-shadow:0 2px 0 #15803d}
 .sub-web-btn .sub-web-sub{font-size:.72rem;font-weight:700;opacity:.92}
+.plan-list{display:flex;flex-direction:column;gap:10px;width:100%}
+.plan-opt{position:relative;width:100%;background:#fff;border:2px solid var(--border);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:right;font-family:'Tajawal',sans-serif;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.plan-opt.selected{border-color:var(--purple);box-shadow:0 0 0 3px rgba(155,93,229,.18)}
+.plan-opt .plan-name{font-size:1rem;font-weight:900;color:var(--ink)}
+.plan-opt .plan-price{font-size:1.15rem;font-weight:900;color:var(--purple)}
+.plan-opt .plan-note{font-size:.78rem;font-weight:600;color:var(--muted)}
+.plan-opt .plan-badge{position:absolute;top:-10px;left:12px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border-radius:999px;padding:2px 10px;font-size:.72rem;font-weight:900}
 .sub-secure-note{font-size:.75rem;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:5px;justify-content:center}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -1006,6 +1013,7 @@ const db = firebase.firestore();
 const functionsApi = firebase.functions();
 let CURRENT_UID = null;
 let _subscriptionUnsub = null; // إلغاء الاستماع السابق عند تبديل المستخدم
+let _subDoc = {};              // آخر نسخة من مستند المستخدم (نوع الشراء ومصدره) — للعرض فقط، لا يفتح شيئاً
 
 /* ══════════════════════════════════
    معالج أخطاء JS عام — لا يوجد أي معالج مماثل قبل هذا، فأي استثناء غير
@@ -3204,8 +3212,14 @@ function buildAccountScreen(){
   const user = auth.currentUser;
   const isGuest = !!(user && user.isAnonymous);
   const email = user ? (user.email || '') : '';
+  // نوع الوصول من مستند المستخدم (يكتبه الخادم وحده): شراء دائم أو اشتراك سنوي/شهري
+  const sd = _subDoc || {};
+  const lifetimeOnly = sd.lifetime === true && sd.subscriptionActive !== true;
+  const planTxt = sd.lifetime === true ? ' — شراء دائم'
+    : sd.subscriptionPlan === 'yearly' ? ' — اشتراك سنوي'
+    : sd.subscriptionPlan === 'monthly' ? ' — اشتراك شهري' : '';
   const subTxt = isSubscribed
-    ? '<span style="color:#2d8653;font-weight:800">مُفعَّل ✅</span>'
+    ? `<span style="color:#2d8653;font-weight:800">مُفعَّل ✅${planTxt}</span>`
     : '<span style="color:#c73030;font-weight:800">غير مُفعَّل</span>';
   let childrenHTML = '';
   if (CHILDREN.length){
@@ -3233,7 +3247,7 @@ function buildAccountScreen(){
   const btnWrap = document.createElement('div');
   btnWrap.style.cssText = 'display:flex;flex-direction:column;gap:10px;align-items:center;margin-top:6px';
   btnWrap.innerHTML = `
-    ${isSubscribed ? `<button class="btn2" style="max-width:280px;width:100%" id="manageSubBtn" onclick="openBillingPortal()">💳 إدارة / إلغاء الاشتراك</button>` : ''}
+    ${isSubscribed && !lifetimeOnly ? `<button class="btn2" style="max-width:280px;width:100%" id="manageSubBtn" onclick="openBillingPortal()">💳 إدارة / إلغاء الاشتراك</button>` : ''}
     ${isGuest
       ? `<button class="btn2" style="max-width:280px;width:100%;background:#eaffef;color:#2d8653;border:2px solid #b7e6c8" onclick="upgradeGuestAccount()">✨ أنشئ حساباً لحفظ التقدّم</button>`
       : `<button class="btn2" style="max-width:280px;width:100%" onclick="changeMyPassword()">🔑 تغيير كلمة السر</button>`}
@@ -3396,11 +3410,39 @@ function openBillingPortal(){
 
 /* توجيه إدارة الاشتراك — Apple Guideline 3.1.1: اشتراك اشتُري عبر StoreKit
    يجب أن يُدار عند آبل، لا عبر صفحة خارجية. الويب لا يبيع شيئاً فلا صفحة
-   إدارة له. */
+   إدارة له.
+   التوجيه حسب ما اشتُري ومن أين (مستند المستخدم، يكتبه الخادم وحده):
+   - شراء دائم بلا اشتراك ساري ⇒ لا شيء يُدار (لا تجديد).
+   - اشتراك Google ⇒ صفحة Google Play لمنتجه الفعلي (شهري أو سنوي).
+   - اشتراك آبل ⇒ ورقة StoreKit في iOS، أو رسالة توجيه في أندرويد (والعكس).
+   - بلا مصدر متجر (تفعيل يدوي) ⇒ رسالة فقط. */
+async function _readSubDoc(){
+  try{
+    const doc = await db.collection('users').doc(CURRENT_UID).get();
+    return doc.exists ? (doc.data() || {}) : {};
+  }catch(e){ return _subDoc || {}; }
+}
 async function doManageSubscription(){
   const plat = window.Capacitor?.getPlatform?.();
-  if (plat === 'android') return doManageAndroidSubscription();
-  if (plat !== 'ios'){ alert('إدارة الاشتراك متاحة من داخل التطبيق على الهاتف فقط.'); return; }
+  if (plat !== 'android' && plat !== 'ios'){ alert('إدارة الاشتراك متاحة من داخل التطبيق على الهاتف فقط.'); return; }
+
+  const sd = await _readSubDoc();
+  if (sd.lifetime === true && sd.subscriptionActive !== true){
+    alert('شراؤك دائم: لا اشتراك يتجدّد ولا شيء يحتاج إلى إدارة.');
+    return;
+  }
+  if (plat === 'android'){
+    if (sd.googlePlatform) return doManageAndroidSubscription(sd.googleSubscriptionProductId || GOOGLE_SUBSCRIPTION_PRODUCT_ID);
+    if (sd.applePlatform){ alert('اشتراكك عبر آبل — تديره من إعدادات الآيفون (الاشتراكات).'); return; }
+    alert('اشتراكك مفعَّل مباشرة ولا يحتاج إلى إدارة.');
+    return;
+  }
+  if (!sd.applePlatform){
+    alert(sd.googlePlatform
+      ? 'اشتراكك عبر Google Play — تديره من تطبيق Google Play على جهاز أندرويد.'
+      : 'اشتراكك مفعَّل مباشرة ولا يحتاج إلى إدارة.');
+    return;
+  }
 
   const Sub = window.Capacitor?.Plugins?.Subscriptions;
   if (!Sub || typeof Sub.manageSubscriptions !== 'function'){
@@ -3415,14 +3457,14 @@ async function doManageSubscription(){
   }
 }
 
-async function doManageAndroidSubscription(){
+async function doManageAndroidSubscription(productId){
   const Sub = window.Capacitor?.Plugins?.Subscriptions;
   if (!Sub || typeof Sub.manageSubscriptions !== 'function'){
     alert('تعذّر فتح صفحة الاشتراكات في Google Play.');
     return;
   }
   // لا ننتظر النتيجة: manageSubscriptions في أندرويد يفتح Google Play ولا يُنهي استدعاءه أبداً
-  Promise.resolve(Sub.manageSubscriptions({ productIdentifier: GOOGLE_SUBSCRIPTION_PRODUCT_ID, bid: HOROFI_PACKAGE_ID }))
+  Promise.resolve(Sub.manageSubscriptions({ productIdentifier: productId || GOOGLE_SUBSCRIPTION_PRODUCT_ID, bid: HOROFI_PACKAGE_ID }))
     .catch(() => alert('تعذّر فتح صفحة الاشتراكات في Google Play.'));
 }
 function changeMyPassword(){
@@ -5679,6 +5721,7 @@ auth.onAuthStateChanged(async function(user){
   } else {
     CURRENT_UID = null;
     if (_subscriptionUnsub) { _subscriptionUnsub(); _subscriptionUnsub = null; }
+    _subDoc = {};
     isSubscribed = false;
     // إعادة شاشة الدخول لهيئتها الطبيعية (قد تكون بقيت على هيئة "ترقية ضيف")
     var backBtn = document.getElementById('loginBackBtn');
@@ -6329,6 +6372,7 @@ function loadSubscription(){
   _subscriptionUnsub = db.collection('users').doc(CURRENT_UID).onSnapshot(
     doc => {
       const wasSubscribed = isSubscribed;
+      _subDoc = (doc.exists && doc.data()) || {};
       isSubscribed = !!(doc.exists && doc.data().subscribed === true);
       try { localStorage.setItem('horofiSubscribed', isSubscribed ? '1' : '0'); } catch(e){}
       if (isSubscribed !== wasSubscribed) {
@@ -6346,27 +6390,47 @@ function isLetterFree(char){
   return FREE_LETTERS.includes(char);
 }
 /* ══════════════════════════════════
-   الاشتراك — عبر متجر المنصّة وحده
+   الوصول المدفوع — عبر متجر المنصّة وحده
    ────────────────────────────────
-   iOS: StoreKit 2 (App Store). أندرويد: Google Play Billing. كلاهما عبر
-   @squareetlabs/capacitor-subscriptions، وبسعر موحَّد 2.99 € (قرار 23.09.2026).
+   ثلاثة خيارات (قرار 17.10.2026): شهري 2.99 €، سنوي 9.99 €، وشراء دائم لمرة
+   واحدة 14.99 €. iOS: StoreKit 2 (App Store). أندرويد: Google Play Billing. كلاهما
+   عبر @squareetlabs/capacitor-subscriptions (مُصلحة في android-app/patches/:
+   الشراء الدائم في أندرويد منتج INAPP يُطلب بـ productType: 'inapp').
    المتجران يمنعان شراء المحتوى الرقمي خارج نظام دفعهما
    (Apple 3.1.1 / سياسة المدفوعات في Google Play).
    لا يُفعَّل شيء محلياً أبداً: التطبيق يرسل معرّف المعاملة/رمز الشراء فقط، والخادم
-   يتحقّق من المتجر نفسه قبل كتابة subscribed:true.
+   يتحقّق من المتجر نفسه قبل كتابة subscribed:true (horofi/index.js).
    ══════════════════════════════════ */
 const APPLE_SUBSCRIPTION_PRODUCT_ID = 'com.Horofi.monthly2eur'; // اسم قديم؛ السعر الفعلي 2.99 € في App Store Connect
 const GOOGLE_SUBSCRIPTION_PRODUCT_ID = 'horofi_monthly';        // Google لا يقبل الأحرف الكبيرة في المعرّف
-const SUBSCRIPTION_FALLBACK_PRICE = '2.99 €';
 const HOROFI_PACKAGE_ID = 'com.horofi.app';
+/* المعرّفات يجب أن تطابق horofi/entitlements.js وhorofi/googlePlay.js حرفياً.
+   الأسعار الاحتياطية تظهر فقط إن تعذّر جلب السعر من المتجر (والويب). */
+const STORE_PLANS = {
+  monthly:  { kind: 'subscription', ios: APPLE_SUBSCRIPTION_PRODUCT_ID, android: GOOGLE_SUBSCRIPTION_PRODUCT_ID,
+              fallback: '2.99 €', unit: ' / شهر' },
+  yearly:   { kind: 'subscription', ios: 'com.horofi.yearly', android: 'horofi_yearly',
+              fallback: '9.99 €', unit: ' / سنة' },
+  lifetime: { kind: 'lifetime', ios: 'com.horofi.lifetime', android: 'horofi_lifetime',
+              fallback: '14.99 €', unit: ' مرة واحدة' },
+};
+/* ترتيب العرض والاستعادة: الدائم أولاً (الأفضل قيمة)، ثم السنوي، ثم الشهري */
+const PLAN_ORDER = ['lifetime', 'yearly', 'monthly'];
+let selectedPlan = 'lifetime';
 
 /* 'ios' | 'android' | 'web' — الويب (متصفح) لا يبيع شيئاً */
 function storePlatform(){
   const p = _currentPlatform();
   return (p === 'ios' || p === 'android') ? p : 'web';
 }
-function storeProductId(){
-  return storePlatform() === 'android' ? GOOGLE_SUBSCRIPTION_PRODUCT_ID : APPLE_SUBSCRIPTION_PRODUCT_ID;
+function planProductId(plan){
+  return storePlatform() === 'android' ? STORE_PLANS[plan].android : STORE_PLANS[plan].ios;
+}
+/* معاملات الإضافة لمنتج: الشراء الدائم في أندرويد منتج INAPP لا اشتراك */
+function planStoreArgs(plan){
+  const args = { productIdentifier: planProductId(plan) };
+  if (storePlatform() === 'android' && STORE_PLANS[plan].kind === 'lifetime') args.productType = 'inapp';
+  return args;
 }
 /* استدعاءات الإضافة الأصلية قد لا تنتهي (انقطاع اتصال المتجر) — مهلة قصوى كي لا يعلق
    زرّ أمام وليّ الأمر. الإضافة في أندرويد مُصلحة أيضاً (android-app/patches/). */
@@ -6383,12 +6447,41 @@ function _storeMsg(text, isError){
   el.style.color = isError ? '#e53935' : '#888';
   el.textContent = text || '';
 }
+function _buyLabel(){
+  return STORE_PLANS[selectedPlan].kind === 'lifetime' ? '🔓 اشترِ الآن' : '🔒 اشترك الآن';
+}
 function _storeBusy(on){
   const btn = document.getElementById('subStoreBuyBtn');
   if (!btn) return;
   btn.disabled = !!on;
   const first = btn.querySelector('span');
-  if (first) first.textContent = on ? '⏳ جارٍ المعالجة...' : '🔒 اشترك الآن';
+  if (first) first.textContent = on ? '⏳ جارٍ المعالجة...' : _buyLabel();
+}
+
+/* اختيار خيار في الشاشة: تحديد البطاقة، ونصّ الشروط (Apple 3.1.2)، ونصّ زرّ الشراء */
+function selectPlan(plan){
+  if (!STORE_PLANS[plan]) return;
+  selectedPlan = plan;
+  PLAN_ORDER.forEach(p => {
+    const el = document.getElementById('planOpt-' + p);
+    if (el){ el.classList.toggle('selected', p === plan); el.setAttribute('aria-checked', p === plan ? 'true' : 'false'); }
+  });
+  const isSub = STORE_PLANS[plan].kind === 'subscription';
+  const subTerms = document.getElementById('subTermsSub');
+  const lifeTerms = document.getElementById('subTermsLife');
+  if (subTerms) subTerms.style.display = isSub ? '' : 'none';
+  if (lifeTerms) lifeTerms.style.display = isSub ? 'none' : '';
+  if (isSub){
+    const yearly = plan === 'yearly';
+    const setText = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+    setText('subTermsName', yearly ? 'فتح جميع الحروف – سنوي' : 'فتح جميع الحروف – شهري');
+    setText('subTermsPeriod', yearly ? 'سنة واحدة' : 'شهر واحد');
+    setText('subTermsEvery', yearly ? 'كل سنة' : 'كل شهر');
+  }
+  const first = document.querySelector('#subStoreBuyBtn span');
+  const btn = document.getElementById('subStoreBuyBtn');
+  if (first && !(btn && btn.disabled)) first.textContent = _buyLabel();
+  _storeMsg('');
 }
 
 function showSubscriptionPage(){
@@ -6407,23 +6500,33 @@ function showSubscriptionPage(){
   if (cancel) cancel.textContent = plat === 'android'
     ? 'يمكنك الإلغاء في أي وقت من اشتراكات Google Play.'
     : 'يمكنك الإلغاء في أي وقت من إعدادات حسابك.';
-  const priceLabel = document.getElementById('subPriceLabel');
-  if (priceLabel) priceLabel.textContent = SUBSCRIPTION_FALLBACK_PRICE + ' / شهر';
-  _storeMsg('');
+  PLAN_ORDER.forEach(p => _setPlanPrice(p, STORE_PLANS[p].fallback));
+  selectPlan(selectedPlan);
   nav('subscription');
   refreshStorePrice();
 }
-/* السعر كما يعرضه المتجر بعملة بلد المستخدم (كرونة في السويد مثلاً)؛ عند التعذّر يبقى 2.99 € */
+/* الأسعار كما يعرضها المتجر بعملة بلد المستخدم (كرونة في السويد مثلاً)؛ عند التعذّر يبقى الاحتياطي */
 async function refreshStorePrice(){
   if (storePlatform() === 'web') return;
   const Sub = window.Capacitor?.Plugins?.Subscriptions;
   if (!Sub || typeof Sub.getProductDetails !== 'function') return;
-  try{
-    const r = await withTimeout(Sub.getProductDetails({ productIdentifier: storeProductId() }), 8000);
-    const price = r && r.responseCode === 0 && r.data && r.data.price;
-    const label = document.getElementById('subPriceLabel');
-    if (price && label) label.textContent = price + ' / شهر';
-  }catch(e){ /* يبقى السعر الاحتياطي */ }
+  await Promise.all(PLAN_ORDER.map(async plan => {
+    try{
+      const r = await withTimeout(Sub.getProductDetails(planStoreArgs(plan)), 8000);
+      const price = r && r.responseCode === 0 && r.data && r.data.price;
+      if (price) _setPlanPrice(plan, price);
+    }catch(e){ /* يبقى السعر الاحتياطي */ }
+  }));
+}
+/* السعر معزول الاتجاه (<bdi>) كي لا تقلبه الجملة العربية («€ 14.99») — النصّ من المتجر
+   يُدرج كنصّ لا كـHTML */
+function _setPlanPrice(plan, price){
+  const el = document.getElementById('planPrice-' + plan);
+  if (!el) return;
+  const bdi = document.createElement('bdi');
+  bdi.dir = 'ltr';
+  bdi.textContent = price;
+  el.replaceChildren(bdi, document.createTextNode(STORE_PLANS[plan].unit));
 }
 
 /* صفحة التطبيق في المتجر — من نسخة الويب فقط، وخلف بوابة وليّ الأمر كأي رابط خارجي */
@@ -6435,31 +6538,32 @@ function openStoreListing(which){
 /* ── الشراء: بوابة وليّ الأمر أولاً (Apple 1.3 / سياسة العائلات في Google Play) ── */
 function purchaseStoreSubscription(){
   const plat = storePlatform();
-  if (plat === 'ios') return parentalGate(doPurchaseIOSSubscription);
-  if (plat === 'android') return parentalGate(doPurchaseGoogleSubscription);
+  const plan = selectedPlan; // يُثبَّت عند الضغط — لا يتغيّر إن بدّل أحدٌ البطاقة أثناء البوابة
+  if (plat === 'ios') return parentalGate(() => doPurchaseIOSSubscription(plan));
+  if (plat === 'android') return parentalGate(() => doPurchaseGoogleSubscription(plan));
 }
 
-async function doPurchaseIOSSubscription(){
+async function doPurchaseIOSSubscription(plan){
   const Sub = window.Capacitor?.Plugins?.Subscriptions;
   if (!Sub){ _storeMsg('تعذّر الوصول لمتجر آبل', true); return; }
   _storeBusy(true); _storeMsg('');
   try{
-    const res = await Sub.purchaseProduct({ productIdentifier: APPLE_SUBSCRIPTION_PRODUCT_ID });
+    const res = await Sub.purchaseProduct(planStoreArgs(plan));
     if (res.responseCode === 3){ _storeMsg('تم إلغاء عملية الشراء'); return; }
     if (res.responseCode === 4){ _storeMsg('بانتظار موافقة ولي الأمر (Ask to Buy)'); return; }
     if (res.responseCode !== 0){ throw new Error('فشل الشراء (كود ' + res.responseCode + ')'); }
-    await confirmAppleTransactionWithServer();
+    await confirmAppleTransactionWithServer(plan);
   }catch(err){
     _storeMsg('تعذّر إتمام الشراء: ' + (err.message||err), true);
   }finally{
     _storeBusy(false);
   }
 }
-/* لا نُفعّل الاشتراك محلياً أبداً — نرسل transactionId فقط، والخادم يتحقق منه
+/* لا نُفعّل الوصول محلياً أبداً — نرسل transactionId فقط، والخادم يتحقق منه
    حقيقةً عبر App Store Server API قبل كتابة subscribed:true. */
-async function confirmAppleTransactionWithServer(){
+async function confirmAppleTransactionWithServer(plan){
   const Sub = window.Capacitor?.Plugins?.Subscriptions;
-  const tx = await Sub.getLatestTransaction({ productIdentifier: APPLE_SUBSCRIPTION_PRODUCT_ID });
+  const tx = await Sub.getLatestTransaction(planStoreArgs(plan));
   if (tx.responseCode !== 0 || !tx.data || !tx.data.transactionId){
     throw new Error('لم يُعثر على معاملة صالحة');
   }
@@ -6474,7 +6578,7 @@ function _applyServerSubscription(result){
     buildLetterGrid();
     nav('letters');
   } else {
-    throw new Error('لم يتأكد الخادم من الاشتراك بعد');
+    throw new Error('لم يتأكد الخادم من الشراء بعد');
   }
 }
 
@@ -6489,20 +6593,20 @@ function _waitForAndroidPurchase(Sub){
   });
   return { promise, remove(){ try{ if (handle) handle.remove(); }catch(e){} } };
 }
-async function doPurchaseGoogleSubscription(){
+async function doPurchaseGoogleSubscription(plan){
   const Sub = window.Capacitor?.Plugins?.Subscriptions;
   if (!Sub){ _storeMsg('تعذّر الوصول لمتجر Google Play', true); return; }
   _storeBusy(true); _storeMsg('');
   const waiter = _waitForAndroidPurchase(Sub);
   try{
-    const res = await withTimeout(Sub.purchaseProduct({ productIdentifier: GOOGLE_SUBSCRIPTION_PRODUCT_ID }), 20000);
+    const res = await withTimeout(Sub.purchaseProduct(planStoreArgs(plan)), 20000);
     if (!res || res.responseCode !== 0){
       throw new Error('تعذّر فتح نافذة الشراء في Google Play — تأكّد من الاتصال بالإنترنت وحاول مجدداً');
     }
     // وليّ الأمر يُكمل الدفع في نافذة Google — قد يستغرق دقائق
     const ev = await withTimeout(waiter.promise, 15 * 60 * 1000);
     if (ev.successful === false){ _storeMsg('لم تكتمل عملية الشراء'); return; }
-    await confirmGoogleWithServer();
+    await confirmGoogleWithServer(plan);
   }catch(err){
     _storeMsg('تعذّر إتمام الشراء: ' + (err.message||err), true);
   }finally{
@@ -6510,27 +6614,32 @@ async function doPurchaseGoogleSubscription(){
     _storeBusy(false);
   }
 }
-async function confirmGoogleWithServer(){
+/* productId يُرسل مع الرمز كي يعرف الخادم أين يسأل Google: الاشتراكات (subscriptionsv2)
+   أو الشراء الدائم (purchases.products) */
+async function confirmGoogleWithServer(plan){
   const Sub = window.Capacitor?.Plugins?.Subscriptions;
-  const tx = await withTimeout(Sub.getLatestTransaction({ productIdentifier: GOOGLE_SUBSCRIPTION_PRODUCT_ID }), 20000);
+  const tx = await withTimeout(Sub.getLatestTransaction(planStoreArgs(plan)), 20000);
   if (!tx || tx.responseCode !== 0 || !tx.data || !tx.data.purchaseToken){
     throw new Error('لم يُعثر على شراء صالح');
   }
   _storeMsg('⏳ جارٍ التحقق من الخادم...');
   const call = functionsApi.httpsCallable('verifyGoogleSubscription');
-  _applyServerSubscription(await call({ purchaseToken: tx.data.purchaseToken }));
+  _applyServerSubscription(await call({ purchaseToken: tx.data.purchaseToken, productId: planProductId(plan) }));
 }
 
 /* استعادة: StoreKit 2 وGoogle Play كلاهما يعيد مشتريات الحساب الحالي عند الاستعلام،
-   فنعيد استخدام مسار التحقق نفسه. */
+   فنعيد استخدام مسار التحقق نفسه لكل خيار بالترتيب، ونتوقّف عند أول ما يقبله الخادم.
+   (Apple تشترط زرّ استعادة للشراء الدائم Non-Consumable — Guideline 3.1.1.) */
 async function restoreStorePurchases(){
   _storeMsg('⏳ جارٍ التحقق من مشتريات سابقة...');
-  try{
-    if (storePlatform() === 'android') await confirmGoogleWithServer();
-    else await confirmAppleTransactionWithServer();
-  }catch(err){
-    _storeMsg('لم نجد اشتراكاً سابقاً على هذا الحساب', true);
+  for (const plan of PLAN_ORDER){
+    try{
+      if (storePlatform() === 'android') await confirmGoogleWithServer(plan);
+      else await confirmAppleTransactionWithServer(plan);
+      return;
+    }catch(err){ /* الخيار التالي */ }
   }
+  _storeMsg('لم نجد مشتريات سابقة على هذا الحساب', true);
 }
 
 /* ── كشف تلقائي لحالة الاشتراك عند العودة للتطبيق ── */
@@ -6549,8 +6658,8 @@ async function silentSubscriptionCheck(){
   recoverGooglePurchase();
 }
 /* شراء Google اكتمل لكن لم يصل للخادم: دفع كان «معلّقاً» واكتمل لاحقاً، أو أُغلق التطبيق
-   قبل ردّ الخادم. نبحث بصمت عن شراء على حساب Google في الجهاز ونرسله للتحقق —
-   مرة كل دقيقة على الأكثر. الخادم وحده يقرّر (قد يكون منتهياً فيرفضه). */
+   قبل ردّ الخادم. نبحث بصمت عن شراء (أيّ الخيارات الثلاثة) على حساب Google في الجهاز
+   ونرسله للتحقق — مرة كل دقيقة على الأكثر. الخادم وحده يقرّر (قد يكون منتهياً فيرفضه). */
 let _lastGoogleRecovery = 0;
 async function recoverGooglePurchase(){
   if (storePlatform() !== 'android' || !CURRENT_UID || isSubscribed) return;
@@ -6558,17 +6667,20 @@ async function recoverGooglePurchase(){
   _lastGoogleRecovery = Date.now();
   const Sub = window.Capacitor?.Plugins?.Subscriptions;
   if (!Sub || typeof Sub.getLatestTransaction !== 'function') return;
-  try{
-    const tx = await withTimeout(Sub.getLatestTransaction({ productIdentifier: GOOGLE_SUBSCRIPTION_PRODUCT_ID }), 15000);
-    if (!tx || tx.responseCode !== 0 || !tx.data || !tx.data.purchaseToken) return;
-    const result = await functionsApi.httpsCallable('verifyGoogleSubscription')({ purchaseToken: tx.data.purchaseToken });
-    if (result && result.data && result.data.subscribed){
-      isSubscribed = true;
-      try { localStorage.setItem('horofiSubscribed', '1'); } catch(e){}
-      buildLetterGrid();
-      if (document.getElementById('subscription')?.classList.contains('active')) nav('letters');
-    }
-  }catch(e){ /* صامت: المحاولة التالية عند العودة للتطبيق */ }
+  for (const plan of PLAN_ORDER){
+    try{
+      const tx = await withTimeout(Sub.getLatestTransaction(planStoreArgs(plan)), 15000);
+      if (!tx || tx.responseCode !== 0 || !tx.data || !tx.data.purchaseToken) continue;
+      const result = await functionsApi.httpsCallable('verifyGoogleSubscription')({ purchaseToken: tx.data.purchaseToken, productId: planProductId(plan) });
+      if (result && result.data && result.data.subscribed){
+        isSubscribed = true;
+        try { localStorage.setItem('horofiSubscribed', '1'); } catch(e){}
+        buildLetterGrid();
+        if (document.getElementById('subscription')?.classList.contains('active')) nav('letters');
+        return;
+      }
+    }catch(e){ /* صامت: الخيار التالي، والمحاولة التالية عند العودة للتطبيق */ }
+  }
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) silentSubscriptionCheck(); });
 if (window.Capacitor?.isNativePlatform() && window.Capacitor.Plugins?.App) {
@@ -6616,7 +6728,7 @@ function handleHardwareBack(){
     <div class="sub-card">
       <div class="sub-icon">🔓</div>
       <div class="sub-title">افتح جميع الحروف</div>
-      <div class="sub-desc">لقد استكملت الحرفين المجانيين (ا، ب).<br>اشترك للوصول إلى جميع الحروف الـ 28.</div>
+      <div class="sub-desc">لقد استكملت الحرفين المجانيين (ا، ب).<br>اختر طريقة فتح جميع الحروف الـ 28.</div>
       <ul class="sub-features">
         <li>✅ جميع الحروف الـ 28 بلا حدود</li>
         <li>✅ جميع المستويات (مبتدئ، متوسط، متقدم)</li>
@@ -6625,19 +6737,43 @@ function handleHardwareBack(){
         <li>✅ تقارير تقدم الأطفال</li>
         <li>✅ دعم صوتي كامل</li>
       </ul>
-      <div class="sub-price" id="subPriceLabel">2.99 € / شهر</div>
+      <!-- الخيارات الثلاثة: الدائم أولاً (الأفضل قيمة). الأسعار من المتجر بعملة البلد
+           (refreshStorePrice)، والنصوص هنا احتياط للويب وعند تعذّر المتجر. -->
+      <div class="plan-list" role="radiogroup" aria-label="طريقة الدفع">
+        <button type="button" class="plan-opt selected" id="planOpt-lifetime" role="radio" aria-checked="true" onclick="selectPlan('lifetime')">
+          <span class="plan-badge">الأفضل قيمة</span>
+          <span class="plan-name">شراء دائم</span>
+          <span class="plan-price" id="planPrice-lifetime"><bdi dir="ltr">14.99 €</bdi> مرة واحدة</span>
+          <span class="plan-note">ادفع مرة واحدة — بلا اشتراك ولا تجديد</span>
+        </button>
+        <button type="button" class="plan-opt" id="planOpt-yearly" role="radio" aria-checked="false" onclick="selectPlan('yearly')">
+          <span class="plan-name">اشتراك سنوي</span>
+          <span class="plan-price" id="planPrice-yearly"><bdi dir="ltr">9.99 €</bdi> / سنة</span>
+          <span class="plan-note">يتجدّد تلقائياً كل سنة، ويمكن إلغاؤه في أي وقت</span>
+        </button>
+        <button type="button" class="plan-opt" id="planOpt-monthly" role="radio" aria-checked="false" onclick="selectPlan('monthly')">
+          <span class="plan-name">اشتراك شهري</span>
+          <span class="plan-price" id="planPrice-monthly"><bdi dir="ltr">2.99 €</bdi> / شهر</span>
+          <span class="plan-note">يتجدّد تلقائياً كل شهر، ويمكن إلغاؤه في أي وقت</span>
+        </button>
+      </div>
       <!-- Apple Guideline 3.1.2: يجب أن يعرض التطبيق نفسه اسم الاشتراك ومدّته
-           وسعره وروابط سياسة الخصوصية وشروط الاستخدام. -->
+           وسعره وروابط سياسة الخصوصية وشروط الاستخدام. النصّ يتبع الخيار المحدَّد (selectPlan). -->
       <div style="font-size:.82rem;color:var(--muted);font-weight:600;line-height:1.75;margin:8px 2px 12px;text-align:center">
-        <strong>اشتراك «فتح جميع الحروف»</strong> — مدّته <strong>شهر واحد</strong>،
-        ويتجدّد تلقائياً كل شهر بنفس السعر <span id="subRenewNote">ما لم تُلغه قبل 24 ساعة من نهاية المدة</span>.
-        <span id="subCancelNote">يمكنك الإلغاء في أي وقت من إعدادات حسابك.</span>
+        <span id="subTermsSub" style="display:none">
+          <strong>اشتراك «<span id="subTermsName">فتح جميع الحروف – شهري</span>»</strong> — مدّته <strong id="subTermsPeriod">شهر واحد</strong>،
+          ويتجدّد تلقائياً <span id="subTermsEvery">كل شهر</span> بنفس السعر <span id="subRenewNote">ما لم تُلغه قبل 24 ساعة من نهاية المدة</span>.
+          <span id="subCancelNote">يمكنك الإلغاء في أي وقت من إعدادات حسابك.</span>
+        </span>
+        <span id="subTermsLife">
+          <strong>شراء لمرة واحدة «فتح جميع الحروف – دائم»</strong> — يفتح جميع الحروف بشكل دائم على هذا الحساب، بلا اشتراك ولا تجديد تلقائي.
+        </span>
       </div>
       <!-- الشراء عبر متجر المنصّة وحده: App Store في iOS، وGoogle Play في أندرويد
            (سياسة المتجرين للمحتوى الرقمي). -->
       <div id="subStoreBox" style="display:none">
         <button class="sub-web-btn" id="subStoreBuyBtn" style="margin-top:4px" onclick="purchaseStoreSubscription()">
-          <span>🔒 اشترك الآن</span>
+          <span>🔓 اشترِ الآن</span>
           <span class="sub-web-sub" id="subStoreName">شراء آمن عبر App Store</span>
         </button>
         <button class="btn2" style="width:100%;margin-top:6px;font-size:.88rem" onclick="restoreStorePurchases()">استعادة مشترياتي السابقة</button>
