@@ -660,3 +660,122 @@ test('18) التهيئة باسم لا ترسله لأي خدمة خارجية،
   const html = await page.evaluate(() => document.documentElement.outerHTML);
   expect(html).not.toMatch(/sk_[0-9a-f]{20,}|elevenlabs|allorigins|corsproxy/i);
 });
+
+/* ─────────────────────────────────────────────────────────────
+   19) سلامة جولات الحروف المتصلة في كل المستويات (والقوائم القديمة لمسار الكتابة)
+   الأخطاء التي يمنعها (مراجعة 22.10.2026، البنود 4–6):
+   - حرف يتكرّر في الكلمة فيُعلَّم أول ظهور له بينما السؤال عن آخرها (تأسس، شقق…).
+   - كلمة لا تحوي حرفها أصلاً (استشفى بالألف المقصورة في قائمة الياء) ⇒ targetIdx = -1.
+   - حرف بلا أشكال في ARFORMS (ؤ، ئ، آ) ⇒ كلمة مشوّهة وجولة تركيب لا تُحلّ. */
+test('19) كل جولة تشير إلى الحرف الصحيح في الموضع الذي يسأل عنه، وكل حرف له أشكاله', async ({ page }) => {
+  await openApp(page);
+  const problems = await page.evaluate(() => {
+    /* eslint-disable no-undef */
+    const out = [];
+    const connects = (ch) => !!(ch && ARFORMS[ch] && ARFORMS[ch].c);
+    for (const L of CONNECTING_LETTERS) {
+      for (const level of [null, 'beginner', 'intermediate', 'advanced']) {
+        CURRENT_LEVEL = level;
+        for (const R of buildRoundsForConnecting(L)) {
+          const tag = `${L.char}/${level || 'legacy'}/${R.cat}/${R.letters.join('')}`;
+          const i = R.targetIdx, n = R.letters.length;
+          if (R.letters[i] !== L.char) { out.push(tag + ': الحرف غير موجود'); continue; }
+          const where = R.cat === 'start' ? i === 0 : R.cat.startsWith('end') ? i === n - 1 : (i > 0 && i < n - 1);
+          if (!where) out.push(`${tag}: الموضع ${i}`);
+          if (R.cat !== 'start' && connects(R.letters[i - 1]) !== R.cat.endsWith('_c')) out.push(`${tag}: ما قبله لا يطابق ${R.cat}`);
+        }
+      }
+    }
+    CURRENT_LEVEL = null;
+    const words = new Set();
+    const walk = (o) => { if (Array.isArray(o)) o.forEach((x) => (typeof x === 'string' ? words.add(x) : walk(x))); else if (o && typeof o === 'object') Object.entries(o).forEach(([k, v]) => { if (!/D$/.test(k)) walk(v); }); };
+    [...CONNECTING_LETTERS, ...NONCONNECTING_LETTERS].forEach(walk);
+    for (const w of words) for (const ch of w) if (/[ء-ي]/.test(ch) && !ARFORMS[ch]) out.push(`${w}: «${ch}» بلا أشكال`);
+    return out;
+    /* eslint-enable no-undef */
+  });
+  expect(problems).toEqual([]);
+});
+
+/* ─────────────────────────────────────────────────────────────
+   20) زر الرجوع في أندرويد يغلق النافذة الظاهرة أولاً ولا يغادر الشاشة تحتها
+   الخطأ الذي يمنعه (مراجعة 22.10.2026، البند 7): الرجوع أثناء نافذة الشارة كان يغادر
+   شاشة اللعب والنافذة باقية، ثم يُكمِل إغلاقها تدفّق اللعبة من شاشة أخرى. */
+test('20) أندرويد: الرجوع يغلق نافذة الشارة وبوابة وليّ الأمر دون مغادرة الشاشة', async ({ page }) => {
+  await nativeUser(page, 'android', 'g_back');
+  const r = await page.evaluate(() => {
+    /* eslint-disable no-undef */
+    const out = {};
+    nav('game');
+    let continued = 0;
+    window._badgeDoneCallback = () => { continued++; };
+    showBadgePopup(BADGES[0]);
+    handleHardwareBack();
+    out.badgeOpen = document.getElementById('badgePopup').classList.contains('show');
+    out.afterBadge = document.querySelector('.screen.active').id;
+    out.continued = continued;
+
+    let ran = false;
+    parentalGate(() => { ran = true; });
+    handleHardwareBack();
+    out.gateShown = document.getElementById('pgOverlay').style.display;
+    out.afterGate = document.querySelector('.screen.active').id;
+    out.ran = ran;
+    return out;
+    /* eslint-enable no-undef */
+  });
+  expect(r).toEqual({ badgeOpen: false, afterBadge: 'game', continued: 1, gateShown: 'none', afterGate: 'game', ran: false });
+});
+
+/* ─────────────────────────────────────────────────────────────
+   21) حذف الحساب لا يمحو شيئاً قبل التأكد من إمكانه، وينبّه أن اشتراك المتجر لا يُلغى
+   الخطأ الذي يمنعه (مراجعة 22.10.2026، البند 8): المستند (ومعه حالة الاشتراك) كان يُحذف
+   أولاً ثم يفشل user.delete() لقِدَم الدخول، فيبقى المستخدم مسجَّلاً ومقفلاً. */
+test('21) حذف الحساب: دخول قديم لا يحذف شيئاً؛ حديث يحذف كل شيء وينبّه للاشتراك؛ الضيف يُخرَج', async ({ page }) => {
+  const dialogs = [];
+  page.on('dialog', (d) => dialogs.push(d.message()));
+  await openApp(page, { seed: { [`horofiChildren_${UID}`]: [child()], [`horofiActiveChild_${UID}`]: 'c1' } });
+  const login = (uid, minutesAgo, extra = {}) => page.evaluate(({ uid, minutesAgo, extra }) => {
+    const u = window.__fb.mkUser(Object.assign({ uid, email: uid + '@x.y' }, extra));
+    // ساعة الخادم متأخرة 6 دقائق عن ساعة الجهاز عمداً: الحكم يجب أن يعتمد على وقتَي الخادم وحدهما
+    const server = () => Date.now() - 6 * 60000;
+    u.getIdTokenResult = async () => ({ issuedAtTime: new Date(server()).toUTCString(), authTime: new Date(server() - minutesAgo * 60000).toUTCString() });
+    if (extra.failDelete) u.delete = async () => { const e = new Error('recent login required'); e.code = 'auth/requires-recent-login'; throw e; };
+    window.__fb.setUser(u);
+  }, { uid, minutesAgo, extra });
+  const docExists = (uid) => page.evaluate((p) => !!window.__fb.store[p], 'users/' + uid);
+
+  // (أ) دخول قبل ساعة: لا يُحذف شيء، والمستخدم باقٍ
+  await login(UID, 60);
+  await waitForScreen(page, 'home');
+  await page.evaluate((uid) => window.__fb.serverWrite('users/' + uid, { subscribed: true, subscriptionActive: true, googlePlatform: true }), UID);
+  await page.waitForFunction(() => isSubscribed === true);
+  await page.evaluate(() => deleteAccount());
+  expect(dialogs.at(-1)).toContain('أعد الدخول');
+  expect(dialogs.at(-2)).toContain('لا يلغي اشتراكك في Google Play');
+  expect(await docExists(UID)).toBe(true);
+  let s = await state(page);
+  expect([s.uid, s.subscribed, s.children.length]).toEqual([UID, true, 1]);
+  expect(s.ls[`horofiChildren_${UID}`]).toBeTruthy();
+
+  // (ب) دخول قبل دقيقة: يُحذف المستند والحساب وكل أثر محلي
+  await login(UID, 1);
+  await page.waitForTimeout(200);
+  await page.evaluate(() => deleteAccount());
+  await waitForScreen(page, 'login');
+  expect(await docExists(UID)).toBe(false);
+  s = await state(page);
+  expect([s.uid, s.profileName, s.children.length]).toEqual([null, '', 0]);
+  expect(Object.keys(s.ls).filter((k) => /horofiChildren|horofiActiveChild|horofiProfile|horofiSubscribed/.test(k))).toEqual([]);
+
+  // (ج) ضيف قديم الدخول يرفض Firebase حذفه: تُحذف بياناته ويُخرَج بدل البقاء عالقاً
+  await login('guest_old', 600, { isAnonymous: true, email: null, failDelete: true });
+  await waitForScreen(page, 'onboarding');
+  await page.evaluate(() => skipOnboarding());
+  await page.waitForTimeout(2300); // تكتمل المزامنة السحابية فيوجد المستند
+  expect(await docExists('guest_old')).toBe(true);
+  await page.evaluate(() => deleteAccount());
+  await waitForScreen(page, 'login');
+  expect(await docExists('guest_old')).toBe(false);
+  expect((await state(page)).uid).toBeNull();
+});
