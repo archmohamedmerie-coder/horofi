@@ -1012,6 +1012,7 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 const functionsApi = firebase.functions();
 let CURRENT_UID = null;
+let _hadAuthUser = false; // دخل حساب مرة في هذه الجلسة — لتمييز «تبديل حساب» عن الإقلاع
 let _subscriptionUnsub = null; // إلغاء الاستماع السابق عند تبديل المستخدم
 let _subDoc = {};              // آخر نسخة من مستند المستخدم (نوع الشراء ومصدره) — للعرض فقط، لا يفتح شيئاً
 
@@ -5710,8 +5711,13 @@ buildLetterGrid();
 /* ── Firebase Auth State — تسجيل دخول تلقائي ── */
 auth.onAuthStateChanged(async function(user){
   if (user){
+    const switched = _hadAuthUser && CURRENT_UID !== user.uid; // حساب آخر بعد الأول في هذه الجلسة
+    _hadAuthUser = true;
     CURRENT_UID = user.uid;
     loadSubscription(); // يربط مستمع Firestore الحقيقي بعد معرفة uid
+    /* حساب جديد على نفس الجهاز: مشتريات المتجر تخصّ الجهاز لا الحساب، فنستعيدها له
+       فوراً بدل انتظار إعادة تشغيل التطبيق. الإقلاع الأول يغطّيه مؤقّت الـ8 ثوانٍ. */
+    if (switched){ _lastStoreRecovery = 0; setTimeout(recoverStorePurchase, 1500); }
     await pullChildrenFromCloud(); // يستعيد بيانات الأطفال من السحابة إن كان هذا جهازاً جديداً
     var hasProfile = loadProfile();
     /* CHILDREN.length يغطّي من تخطّى شاشة التعريف: لديه طفل محفوظ بلا اسم، فلا
@@ -5723,6 +5729,8 @@ auth.onAuthStateChanged(async function(user){
     if (_subscriptionUnsub) { _subscriptionUnsub(); _subscriptionUnsub = null; }
     _subDoc = {};
     isSubscribed = false;
+    // الذاكرة المؤقتة تخصّ الحساب الذي خرج: لا يرثها الحساب التالي فيبدو مفتوحاً ثم يُقفل
+    try { localStorage.removeItem('horofiSubscribed'); } catch(e){}
     // إعادة شاشة الدخول لهيئتها الطبيعية (قد تكون بقيت على هيئة "ترقية ضيف")
     var backBtn = document.getElementById('loginBackBtn');
     if (backBtn) backBtn.style.display = 'none';
@@ -6584,7 +6592,7 @@ function _applyServerSubscription(result){
 
 /* أندرويد: purchaseProduct يُرجع فقط «فُتحت نافذة Google» (responseCode 0)؛ النتيجة
    تصل لاحقاً بحدث ANDROID-PURCHASE-RESPONSE بعد أن تؤكّد الإضافة استلام الشراء:
-   successful === 0 نجح، false أُلغي أو فشل أو بقي «معلّقاً» (يُلتقط لاحقاً عبر recoverGooglePurchase). */
+   successful === 0 نجح، false أُلغي أو فشل أو بقي «معلّقاً» (يُلتقط لاحقاً عبر recoverStorePurchase). */
 function _waitForAndroidPurchase(Sub){
   let handle = null;
   const promise = new Promise(resolve => {
@@ -6655,23 +6663,37 @@ async function silentSubscriptionCheck(){
       return;
     }
   } catch(e){}
-  recoverGooglePurchase();
+  recoverStorePurchase();
 }
-/* شراء Google اكتمل لكن لم يصل للخادم: دفع كان «معلّقاً» واكتمل لاحقاً، أو أُغلق التطبيق
-   قبل ردّ الخادم. نبحث بصمت عن شراء (أيّ الخيارات الثلاثة) على حساب Google في الجهاز
-   ونرسله للتحقق — مرة كل دقيقة على الأكثر. الخادم وحده يقرّر (قد يكون منتهياً فيرفضه). */
-let _lastGoogleRecovery = 0;
-async function recoverGooglePurchase(){
-  if (storePlatform() !== 'android' || !CURRENT_UID || isSubscribed) return;
-  if (Date.now() - _lastGoogleRecovery < 60000) return;
-  _lastGoogleRecovery = Date.now();
+/* المشتريات مسجّلة على حساب المتجر في الجهاز (Google Play / Apple ID)، لا على حساب
+   التطبيق. فنبحث عنها بصمت ونرسلها للتحقق في ثلاث حالات:
+   - عند الإقلاع والعودة للتطبيق: دفع كان «معلّقاً» واكتمل، أو أُغلق التطبيق قبل ردّ الخادم.
+   - عند دخول حساب آخر على الجهاز (خروج ثم ضيف جديد مثلاً): بدونها يبقى الحساب الجديد
+     مقفلاً رغم أن صاحب الجهاز اشترى (ظهر في اختبار 22.10).
+   مرة كل دقيقة على الأكثر لكل حساب. الخادم وحده يقرّر (قد يكون منتهياً فيرفضه). */
+let _lastStoreRecovery = 0;
+async function recoverStorePurchase(){
+  const plat = storePlatform();
+  if (plat === 'web' || !CURRENT_UID || isSubscribed) return;
+  if (Date.now() - _lastStoreRecovery < 60000) return;
+  _lastStoreRecovery = Date.now();
   const Sub = window.Capacitor?.Plugins?.Subscriptions;
   if (!Sub || typeof Sub.getLatestTransaction !== 'function') return;
+  const uid = CURRENT_UID;
   for (const plan of PLAN_ORDER){
+    if (CURRENT_UID !== uid || isSubscribed) return; // تغيّر الحساب أو فُتح أثناء البحث
     try{
       const tx = await withTimeout(Sub.getLatestTransaction(planStoreArgs(plan)), 15000);
-      if (!tx || tx.responseCode !== 0 || !tx.data || !tx.data.purchaseToken) continue;
-      const result = await functionsApi.httpsCallable('verifyGoogleSubscription')({ purchaseToken: tx.data.purchaseToken, productId: planProductId(plan) });
+      if (!tx || tx.responseCode !== 0 || !tx.data) continue;
+      let result;
+      if (plat === 'android'){
+        if (!tx.data.purchaseToken) continue;
+        result = await functionsApi.httpsCallable('verifyGoogleSubscription')({ purchaseToken: tx.data.purchaseToken, productId: planProductId(plan) });
+      } else {
+        if (!tx.data.transactionId) continue;
+        result = await functionsApi.httpsCallable('verifyAppleSubscription')({ transactionId: tx.data.transactionId });
+      }
+      if (CURRENT_UID !== uid) return;
       if (result && result.data && result.data.subscribed){
         isSubscribed = true;
         try { localStorage.setItem('horofiSubscribed', '1'); } catch(e){}
@@ -6689,8 +6711,8 @@ if (window.Capacitor?.isNativePlatform() && window.Capacitor.Plugins?.App) {
   /* فحص التحديث مرة واحدة عند الإقلاع، ومؤجَّل كي لا يزاحم الإقلاع نفسه.
      قراءة واحدة من Firestore لا أكثر — والفشل صامت (لا شريط). */
   setTimeout(checkForAppUpdate, 4000);
-  // شراء Google لم يصل للخادم في جلسة سابقة (أُغلق التطبيق قبل التحقق) — أندرويد فقط، ويتوقف فوراً لغيره
-  setTimeout(recoverGooglePurchase, 8000);
+  // شراء لم يصل للخادم في جلسة سابقة (أُغلق التطبيق قبل التحقق) — يتوقف فوراً لمن هو مفتوح أصلاً
+  setTimeout(recoverStorePurchase, 8000);
 }
 
 /* ── زر الرجوع الفعلي في الهاتف: يتصرف مثل أزرار "رجوع" داخل التطبيق ── */

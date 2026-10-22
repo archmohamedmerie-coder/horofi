@@ -287,10 +287,15 @@ async function openNative(page, platform, seed) {
       owned: {},             // معرّف المنتج ← purchaseToken بعد اكتمال الشراء (أندرويد)
       lastPurchase: null,
       async getProductDetails(o) { sub.calls.push(['getProductDetails', o]); return PRICES[o.productIdentifier] ? { responseCode: 0, data: { price: PRICES[o.productIdentifier] } } : { responseCode: 1 }; },
-      async purchaseProduct(o) { sub.calls.push(['purchaseProduct', o]); sub.lastPurchase = o.productIdentifier; return platform === 'ios' ? { responseCode: 0 } : { responseCode: 0, responseMessage: 'Successfully opened native popover' }; },
+      async purchaseProduct(o) {
+        sub.calls.push(['purchaseProduct', o]); sub.lastPurchase = o.productIdentifier;
+        if (platform === 'ios') { sub.owned[o.productIdentifier] = 'tx_' + o.productIdentifier; return { responseCode: 0 }; }
+        return { responseCode: 0, responseMessage: 'Successfully opened native popover' };
+      },
       async getLatestTransaction(o) {
         sub.calls.push(['getLatestTransaction', o]);
-        if (platform === 'ios') return { responseCode: 0, data: { transactionId: 'tx_' + o.productIdentifier } };
+        // StoreKit: لا معاملة لمنتج لم يُشترَ على هذا الـApple ID (responseCode 2)
+        if (platform === 'ios') return sub.owned[o.productIdentifier] ? { responseCode: 0, data: { transactionId: sub.owned[o.productIdentifier] } } : { responseCode: 2 };
         const t = sub.owned[o.productIdentifier];
         return t ? { responseCode: 0, data: { purchaseToken: t } } : { responseCode: 3 };
       },
@@ -570,4 +575,63 @@ test('15) صاحب الشراء الدائم: «مُفعَّل — شراء دا
   await page.waitForFunction(() => _subDoc.subscriptionActive === true);
   await page.evaluate(() => buildAccountScreen());
   expect(await page.evaluate(() => !!document.getElementById('manageSubBtn'))).toBe(true);
+});
+
+/* ─────────────────────────────────────────────────────────────
+   16–17) تبديل الحساب على نفس الجهاز (اختبار 22.10 على هاتف حقيقي): المشتريات مسجّلة
+   على حساب المتجر لا على حساب التطبيق — فالحساب التالي يُستعاد له الشراء تلقائياً،
+   ولا يرث «مفتوح» من الذاكرة المؤقتة للحساب السابق ثم يُقفل. */
+async function switchAccount(page, nextUid) {
+  await page.evaluate(() => window.__fb.setUser(null));
+  await page.waitForFunction(() => CURRENT_UID === null);
+  await page.evaluate((uid) => window.__fb.setUser(window.__fb.mkUser({ uid })), nextUid);
+  await page.waitForFunction((uid) => CURRENT_UID === uid, nextUid);
+}
+
+test('16) أندرويد: خروج ثم ضيف جديد ⇒ لا يرث «مفتوح» من السابق، والشراء الدائم يُستعاد له تلقائياً', async ({ page }) => {
+  await nativeUser(page, 'android', 'g_first');
+  await page.evaluate(() => {
+    window.__fb.callables.verifyGoogleSubscription = async (d) => ({ data: { subscribed: d.productId === 'horofi_lifetime' && d.purchaseToken === 'gp_life_owned_123456789' } });
+  });
+  // الحساب الأول مفتوح من الخادم، والذاكرة المؤقتة تقول ذلك
+  await page.evaluate(() => window.__fb.serverWrite('users/g_first', { subscribed: true, lifetime: true }));
+  await page.waitForFunction(() => isSubscribed === true && localStorage.getItem('horofiSubscribed') === '1');
+  // صاحب الجهاز اشترى الدائم على حساب Google
+  await page.evaluate(() => { window.__sub.owned = { horofi_lifetime: 'gp_life_owned_123456789' }; });
+
+  await page.evaluate(() => window.__fb.setUser(null));
+  await page.waitForFunction(() => CURRENT_UID === null);
+  expect(await page.evaluate(() => [isSubscribed, localStorage.getItem('horofiSubscribed')])).toEqual([false, null]);
+
+  await page.evaluate(() => window.__fb.setUser(window.__fb.mkUser({ uid: 'g_guest2' })));
+  await page.waitForFunction(() => CURRENT_UID === 'g_guest2');
+  expect(await page.evaluate(() => isSubscribed)).toBe(false); // لا وراثة من الحساب السابق
+  // بلا إعادة تشغيل وبلا ضغط «استعادة»
+  await page.waitForFunction(() => isSubscribed === true, null, { timeout: 8000 });
+  expect(await callsTo(page, 'verifyGoogleSubscription')).toEqual([{ purchaseToken: 'gp_life_owned_123456789', productId: 'horofi_lifetime' }]);
+  expect(await page.evaluate(() => isLetterFree('ع'))).toBe(true);
+});
+
+test('17) iOS: حساب جديد على نفس الـApple ID ⇒ يُستعاد الشراء الدائم بصمت، والمنتهي لا يفتح', async ({ page }) => {
+  await nativeUser(page, 'ios', 'a_first');
+  await page.evaluate(() => {
+    // الشهري قديم ومنتهٍ (الخادم يرفضه)، والدائم ساري
+    window.__sub.owned = { 'com.Horofi.monthly2eur': 'tx_old_monthly', 'com.horofi.lifetime': 'tx_life_1' };
+    window.__fb.callables.verifyAppleSubscription = async (d) => {
+      if (d.transactionId === 'tx_life_1') return { data: { subscribed: true } };
+      const e = new Error('الشراء غير فعّال حالياً'); e.code = 'failed-precondition'; throw e;
+    };
+  });
+  await switchAccount(page, 'a_guest2');
+  await page.waitForFunction(() => isSubscribed === true, null, { timeout: 8000 });
+  // الدائم أولاً في الترتيب، فيكفي ولا يُسأل الخادم عن غيره
+  expect(await callsTo(page, 'verifyAppleSubscription')).toEqual([{ transactionId: 'tx_life_1' }]);
+
+  // حساب ثالث، والجهاز لا يملك إلا الشهري المنتهي ⇒ يبقى مقفلاً
+  await page.evaluate(() => { window.__sub.owned = { 'com.Horofi.monthly2eur': 'tx_old_monthly' }; window.__fb.callLog.length = 0; });
+  await switchAccount(page, 'a_guest3');
+  await page.waitForFunction(() => window.__fb.callLog.some((c) => c.name === 'verifyAppleSubscription'), null, { timeout: 8000 });
+  await page.waitForTimeout(300);
+  expect(await callsTo(page, 'verifyAppleSubscription')).toEqual([{ transactionId: 'tx_old_monthly' }]);
+  expect(await page.evaluate(() => [isSubscribed, isLetterFree('ع')])).toEqual([false, false]);
 });
