@@ -779,3 +779,32 @@ test('21) حذف الحساب: دخول قديم لا يحذف شيئاً؛ حد
   expect(await docExists('guest_old')).toBe(false);
   expect((await state(page)).uid).toBeNull();
 });
+
+/* ─────────────────────────────────────────────────────────────
+   22) مسار «الكتابة فقط» يأخذ كلماته من المستويات المتاحة لا من القوائم القديمة
+   الخطأ الذي يمنعه (مراجعة 22.10.2026): القوائم القديمة في جذر الحرف فيها 235 كلمة
+   بلا صوت، ولا يستخدمها غير هذا المسار. */
+test('22) «الكتابة فقط»: كلمات المبتدئ لغير المشترك، والمستويات الثلاثة للمشترك', async ({ page }) => {
+  await openApp(page);
+  const r = await page.evaluate(() => {
+    /* eslint-disable no-undef */
+    const levelWords = (L, lvs) => new Set(lvs.flatMap((lv) => ['start', 'mid_c', 'mid_n', 'end_c', 'end_n'].flatMap((c) => L.levels[lv][c] || [])));
+    const out = { bad: [], free: 0, paid: 0 };
+    for (const L of CONNECTING_LETTERS) {
+      for (const sub of [false, true]) {
+        isSubscribed = sub;
+        const words = writingOnlyRoundsFor(L).map((R) => R.letters.join(''));
+        const allowed = levelWords(L, sub ? ['beginner', 'intermediate', 'advanced'] : ['beginner']);
+        words.filter((w) => !allowed.has(w)).forEach((w) => out.bad.push(`${L.char}/${sub ? 'مشترك' : 'مجاني'}: ${w}`));
+        if (CURRENT_LEVEL !== null) out.bad.push(L.char + ': CURRENT_LEVEL لم يُعَد إلى null');
+        out[sub ? 'paid' : 'free'] += words.length;
+      }
+    }
+    isSubscribed = false;
+    return out;
+    /* eslint-enable no-undef */
+  });
+  expect(r.bad).toEqual([]);
+  expect(r.free).toBe(22 * 15);
+  expect(r.paid).toBe(22 * 45);
+});
