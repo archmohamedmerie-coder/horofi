@@ -635,3 +635,28 @@ test('17) iOS: حساب جديد على نفس الـApple ID ⇒ يُستعاد
   expect(await callsTo(page, 'verifyAppleSubscription')).toEqual([{ transactionId: 'tx_old_monthly' }]);
   expect(await page.evaluate(() => [isSubscribed, isLetterFree('ع')])).toEqual([false, false]);
 });
+
+/* ─────────────────────────────────────────────────────────────
+   18) لا يغادر اسم الطفل الجهاز إلى خدمة صوت خارجية
+   الخطأ الذي يمنعه: completeOnboarding كانت ترسل الاسم إلى ElevenLabs مع مفتاح سرّي
+   مكشوف، وتخزّن الصوت في localStorage، ولا تشغّله أبداً (مراجعة 22.10.2026، البندان 2 و3). */
+test('18) التهيئة باسم لا ترسله لأي خدمة خارجية، وتُمحى أصوات الأسماء المخزّنة سابقاً', async ({ page }) => {
+  const external = [];
+  page.on('request', (r) => { if (!/^https?:\/\/localhost/.test(r.url()) && !/firebasejs/.test(r.url())) external.push(r.method() + ' ' + r.url()); });
+  await openApp(page, { seed: { 'horofi_name_سارة': 'AAAA' } }); // بقايا نسخة سابقة على الجهاز
+  await signInAs(page, { uid: 'user_new', isAnonymous: true }, 'onboarding');
+
+  await page.fill('#obName', 'ليلى');
+  await page.selectOption('#obCountry', { index: 1 });
+  await page.evaluate(() => completeOnboarding());
+  await waitForScreen(page, 'home');
+  await page.waitForTimeout(1500);
+
+  expect(external.filter((u) => /elevenlabs|allorigins|corsproxy/i.test(u))).toEqual([]);
+  expect(external.filter((u) => u.startsWith('POST'))).toEqual([]);
+  const s = await state(page);
+  expect(s.profileName).toBe('ليلى');
+  expect(Object.keys(s.ls).filter((k) => k.startsWith('horofi_name_'))).toEqual([]);
+  const html = await page.evaluate(() => document.documentElement.outerHTML);
+  expect(html).not.toMatch(/sk_[0-9a-f]{20,}|elevenlabs|allorigins|corsproxy/i);
+});

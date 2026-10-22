@@ -3579,8 +3579,6 @@ function completeOnboarding(){
   buildHome();
   nav('home');
   const nisba = PROFILE.gender==='female' ? PROFILE.nisba_f : PROFILE.nisba_m;
-  const _nameKey = (PROFILE.nameForSpeech || PROFILE.name || '').trim();
-  if (_nameKey) generateAndCacheName(_nameKey);
   playWelcomeAudio(nisba);
 }
 
@@ -3710,95 +3708,6 @@ async function playIntroAudio() {
   });
 }
 
-/* ── تشغيل اسم الطفل: MP3 محلي → ElevenLabs → Web Speech ── */
-/* ── تشغيل اسم الطفل: localStorage → RAM cache → ElevenLabs → Web Speech ── */
-async function playNameAudio(nameKey, mood) {
-  if (!nameKey) return;
-
-  // 1. من RAM cache (أسرع)
-  const cacheKey = 'name:' + nameKey;
-  if (_audioCache.has(cacheKey)) {
-    await elPlay(_audioCache.get(cacheKey), mood).catch(()=>{});
-    return;
-  }
-
-  // 2. من localStorage (base64)
-  const stored = localStorage.getItem('horofi_name_' + nameKey);
-  if (stored) {
-    try {
-      const blob = await fetch('data:audio/mpeg;base64,' + stored).then(r=>r.blob());
-      const url = URL.createObjectURL(blob);
-      _audioCache.set(cacheKey, url);
-      await elPlay(url, mood).catch(()=>{});
-      return;
-    } catch(e) {}
-  }
-
-  // 3. توليد من ElevenLabs الآن
-  if (elIsReady()) {
-    const url = await elFetchAndStore(nameKey).catch(()=>null);
-    if (url) {
-      _audioCache.set(cacheKey, url);
-      await elPlay(url, mood).catch(()=>{});
-      return;
-    }
-  }
-
-  // 4. Web Speech كـ fallback أخير
-  await speakWebSpeech(nameKey, mood);
-}
-
-/* ── توليد الاسم من ElevenLabs وحفظه في localStorage ── */
-async function elFetchAndStore(nameKey) {
-  if (!elIsReady()) return null;
-  try {
-    const cleaned = stripForSpeech(nameKey) || nameKey;
-    const resp = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE}`,
-      {
-        method: 'POST',
-        headers: {
-          'xi-api-key': ELEVENLABS_KEY,
-          'Content-Type': 'application/json',
-          'Accept': 'audio/mpeg'
-        },
-        body: JSON.stringify({
-          text: cleaned,
-          model_id: ELEVENLABS_MODEL,
-          voice_settings: { stability:0.85, similarity_boost:0.75, style:0.0, use_speaker_boost:false }
-        })
-      }
-    );
-    if (!resp.ok) return null;
-    const arrayBuf = await resp.arrayBuffer();
-    // حفظ في localStorage كـ base64
-    const bytes = new Uint8Array(arrayBuf);
-    let binary = '';
-    bytes.forEach(b => binary += String.fromCharCode(b));
-    const b64 = btoa(binary);
-    try { localStorage.setItem('horofi_name_' + nameKey, b64); } catch(e) {}
-    // إرجاع URL مؤقت
-    const blob = new Blob([arrayBuf], {type:'audio/mpeg'});
-    return URL.createObjectURL(blob);
-  } catch(e) { return null; }
-}
-
-/* ── توليد وتخزين صوت الاسم عند التسجيل (يعمل في الخلفية) ── */
-async function generateAndCacheName(nameKey) {
-  if (!nameKey) return;
-  const cacheKey = 'name:' + nameKey;
-
-  // إذا موجود في RAM أو localStorage → لا حاجة للتوليد
-  if (_audioCache.has(cacheKey)) return;
-  if (localStorage.getItem('horofi_name_' + nameKey)) return;
-
-  // ولّد من ElevenLabs وخزّن
-  if (elIsReady()) {
-    const url = await elFetchAndStore(nameKey).catch(()=>null);
-    if (url) _audioCache.set(cacheKey, url);
-  }
-}
-
 /* ── تشغيل جملة الترحيب: أهلاً يا + اسم + نسبة + لقب ── */
 async function playWelcomeAudio(nisba) {
   if (!soundEnabled) return;
@@ -3815,11 +3724,6 @@ async function playWelcomeAudio(nisba) {
       : 'audio/welcome/welcome_suffix_m.mp3';
     await playStaticMP3(suffixPath).catch(()=>{});
   });
-}
-
-/* ── Web Speech معطّل نهائياً ── */
-function speakWebSpeech(text, mood) {
-  return Promise.resolve(); // صمت تام بدلاً من صوت المتصفح
 }
 
 /* ── تشغيل صوت السؤال من MP3 ── */
@@ -3883,12 +3787,12 @@ function unlockSpeech(){
 document.addEventListener('click', unlockSpeech, {once:true});
 document.addEventListener('touchstart', unlockSpeech, {once:true});
 
-function stripForSpeech(html){
-  const tmp = document.createElement('div');
-  tmp.innerHTML = html;
-  let txt = tmp.textContent || '';
-  txt = txt.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, ''); // strip emoji
-  return txt.trim();
+/* النسخ السابقة كانت تخزّن صوت اسم الطفل المولَّد من خدمة خارجية تحت horofi_name_<الاسم>
+   (ولا تشغّله). لم يعد يُولَّد، فنمحو ما بقي منه على الجهاز. */
+function purgeStoredNameAudio(){
+  try{
+    Object.keys(localStorage).filter(k => k.startsWith('horofi_name_')).forEach(k => localStorage.removeItem(k));
+  }catch(e){}
 }
 
 /* ── التحكم بالصوت ── */
@@ -3927,8 +3831,6 @@ function wordToText(letters, diac){
 }
 function wordKeyPlain(letters){ return letters.join(''); }
 
-/* نطق نص وإرجاع Promise يُحَلّ عند انتهاء النطق (أو فورًا إن كان الصوت مغلقًا) */
-/* speakAsync() — replaced by ElevenLabs system */
 function runSentenceFlow(R){
   const letters = R.letters || [];
   const diac = R.diac || [];
@@ -3998,7 +3900,6 @@ function runSentenceFlow(R){
   }
 }
 
-/* speak() — replaced by ElevenLabs system below */
 /* ── تشغيل ملف MP3 من مجلد audio/sentences ── */
 function playMP3(key){
   return new Promise(resolve => {
@@ -4009,7 +3910,7 @@ function playMP3(key){
   });
 }
 
-/* ── تشغيل MP3 مع fallback لـ ElevenLabs ── */
+/* ── تشغيل ملف الجملة MP3 (عند غيابه يُكمَل بصمت) ── */
 function _startSentenceAudio(key){
   return new Promise(resolve => {
     const audio = new Audio(`audio/sentences/${key}.mp3`);
@@ -4374,11 +4275,7 @@ function stopAllAudio() {
   }
   // إيقاف Web Speech
   try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch(e) {}
-  // إيقاف ElevenLabs
-  if (window._elAudio) {
-    try { window._elAudio.pause(); window._elAudio.src = ''; } catch(e) {}
-    window._elAudio = null;
-  }
+  // يمنع playStaticMP3 من بدء صوت جديد خلال 100 م.ث بعد الإيقاف
   window._audioStopped = true;
   setTimeout(() => { window._audioStopped = false; }, 100);
 }
@@ -5700,6 +5597,7 @@ const BADGES = [
 ];
 
 buildLogo();
+purgeStoredNameAudio();
 loadSound();
 updateSoundBtn();
 loadSubscription();
@@ -6224,146 +6122,6 @@ function buildBadgesSection(ch) {
   </div>`;
 }
 
-
-/* ═══════════════════════════════════════════════════════
-   نظام ElevenLabs TTS
-   ضع مفتاح API الخاص بك في المتغير أدناه
-   ═══════════════════════════════════════════════════════ */
-
-let ELEVENLABS_KEY   = 'sk_3b058a7ccab295dcf2d2ddf2352dfc36a927aed21e5a4d12'; // غيّر هذا بمفتاحك
-const ELEVENLABS_VOICE = 'gMB389pj77Qe5nErWNjd'; // Sara — عربية فصحى، تعليمية
-const ELEVENLABS_MODEL = 'eleven_multilingual_v2';
-
-/* Cache الأصوات في الذاكرة — تجنب تكرار الطلبات */
-const _audioCache = new Map();
-
-/* هل ElevenLabs مفعّل؟ */
-function elIsReady() {
-  return ELEVENLABS_KEY && ELEVENLABS_KEY.length > 10;
-}
-
-/* توليد صوت من ElevenLabs وإرجاع AudioBuffer */
-async function elFetch(text) {
-  const cleaned = stripForSpeech(text);
-  if (!cleaned) return null;
-
-  /* استخدم الـ Cache إن وُجد */
-  if (_audioCache.has(cleaned)) return _audioCache.get(cleaned);
-
-  try {
-    /* استخدام XMLHttpRequest مع proxies متعددة للتوافق المحلي */
-    const apiUrl = `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE}`;
-    
-    // جرّب عدة proxies بالترتيب
-    const proxies = [
-      `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`,
-      `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`,
-      apiUrl  // مباشر كآخر محاولة
-    ];
-    
-    let res = null;
-    const body = JSON.stringify({
-      text: cleaned,
-      model_id: ELEVENLABS_MODEL,
-      voice_settings: { stability:0.65, similarity_boost:0.80, style:0.30, use_speaker_boost:true },
-    });
-    
-    for (const url of proxies) {
-      try {
-        res = await fetch(url, {
-          method: 'POST',
-          headers: { 'xi-api-key': ELEVENLABS_KEY, 'Content-Type':'application/json', 'Accept':'audio/mpeg' },
-          body,
-          mode: 'cors',
-        });
-        if (res && res.ok) break;
-      } catch(e) { console.warn('proxy failed:', url.substring(0,40), e.message); res = null; continue; }
-    }
-
-    if (!res || !res.ok) {
-      console.warn('ElevenLabs error:', res ? res.status : 'all proxies failed');
-      return null;
-    }
-
-    const blob = await res.blob();
-    const url  = URL.createObjectURL(blob);
-    _audioCache.set(cleaned, url);
-    return url;
-
-  } catch (e) {
-    console.warn('ElevenLabs fetch failed:', e);
-    return null;
-  }
-}
-
-/* تشغيل صوت من URL */
-function elPlay(url, mood) {
-  return new Promise(resolve => {
-    const audio = new Audio(url);
-    if (mood === 'excited') audio.playbackRate = 1.08;
-    else if (mood === 'calm') audio.playbackRate = 0.92;
-    window._elAudio = audio;
-    const done = () => {
-      window._elAudio = null;
-      if (window._pendingAudioResolve === resolve) window._pendingAudioResolve = null;
-      resolve();
-    };
-    window._pendingAudioResolve = resolve;
-    audio.onended  = done;
-    audio.onerror  = done;
-    audio.play().catch(done);
-  });
-}
-
-/* ── الدالة الرئيسية: speak مُحسَّنة ── */
-async function speakEL(text, mood) {
-  if (!soundEnabled || !text) return;
-
-  /* ElevenLabs أولاً */
-  if (elIsReady()) {
-    const url = await elFetch(text);
-    if (url) {
-      await elPlay(url, mood);
-      return;
-    }
-  }
-
-  /* Fallback: Web Speech API */
-  return new Promise(resolve => {
-    const cleaned = stripForSpeech(text);
-    if (!cleaned || !window.speechSynthesis) { resolve(); return; }
-    try {
-      if (speechSynthesis.speaking || speechSynthesis.pending)
-        speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(cleaned);
-      u.lang   = arabicVoice ? arabicVoice.lang : 'ar';
-      u.volume = 1;
-      if (mood === 'excited') { u.rate = 1.08; u.pitch = 1.25; }
-      else if (mood === 'calm') { u.rate = 0.88; u.pitch = 0.95; }
-      else { u.rate = 0.92; u.pitch = 1; }
-      if (arabicVoice) u.voice = arabicVoice;
-      u.onend   = resolve;
-      u.onerror = resolve;
-      speechSynthesis.speak(u);
-    } catch(e) { resolve(); }
-  });
-}
-
-/* ── speakAsync الجديدة تستخدم ElevenLabs ── */
-async function speakAsync(text, mood) {
-  await speakEL(text, mood);
-}
-
-/* ── speak() العادية (غير async) تستخدم ElevenLabs أيضاً ── */
-function speak(text, mood) {
-  if (!soundEnabled || !text) return;
-  speakEL(text, mood); /* fire and forget */
-}
-
-/* ── مؤشر حالة ElevenLabs (اختياري) ── */
-function elStatus() {
-  return elIsReady() ? '🟢 ElevenLabs' : '🔵 Web Speech';
-}
 
 /* ══════════════════════════════════
    FREEMIUM LOGIC — التحقق من الاشتراك يتم فقط عبر Firestore
