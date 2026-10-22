@@ -8,7 +8,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const ELEVENLABS_KEY = 'sk_3b058a7ccab295dcf2d2ddf2352dfc36a927aed21e5a4d12';
+// المفتاح يُقرأ من ملف خارج المستودع (لا يُكتب في الكود أبداً — القديم تسرّب): %USERPROFILE%\.elevenlabs_key
+const ELEVENLABS_KEY = require('fs').readFileSync(require('path').join(require('os').homedir(), '.elevenlabs_key'), 'utf8').trim();
 const ELEVENLABS_MODEL = 'eleven_multilingual_v2';
 const VOICE_ID = 'gMB389pj77Qe5nErWNjd';
 

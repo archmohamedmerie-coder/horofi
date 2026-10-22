@@ -808,3 +808,74 @@ test('22) «الكتابة فقط»: كلمات المبتدئ لغير المش
   expect(r.free).toBe(22 * 15);
   expect(r.paid).toBe(22 * 45);
 });
+
+/* ─────────────────────────────────────────────────────────────
+   23) حذف طفل ينتقل إلى كل الأجهزة ولا يعود
+   الخطأ الذي يمنعه (مراجعة 22.10.2026، البند 10): الدمج «لا يُنقص أبداً» بلا سجلّ حذف، فكان
+   جهاز آخر ما زال يحمل الطفل يعيد رفعه — وكذلك أي نسخة قديمة من التطبيق. */
+test('23) حذف طفل: لا يعود من جهاز آخر ولا من نسخة قديمة، ومن لم يحذف لا يتغيّر ما يكتبه', async ({ browser }) => {
+  const cloudPath = `users/${UID}`;
+  const two = [child(), child({ id: 'c2', name: 'عمر', progress: ['ب'] })];
+  const seed = { [`horofiChildren_${UID}`]: two, [`horofiActiveChild_${UID}`]: 'c1' };
+
+  // الجهاز A: لا حذف بعد ⇒ لا يُكتب الحقل الجديد أصلاً
+  const ctxA = await browser.newContext({ locale: 'ar' });
+  const pageA = await ctxA.newPage();
+  await openApp(pageA, { seed });
+  await signInAs(pageA, { uid: UID, email: 'a@x.y' }, 'home');
+  await pageA.waitForFunction((p) => window.__fb.store[p]?.childrenData?.length === 2, cloudPath);
+  expect(await pageA.evaluate((p) => 'deletedChildIds' in window.__fb.store[p], cloudPath)).toBe(false);
+  // ثم يحذف «عمر»
+  await pageA.evaluate(() => deleteChild('c2'));
+  await pageA.waitForFunction((p) => window.__fb.store[p]?.childrenData?.length === 1, cloudPath, { timeout: 5000 });
+  const cloudAfterA = await pageA.evaluate((p) => window.__fb.store[p], cloudPath);
+  expect(cloudAfterA.deletedChildIds).toEqual(['c2']);
+  await ctxA.close();
+
+  // الجهاز B ما زال يحمل الطفلين محلياً
+  const ctxB = await browser.newContext({ locale: 'ar' });
+  const pageB = await ctxB.newPage();
+  await openApp(pageB, { seed });
+  await pageB.evaluate(([p, d]) => window.__fb.serverWrite(p, d), [cloudPath, cloudAfterA]);
+  await signInAs(pageB, { uid: UID, email: 'a@x.y' }, 'home');
+  await pageB.waitForTimeout(500);
+  expect((await state(pageB)).children.map((c) => c.id)).toEqual(['c1']);
+  const cloudAfterB = await pageB.evaluate((p) => window.__fb.store[p], cloudPath);
+  expect(cloudAfterB.childrenData.map((c) => c.id)).toEqual(['c1']);
+  await ctxB.close();
+
+  // نسخة قديمة من التطبيق أعادت رفع «عمر» (لا تعرف السجلّ) ⇒ جهاز جديد لا يعرضه ويصحّح السحابة
+  const ctxC = await browser.newContext({ locale: 'ar' });
+  const pageC = await ctxC.newPage();
+  await openApp(pageC);
+  await pageC.evaluate(([p, d]) => window.__fb.serverWrite(p, d), [cloudPath, { childrenData: two, deletedChildIds: ['c2'] }]);
+  await signInAs(pageC, { uid: UID, email: 'a@x.y' }, 'home');
+  await pageC.waitForFunction((p) => window.__fb.store[p].childrenData.length === 1, cloudPath, { timeout: 5000 });
+  expect((await state(pageC)).children.map((c) => c.id)).toEqual(['c1']);
+  await ctxC.close();
+});
+
+/* ─────────────────────────────────────────────────────────────
+   24) اسم الطفل يُعرض نصاً لا يُفسَّر HTML (التحية، قائمة الأطفال، تقرير الأهل، شاشة الحساب) */
+test('24) اسم فيه وسوم HTML يُعرض حرفياً في كل الشاشات ولا يُنفَّذ', async ({ page }) => {
+  const evil = '<img src=x onerror="window.__pwned=1">سارة';
+  await openApp(page, { seed: { [`horofiChildren_${UID}`]: [child({ name: evil })], [`horofiActiveChild_${UID}`]: 'c1' } });
+  await signInAs(page, { uid: UID, email: 'a@x.y' }, 'home');
+  const r = await page.evaluate(() => {
+    /* eslint-disable no-undef */
+    buildChildrenList(); const list = document.getElementById('childrenList') || document.body;
+    openAccount();
+    return {
+      greeting: document.getElementById('homeGreeting').textContent,
+      imgs: document.querySelectorAll('img[src="x"]').length,
+      pwned: !!window.__pwned,
+      listHasText: (list.textContent || '').includes('<img'),
+    };
+    /* eslint-enable no-undef */
+  });
+  await page.waitForTimeout(300);
+  expect(r.greeting).toContain('<img src=x');
+  expect(r.imgs).toBe(0);
+  expect(r.pwned).toBe(false);
+  expect(await page.evaluate(() => !!window.__pwned)).toBe(false);
+});
