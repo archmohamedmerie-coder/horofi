@@ -879,3 +879,184 @@ test('24) اسم فيه وسوم HTML يُعرض حرفياً في كل الشا
   expect(r.pwned).toBe(false);
   expect(await page.evaluate(() => !!window.__pwned)).toBe(false);
 });
+
+/* ─────────────────────────────────────────────────────────────
+   25–28) الاستئناف: الخروج من تمرين ثم العودة يكمل من حيث توقف الطفل (طلب 23.10.2026)
+   ───────────────────────────────────────────────────────────── */
+/* eslint-disable no-undef */
+// يجيب الجولة الحالية إجابة صحيحة (أو خاطئة) ويغلق أي نافذة شارة، دون ضغط «التالي»
+async function answerRound(page, correct = true) {
+  await page.evaluate((ok) => {
+    const R = ROUNDS[RI];
+    let want;
+    if (CL.kind === 'connecting') {
+      want = shapeWord(R.letters, { [R.targetIdx]: R.correctForm }, R.diac);
+      if (R.isStart && (R.correctForm === 'med' || R.correctForm === 'fin')) want = 'ـ' + want;
+    } else want = shapeWord(R.letters, {}, R.diac);
+    const cards = [...document.querySelectorAll('#gbody .icard')];
+    cards.find((c) => (c.querySelector('.word-txt').innerHTML === want) === ok).click();
+  }, correct);
+  await page.waitForFunction(() => {
+    if (document.getElementById('badgePopup').classList.contains('show')) closeBadgePopup();
+    return !!document.querySelector('#gbody .btn-next.show');
+  }, null, { timeout: 15000 });
+}
+const nextBtn = (page) => page.evaluate(() => document.querySelector('#gbody .btn-next').click());
+const gameState = (page) => page.evaluate(() => {
+  const rl = document.getElementById('restartLink');
+  return {
+    screen: document.querySelector('.screen.active').id, RI, score, lives,
+    words: (ROUNDS || []).map((r) => r.letters.join('')),
+    badge: (document.querySelector('#gbody .rbadge') || {}).textContent || '',
+    sessions: activeChild().stats.sessions || 0, points: activeChild().stats.points || 0,
+    restartVisible: !!rl && rl.style.display !== 'none',
+  };
+});
+async function openWithChild(page, children) {
+  await openApp(page, { seed: { [`horofiChildren_${UID}`]: children || [child({ progress: [] })], [`horofiActiveChild_${UID}`]: 'c1' } });
+  await signInAs(page, { uid: UID, email: 'a@x.y' }, 'home');
+  await page.evaluate(() => { soundEnabled = false; });
+}
+const openLevel = (page, level, fresh) => page.evaluate(([lv, fr]) => { openLevelSelect(CONNECTING_LETTERS[0]); chooseLevel(lv, fr); }, [level, !!fresh]);
+const back = (page) => page.evaluate(() => gameBack());
+
+test('25) حرف متصل: الخروج بعد 7 جولات ثم العودة يكمل من الجولة 8 بنفس الكلمات والنقاط والقلوب، بلا جلسة جديدة', async ({ page }) => {
+  await openWithChild(page);
+  await openLevel(page, 'beginner');
+  for (let i = 0; i < 7; i++) { await answerRound(page, i !== 2); await nextBtn(page); }
+  const before = await gameState(page);
+  expect(before.RI).toBe(7);
+  await back(page);
+  expect((await gameState(page)).screen).toBe('levelSelect');
+  expect(await page.evaluate(() => document.getElementById('lvlRes-beginner').textContent)).toContain('8 من 15');
+
+  await openLevel(page, 'beginner');
+  const after = await gameState(page);
+  expect(after.screen).toBe('game');
+  expect([after.RI, after.score, after.lives, after.words]).toEqual([before.RI, before.score, before.lives, before.words]);
+  expect(after.badge).toContain('جولة 8 من 15');
+  expect(after.sessions).toBe(before.sessions); // الاستئناف ليس جلسة جديدة
+
+  // أجاب الجولة 8 ثم خرج قبل «التالي» ⇒ يعود إلى الجولة 9، والنقاط لا تُحسب مرتين
+  await answerRound(page, true);
+  const answered = await gameState(page);
+  await back(page);
+  await openLevel(page, 'beginner');
+  const again = await gameState(page);
+  expect(again.RI).toBe(8);
+  expect([again.score, again.points]).toEqual([answered.score, answered.points]);
+
+  // «من البداية» يبدأ من الصفر ويُسقط الحفظ
+  await back(page);
+  await openLevel(page, 'beginner', true);
+  expect((await gameState(page)).RI).toBe(0);
+  await back(page);
+  expect(await page.evaluate(() => document.getElementById('lvlRes-beginner').textContent)).toBe('');
+});
+
+test('26) تغيُّر كلمات الحرف بعد تحديث التطبيق يُسقط الحفظ القديم ولا يستعيد كلمات حُذفت', async ({ page }) => {
+  await openWithChild(page);
+  await openLevel(page, 'beginner');
+  for (let i = 0; i < 3; i++) { await answerRound(page); await nextBtn(page); }
+  await back(page);
+  await page.evaluate(() => { CONNECTING_LETTERS[0].levels.beginner.start[0] = 'بطة'; CONNECTING_LETTERS[0].levels.beginner.startD[0] = ['َ', 'ّ', 'َ']; });
+  await openLevel(page, 'beginner');
+  const s = await gameState(page);
+  expect(s.RI).toBe(0);
+  expect(s.words[0]).toBe('بطة');
+});
+
+test('27) حرف غير متصل (ترتيب عشوائي): نفس الجولات بنفس الترتيب، ورابط «من البداية» ظاهر، وشاشة ما بين المرحلتين تُستعاد', async ({ page }) => {
+  await openWithChild(page);
+  const start = () => page.evaluate(() => startNonConnectingLetter(NONCONNECTING_LETTERS.find((l) => l.char === 'د')));
+  await start();
+  for (let i = 0; i < 3; i++) { await answerRound(page); await nextBtn(page); }
+  const before = await gameState(page);
+  await back(page);
+  await start();
+  const after = await gameState(page);
+  expect([after.RI, after.words]).toEqual([before.RI, before.words]);
+  expect(after.restartVisible).toBe(true);
+  // إكمال جولات التمييز ⇒ شاشة «بقي اختبار الكتابة»؛ الخروج منها ثم العودة يُعيدها هي
+  while (await page.evaluate(() => RI) < before.words.length) {
+    await answerRound(page); await nextBtn(page);
+  }
+  await page.waitForFunction(() => document.querySelector('.screen.active').id === 'done');
+  await page.evaluate(() => nav('letters'));
+  await start();
+  expect((await gameState(page)).screen).toBe('done');
+  expect(await page.evaluate(() => document.getElementById('doneBtns').textContent)).toContain('ابدأ اختبار الكتابة');
+  // «من البداية» من داخل مرحلة الكتابة يعيد التمرين كله
+  await page.evaluate(() => { startWritingStage(); restartExercise(); });
+  expect(await page.evaluate(() => [RI, WROUNDS])).toEqual([0, null]);
+});
+
+test('28) مرحلة الكتابة تُستأنف بنفس الأسئلة، والحفظ لكل طفل ولكل حساب، ويُمسح بـ«العب مرة أخرى» وبنفاد القلوب وبحذف الطفل', async ({ page }) => {
+  await openWithChild(page, [child({ progress: [] }), child({ id: 'c2', name: 'عمر', progress: [] })]);
+  const writeB = () => page.evaluate(() => startWritingOnly(CONNECTING_LETTERS[0]));
+  await writeB();
+  await page.evaluate(() => { window._hasTracedAllCells = () => true; }); // دقة التتبّع خارج هذا الاختبار
+  for (let i = 0; i < 2; i++) {
+    await page.evaluate(() => evaluateTraceAnswer());
+    await page.waitForFunction(() => {
+      if (document.getElementById('badgePopup').classList.contains('show')) closeBadgePopup();
+      return !!document.querySelector('#gbody .btn-next.show');
+    });
+    await nextBtn(page);
+  }
+  const w = await page.evaluate(() => ({ WRI, targets: WROUNDS.map((x) => x.target), score }));
+  expect(w.WRI).toBe(2);
+  await back(page);
+  await writeB();
+  expect(await page.evaluate(() => ({ WRI, targets: WROUNDS.map((x) => x.target), score }))).toEqual(w);
+
+  // طفل آخر لا يرث الحفظ
+  await page.evaluate(() => { gameBack(); switchChild('c2'); });
+  await writeB();
+  expect(await page.evaluate(() => WRI)).toBe(0);
+  // حساب آخر على نفس الجهاز لا يرثه، والحساب الأول يجده عند عودته
+  await page.evaluate(() => { gameBack(); switchChild('c1'); });
+  await signInAs(page, null, 'login');
+  await signInAs(page, { uid: 'other', isAnonymous: true }, 'onboarding');
+  await page.evaluate(() => { skipOnboarding(); soundEnabled = false; });
+  await writeB();
+  expect(await page.evaluate(() => WRI)).toBe(0);
+  await back(page);
+  await signInAs(page, null, 'login');
+  await signInAs(page, { uid: UID, email: 'a@x.y' }, 'home');
+  await page.evaluate(() => { soundEnabled = false; switchChild('c1'); });
+  await writeB();
+  expect(await page.evaluate(() => WRI)).toBe(2);
+
+  // «العب مرة أخرى» يبدأ من الصفر
+  await page.evaluate(() => playAgain());
+  expect(await page.evaluate(() => WRI)).toBe(0);
+
+  // نفاد القلوب يُسقط الحفظ
+  await back(page);
+  await openLevel(page, 'beginner');
+  for (let i = 0; i < 3; i++) { await answerRound(page, false); if (i < 2) await nextBtn(page); }
+  await back(page);
+  await openLevel(page, 'beginner');
+  expect(await page.evaluate(() => [RI, lives])).toEqual([0, 3]);
+
+  // حذف الطفل يحذف حفظه
+  await back(page);
+  await page.evaluate(() => deleteChild('c1'));
+  const left = await page.evaluate((k) => JSON.parse(localStorage.getItem(k) || '{}'), `horofiResume_${UID}`);
+  expect(Object.keys(left)).not.toContain('c1');
+});
+/* eslint-enable no-undef */
+
+test('29) مرحلة الكتابة تعرض القلوب الفعلية لا قلوب لعبة سابقة', async ({ page }) => {
+  await openWithChild(page);
+  await page.evaluate(() => { lives = 1; setLives(); startWritingOnly(CONNECTING_LETTERS[1]); }); // eslint-disable-line no-undef
+  expect(await page.evaluate(() => [lives, document.getElementById('lives').textContent])).toEqual([3, '❤️❤️❤️']); // eslint-disable-line no-undef
+});
+
+test('30) عدّاد النجوم في اللعبة يعرض نقاط الطفل المحفوظة منذ أول جولة', async ({ page }) => {
+  await openApp(page, { seed: { [`horofiChildren_${UID}`]: [child({ stats: { rewardsVersion: 2, points: 37 } })], [`horofiActiveChild_${UID}`]: 'c1' } });
+  await signInAs(page, { uid: UID, email: 'a@x.y' }, 'home');
+  await page.evaluate(() => { soundEnabled = false; openLevelSelect(CONNECTING_LETTERS[0]); chooseLevel('beginner'); }); // eslint-disable-line no-undef
+  expect(await page.evaluate(() => document.querySelector('#pointsBar .pts-val').textContent)).toBe('37');
+});

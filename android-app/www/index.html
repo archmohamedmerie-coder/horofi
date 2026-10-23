@@ -342,6 +342,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 .level-btn{display:flex;flex-direction:column;align-items:center;gap:4px;border:none;border-radius:18px;padding:18px;cursor:pointer;box-shadow:var(--shm);transition:.15s;font-family:'Tajawal',sans-serif}
 .level-btn:active{transform:scale(.97)}
 .level-btn.locked{opacity:.55;position:relative}
+.lvl-resume{font-size:.82rem;font-weight:800;color:var(--purple-d)}
+.lvl-resume:empty{display:none}
+.lvl-restart,.restart-link{display:block;margin:-4px auto 6px;background:none;border:none;color:var(--muted);font-family:'Tajawal',sans-serif;font-size:.85rem;font-weight:700;text-decoration:underline;cursor:pointer;padding:6px 10px}
+.restart-link{margin:18px auto 24px}
 .level-btn.locked::after{content:'🔒';position:absolute;top:10px;left:14px;font-size:1.1rem}
 .lvl-beg{background:#E8F8EE;border:2px solid #52C97A}
 .lvl-int{background:#FFF8E5;border:2px solid #F7B731}
@@ -940,17 +944,23 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
         <span class="lvl-emoji">🟢</span>
         <span class="lvl-name">مُبْتَدِئ</span>
         <span class="lvl-desc">كلمات سهلة قصيرة</span>
+        <span class="lvl-resume" id="lvlRes-beginner"></span>
       </button>
+      <button class="lvl-restart" id="lvlRestart-beginner" style="display:none" onclick="chooseLevel('beginner', true)">↺ من البداية</button>
       <button class="level-btn lvl-int" onclick="chooseLevel('intermediate')">
         <span class="lvl-emoji">🟡</span>
         <span class="lvl-name">مُتَوَسِّط</span>
         <span class="lvl-desc">كلمات أطول وأكثر تنوّعاً</span>
+        <span class="lvl-resume" id="lvlRes-intermediate"></span>
       </button>
+      <button class="lvl-restart" id="lvlRestart-intermediate" style="display:none" onclick="chooseLevel('intermediate', true)">↺ من البداية</button>
       <button class="level-btn lvl-adv" onclick="chooseLevel('advanced')">
         <span class="lvl-emoji">🔴</span>
         <span class="lvl-name">مُتَقَدِّم</span>
         <span class="lvl-desc">كلمات صعبة وأقل شيوعاً</span>
+        <span class="lvl-resume" id="lvlRes-advanced"></span>
       </button>
+      <button class="lvl-restart" id="lvlRestart-advanced" style="display:none" onclick="chooseLevel('advanced', true)">↺ من البداية</button>
     </div>
   </div>
 </div>
@@ -982,6 +992,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
     <button class="sound-btn" id="soundBtn" onclick="toggleSound()" title="الصوت">🔊</button>
   </div>
   <div class="gbody" id="gbody"></div>
+  <button class="restart-link" id="restartLink" style="display:none" onclick="restartExercise()">↺ ابدأ هذا التمرين من البداية</button>
 </div>
 
 <div id="done" class="screen">
@@ -2901,6 +2912,7 @@ function switchChild(id){
 
 function deleteChild(id){
   CHILDREN = CHILDREN.filter(ch=>ch.id!==id);
+  const _rs = _resumeStore(); if (_rs[id]){ delete _rs[id]; _resumeWrite(_rs); }
   if (!DELETED_CHILD_IDS.includes(id)) DELETED_CHILD_IDS.push(id);
   if (ACTIVE_CHILD_ID===id) ACTIVE_CHILD_ID = CHILDREN.length ? CHILDREN[0].id : null;
   saveChildren();
@@ -3515,6 +3527,7 @@ async function deleteAccount(){
   try{ await db.collection('users').doc(uid).delete(); }catch(e){}
   try{ localStorage.removeItem('horofiChildren_'+uid); }catch(e){}
   try{ localStorage.removeItem('horofiActiveChild_'+uid); }catch(e){}
+  try{ localStorage.removeItem('horofiResume_'+uid); }catch(e){}
   try{
     await user.delete();
   }catch(err){
@@ -4280,6 +4293,7 @@ function buildRoundsForSpecialIdentify(L){
 /* ── اختيار المستوى ── */
 function openLevelSelect(L){
   PENDING_LETTER = L;
+  _refreshLevelResume(L);
   const badge = document.getElementById('levelLetterBadge');
   if (badge) badge.textContent = L.char;
   document.querySelectorAll('.level-btn.lvl-int,.level-btn.lvl-adv').forEach(btn=>{
@@ -4287,11 +4301,11 @@ function openLevelSelect(L){
   });
   nav('levelSelect');
 }
-function chooseLevel(level){
+function chooseLevel(level, fresh){
   if (!PENDING_LETTER) return;
   if (!isSubscribed && level !== 'beginner'){ showSubscriptionPage(); return; }
   CURRENT_LEVEL = level;
-  startConnectingLetter(PENDING_LETTER);
+  startConnectingLetter(PENDING_LETTER, fresh);
 }
 /* ── إيقاف كل الأصوات فوراً ── */
 function stopAllAudio() {
@@ -4321,6 +4335,7 @@ function gameBack(){
   stopAllAudio();
   lockAnswers(false);
   if (CL && CL.kind === 'connecting' && PENDING_LETTER){
+    _refreshLevelResume(PENDING_LETTER);
     nav('levelSelect');
   } else {
     nav('letters');
@@ -4421,6 +4436,7 @@ function startWritingStage(){
   if (!WROUNDS.length){ showDone(); return; }
   // الآن تُستدعى هذه الدالة من زر في شاشة "النتيجة" (done) وليس تلقائياً من داخل شاشة
   // اللعبة كما كان سابقاً — يجب الانتقال صراحةً لشاشة اللعبة قبل بناء أول سؤال كتابة
+  _resumeSave('writing', RI, 0);
   nav('game');
   buildWriteRound();
   window.scrollTo(0,0);
@@ -4514,6 +4530,9 @@ function aClear(){ if (answered) return; _aSelected = []; aRender(); }
 
 function buildWriteRound(){
   answered = false;
+  _updateRestartLink();
+  _syncPointsBar();
+  setLives(); // عرض القلوب الفعلية (كان يبقى من لعبة سابقة عند فتح الكتابة مباشرة أو استئنافها)
   WTRIES = 0;
   _wStrokes = [];
   const W = WROUNDS[WRI];
@@ -4790,14 +4809,126 @@ function nextWriteRound(){
    يؤثّر على حساب النتيجة النهائية ومنح الإتقان في showDone. */
 let WRITING_ONLY = false;
 
-function startConnectingLetter(L){ recordSession();
+/* ══════════════════════════════════════════════════════
+   الاستئناف — الخروج من تمرين (رجوع، زر الهاتف، إغلاق التطبيق) ثم العودة يكمل من حيث
+   توقف الطفل. يُحفظ لحظة كل إجابة (بعد احتساب نقاطها) على أنه «الجولة التالية»، فلا
+   تُجاب جولة مرتين ولا تُحسب نقاطها مرتين. المحفوظ هو الجولات نفسها (ترتيبها وخياراتها
+   الخاطئة عشوائية)، لكل حساب ولكل طفل ولكل تمرين (نوعه + الحرف + المستوى).
+   - تغيُّر بيانات الحرف بعد تحديث التطبيق ⇒ يُتجاهل الحفظ (قد يحوي كلمات حُذفت أصواتها).
+   - يُمسح عند: شاشة النتيجة، نفاد القلوب، «العب مرة أخرى»، «من البداية»، حذف الطفل/الحساب.
+   - الاستئناف ليس جلسة جديدة (شارة «مواظب أسبوع»).
+   ══════════════════════════════════════════════════════ */
+function _resumeMode(){ return WRITING_ONLY ? 'writing' : (CL && CL.kind === 'connecting') ? 'connecting' : specialIdentifyMode ? 'special' : 'nonconnecting'; }
+function _resumeKey(mode, L, level){ return mode + '|' + L.char + '|' + (mode === 'connecting' ? (level || '') : ''); }
+function _letterHash(L){
+  const t = JSON.stringify(L, (k, v) => k === 'kind' ? undefined : v);
+  let h = 5381; for (let i = 0; i < t.length; i++) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0;
+  return h.toString(36);
+}
+function _resumeStore(){ try{ return JSON.parse(localStorage.getItem(_chKey('horofiResume')) || '{}') || {}; }catch(e){ return {}; } }
+function _resumeWrite(store){ if (!CURRENT_UID) return; try{ localStorage.setItem(_chKey('horofiResume'), JSON.stringify(store)); }catch(e){} }
+function _resumeGet(mode, L, level){
+  const ch = activeChild(); if (!ch || !CURRENT_UID) return null;
+  const st = (_resumeStore()[ch.id] || {})[_resumeKey(mode, L, level)];
+  if (!st) return null;
+  if (st.v !== _letterHash(L)){ _resumeClear(mode, L, level); return null; }
+  return st;
+}
+function _resumeClear(mode, L, level){
+  const ch = activeChild(); if (!ch || !CURRENT_UID || !L) return;
+  const store = _resumeStore(); const k = _resumeKey(mode, L, level);
+  if (store[ch.id] && store[ch.id][k]){ delete store[ch.id][k]; _resumeWrite(store); }
+}
+function _resumeClearCurrent(){ if (CL) _resumeClear(_resumeMode(), CL, CURRENT_LEVEL); }
+function _resumeSave(stage, ri, wri){
+  const ch = activeChild(); if (!ch || !CURRENT_UID || !CL) return;
+  const mode = _resumeMode(); const store = _resumeStore();
+  store[ch.id] = store[ch.id] || {};
+  store[ch.id][_resumeKey(mode, CL, CURRENT_LEVEL)] = {
+    v: _letterHash(CL), at: Date.now(), stage, ROUNDS, RI: ri, WROUNDS, WRI: wri,
+    score, lives, streak, wrongStreak,
+    wc: [_writeGlyphTotal, _writeGlyphCorrect, _writeWordTotal, _writeWordCorrect]
+  };
+  _resumeWrite(store);
+}
+/* تُستدعى من updateRewardStats بعد كل إجابة (تمييز، تركيب، تتبّع) */
+function _resumeAfterAnswer(){
+  if (!CL) return;
+  if (lives <= 0){ _resumeClearCurrent(); return; }
+  if (WROUNDS === null){
+    const next = RI + 1;
+    _resumeSave(next >= ROUNDS.length ? 'between' : 'identify', next, 0);
+  } else {
+    const next = WRI + 1;
+    _resumeSave(next >= WROUNDS.length ? 'done' : 'writing', RI, next);
+  }
+}
+/* يستعيد التمرين إن وُجد له حفظ صالح ويعرض موضعه؛ يُرجع false إن لم يوجد */
+function _tryResume(mode, L, level){
+  const st = _resumeGet(mode, L, level);
+  if (!st) return false;
+  CL = L;
+  CL.kind = (mode === 'connecting') ? 'connecting'
+          : (mode === 'writing') ? ((ARFORMS[L.char] && ARFORMS[L.char].c === false) ? 'nonconnecting' : 'connecting')
+          : 'nonconnecting';
+  specialIdentifyMode = (mode === 'special');
+  WRITING_ONLY = (mode === 'writing');
+  CURRENT_LEVEL = (mode === 'connecting') ? level : null;
+  ROUNDS = st.ROUNDS; RI = st.RI; WROUNDS = st.WROUNDS; WRI = st.WRI;
+  score = st.score; lives = st.lives; streak = st.streak; wrongStreak = st.wrongStreak;
+  [_writeGlyphTotal, _writeGlyphCorrect, _writeWordTotal, _writeWordCorrect] = st.wc;
+  answered = false;
+  if (st.stage === 'between'){ showRound1Result(); return true; }
+  if (st.stage === 'done'){ showDone(); return true; }
+  nav('game');
+  if (st.stage === 'writing') buildWriteRound(); else buildRound();
+  window.scrollTo(0,0);
+  return true;
+}
+/* شاشة المستوى: «تابِع من الجولة 8 من 15» تحت كل مستوى له حفظ، ورابط «من البداية» */
+function _refreshLevelResume(L){
+  ['beginner','intermediate','advanced'].forEach(lv=>{
+    const st = _resumeGet('connecting', L, lv);
+    const lab = document.getElementById('lvlRes-' + lv);
+    const rst = document.getElementById('lvlRestart-' + lv);
+    let t = '';
+    if (st){
+      t = st.stage === 'identify' ? `تابِع من الجولة ${st.RI + 1} من ${st.ROUNDS.length}`
+        : st.stage === 'writing' ? `تابِع اختبار الكتابة: ${st.WRI + 1} من ${st.WROUNDS.length}`
+        : st.stage === 'between' ? 'تابِع: بقي اختبار الكتابة'
+        : 'تابِع: نتيجتك جاهزة';
+    }
+    if (lab) lab.textContent = t;
+    if (rst) rst.style.display = st ? '' : 'none';
+  });
+}
+/* رابط «ابدأ هذا التمرين من البداية» أسفل شاشة اللعب — للتمارين التي لا شاشة مستوى لها */
+function _updateRestartLink(){
+  const el = document.getElementById('restartLink'); if (!el) return;
+  const progressed = WROUNDS === null ? RI > 0 : (WRITING_ONLY ? WRI > 0 : true);
+  el.style.display = (_resumeMode() !== 'connecting' && progressed) ? '' : 'none';
+}
+function restartExercise(){
+  if (!CL) return;
+  if (!confirm('هل تريد بدء هذا التمرين من البداية؟ سيُمسح موضع التوقف.')) return;
+  stopAllAudio();
+  _resumeClearCurrent();
+  playAgain(true);
+}
+
+function startConnectingLetter(L, fresh){
+  if (fresh) _resumeClear('connecting', L, CURRENT_LEVEL);
+  else if (_tryResume('connecting', L, CURRENT_LEVEL)) return;
+  recordSession();
   CL=L; CL.kind='connecting'; RI=0; score=0; lives=3; streak=0; wrongStreak=0; specialIdentifyMode=false; WROUNDS=null; WRI=0;
   WRITING_ONLY = false;
   ROUNDS = buildRoundsForConnecting(L);
   nav('game');
   buildRound();
 }
-function startNonConnectingLetter(L){
+function startNonConnectingLetter(L, fresh){
+  if (fresh) _resumeClear('nonconnecting', L);
+  else if (_tryResume('nonconnecting', L)) return;
   CURRENT_LEVEL=null;
   CL=L; CL.kind='nonconnecting'; RI=0; score=0; lives=3; streak=0; wrongStreak=0; specialIdentifyMode=false; WROUNDS=null; WRI=0;
   WRITING_ONLY = false;
@@ -4805,7 +4936,9 @@ function startNonConnectingLetter(L){
   nav('game');
   buildRound();
 }
-function startSpecialIdentifyLetter(L){
+function startSpecialIdentifyLetter(L, fresh){
+  if (fresh) _resumeClear('special', L);
+  else if (_tryResume('special', L)) return;
   CURRENT_LEVEL=null;
   CL=L; CL.kind='nonconnecting'; RI=0; score=0; lives=3; streak=0; wrongStreak=0; specialIdentifyMode=true; WROUNDS=null; WRI=0;
   WRITING_ONLY = false;
@@ -4817,7 +4950,10 @@ function startSpecialIdentifyLetter(L){
 /* ── المسار الثاني: تمارين الكتابة مباشرة من صفحة الحروف ──
    نولّد جولات التمييز في الخلفية دون عرضها لأن buildWritingRounds يشتق كلماته
    الخمس منها (ROUNDS)؛ بدونها كانت مرحلة الكلمات ستخرج فارغة تماماً. */
-function startWritingOnly(L){ recordSession();
+function startWritingOnly(L, fresh){
+  if (fresh) _resumeClear('writing', L);
+  else if (_tryResume('writing', L)) return;
+  recordSession();
   CURRENT_LEVEL=null;
   const nonConnecting = !!(ARFORMS[L.char] && ARFORMS[L.char].c === false);
   CL=L; CL.kind = nonConnecting ? 'nonconnecting' : 'connecting';
@@ -5150,6 +5286,8 @@ function recordStat(correct, letterChar, wordText){
 /* ── BUILD ROUND ── */
 function buildRound(){
   answered=false;
+  _updateRestartLink();
+  _syncPointsBar();
   const R=ROUNDS[RI], T=ROUNDS.length;
   document.getElementById('pfill').style.width=((RI/T)*100)+'%';
   setLives();
@@ -5411,6 +5549,7 @@ function showRound1Result(){
 
 /* ── DONE ── */
 function showDone(){
+  _resumeClearCurrent();
   // إعادة الأزرار لوضعها الطبيعي (قد تكون استُبدلت بزر "ابدأ اختبار الكتابة" في showRound1Result)
   const btns = document.getElementById('doneBtns');
   if (btns){
@@ -5503,11 +5642,11 @@ function showDone(){
   }
 }
 function playAgain(){
-  // "العب مرة أخرى" يُعيد نفس المسار الذي جاء منه الطفل، لا المسار الكامل دائماً
-  if(WRITING_ONLY) startWritingOnly(CL);
-  else if(CL.kind==='connecting') startConnectingLetter(CL);
-  else if(specialIdentifyMode) startSpecialIdentifyLetter(CL);
-  else startNonConnectingLetter(CL);
+  // "العب مرة أخرى" يُعيد نفس المسار الذي جاء منه الطفل، لا المسار الكامل دائماً — ومن البداية دائماً
+  if(WRITING_ONLY) startWritingOnly(CL, true);
+  else if(CL.kind==='connecting') startConnectingLetter(CL, true);
+  else if(specialIdentifyMode) startSpecialIdentifyLetter(CL, true);
+  else startNonConnectingLetter(CL, true);
 }
 
 /* ── UTILS ── */
@@ -5822,6 +5961,11 @@ function _masteredInLevel(ch, level) {
   return Object.values(lb).filter(arr => arr && arr.length > 0).length;
 }
 
+/* عرض نقاط الطفل الفعلية بلا حركة — كان العدّاد يبقى 0 بعد كل فتح للتطبيق حتى أول نقطة */
+function _syncPointsBar(){
+  const el = document.querySelector('#pointsBar .pts-val');
+  if (el) el.textContent = getPoints(activeChild());
+}
 function updatePointsBar() {
   const ch = activeChild();
   const pts = getPoints(ch);
@@ -6088,6 +6232,7 @@ function updateRewardStats(correct) {
 
   s.masteredLetters = completedLetters.size;
   saveChildren();
+  _resumeAfterAnswer();
   // checkBadges تُستدعى بعد انتهاء الصوت في runSentenceFlow
 }
 
