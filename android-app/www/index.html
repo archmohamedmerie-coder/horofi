@@ -149,7 +149,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 .tree-leaf.alt{background:#FFF5E8;border-color:#FFE0B8}
 .tree-leaf .leaf-glyph{font-family:'Amiri',serif;font-size:1.15rem;font-weight:700;color:var(--purple);display:inline-block;position:relative;line-height:1;margin-bottom:0}
 .tree-leaf.alt .leaf-glyph{color:#D97706}
-.leaf-glyph-pair{display:inline-flex;align-items:center;gap:6px}
+.leaf-glyph-pair{display:inline-flex;align-items:center;gap:6px;padding-top:.45em}
 .leaf-glyph-pair .leaf-glyph{font-size:1.3rem}
 .leaf-glyph.arm-left::after,.leaf-glyph.arm-right::before,.leaf-glyph.arm-both::after,.leaf-glyph.arm-both::before{
   font-family:'Amiri',serif;font-size:1em;font-weight:700;color:currentColor;
@@ -342,10 +342,12 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 .level-btn{display:flex;flex-direction:column;align-items:center;gap:4px;border:none;border-radius:18px;padding:18px;cursor:pointer;box-shadow:var(--shm);transition:.15s;font-family:'Tajawal',sans-serif}
 .level-btn:active{transform:scale(.97)}
 .level-btn.locked{opacity:.55;position:relative}
-.lvl-resume{font-size:.82rem;font-weight:800;color:var(--purple-d)}
-.lvl-resume:empty{display:none}
-.lvl-restart,.restart-link{display:block;margin:-4px auto 6px;background:none;border:none;color:var(--muted);font-family:'Tajawal',sans-serif;font-size:.85rem;font-weight:700;text-decoration:underline;cursor:pointer;padding:6px 10px}
-.restart-link{margin:18px auto 24px}
+/* شاشة المستوى: لا شيء يغيّر الأحجام أو المواضع — «تابِع…» يحلّ محلّ الوصف في سطره، و↺ مطلق في الزاوية */
+.lvl-item{position:relative}
+.lvl-item .level-btn{width:100%}
+.lvl-desc.resuming{color:var(--purple-d);font-weight:800}
+.lvl-restart{position:absolute;top:10px;right:12px;width:34px;height:34px;border-radius:50%;border:2px solid rgba(0,0,0,.08);background:rgba(255,255,255,.85);color:var(--muted);font-size:1.05rem;font-weight:800;line-height:1;cursor:pointer;padding:0}
+.restart-link{display:block;margin:18px auto 24px;background:none;border:none;color:var(--muted);font-family:'Tajawal',sans-serif;font-size:.85rem;font-weight:700;text-decoration:underline;cursor:pointer;padding:6px 10px}
 .level-btn.locked::after{content:'🔒';position:absolute;top:10px;left:14px;font-size:1.1rem}
 .lvl-beg{background:#E8F8EE;border:2px solid #52C97A}
 .lvl-int{background:#FFF8E5;border:2px solid #F7B731}
@@ -940,27 +942,30 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
     <div id="levelLetterBadge" class="level-badge"></div>
     <h2 class="children-title">اختر المستوى</h2>
     <div class="level-list">
-      <button class="level-btn lvl-beg" onclick="chooseLevel('beginner')">
-        <span class="lvl-emoji">🟢</span>
-        <span class="lvl-name">مُبْتَدِئ</span>
-        <span class="lvl-desc">كلمات سهلة قصيرة</span>
-        <span class="lvl-resume" id="lvlRes-beginner"></span>
-      </button>
-      <button class="lvl-restart" id="lvlRestart-beginner" style="display:none" onclick="chooseLevel('beginner', true)">↺ من البداية</button>
-      <button class="level-btn lvl-int" onclick="chooseLevel('intermediate')">
-        <span class="lvl-emoji">🟡</span>
-        <span class="lvl-name">مُتَوَسِّط</span>
-        <span class="lvl-desc">كلمات أطول وأكثر تنوّعاً</span>
-        <span class="lvl-resume" id="lvlRes-intermediate"></span>
-      </button>
-      <button class="lvl-restart" id="lvlRestart-intermediate" style="display:none" onclick="chooseLevel('intermediate', true)">↺ من البداية</button>
-      <button class="level-btn lvl-adv" onclick="chooseLevel('advanced')">
-        <span class="lvl-emoji">🔴</span>
-        <span class="lvl-name">مُتَقَدِّم</span>
-        <span class="lvl-desc">كلمات صعبة وأقل شيوعاً</span>
-        <span class="lvl-resume" id="lvlRes-advanced"></span>
-      </button>
-      <button class="lvl-restart" id="lvlRestart-advanced" style="display:none" onclick="chooseLevel('advanced', true)">↺ من البداية</button>
+      <div class="lvl-item">
+        <button class="level-btn lvl-beg" onclick="chooseLevel('beginner')">
+          <span class="lvl-emoji">🟢</span>
+          <span class="lvl-name">مُبْتَدِئ</span>
+          <span class="lvl-desc" id="lvlRes-beginner" data-desc="كلمات سهلة قصيرة">كلمات سهلة قصيرة</span>
+        </button>
+        <button class="lvl-restart" id="lvlRestart-beginner" style="display:none" onclick="restartLevel('beginner')" title="من البداية" aria-label="ابدأ هذا المستوى من البداية">↺</button>
+      </div>
+      <div class="lvl-item">
+        <button class="level-btn lvl-int" onclick="chooseLevel('intermediate')">
+          <span class="lvl-emoji">🟡</span>
+          <span class="lvl-name">مُتَوَسِّط</span>
+          <span class="lvl-desc" id="lvlRes-intermediate" data-desc="كلمات أطول وأكثر تنوّعاً">كلمات أطول وأكثر تنوّعاً</span>
+        </button>
+        <button class="lvl-restart" id="lvlRestart-intermediate" style="display:none" onclick="restartLevel('intermediate')" title="من البداية" aria-label="ابدأ هذا المستوى من البداية">↺</button>
+      </div>
+      <div class="lvl-item">
+        <button class="level-btn lvl-adv" onclick="chooseLevel('advanced')">
+          <span class="lvl-emoji">🔴</span>
+          <span class="lvl-name">مُتَقَدِّم</span>
+          <span class="lvl-desc" id="lvlRes-advanced" data-desc="كلمات صعبة وأقل شيوعاً">كلمات صعبة وأقل شيوعاً</span>
+        </button>
+        <button class="lvl-restart" id="lvlRestart-advanced" style="display:none" onclick="restartLevel('advanced')" title="من البداية" aria-label="ابدأ هذا المستوى من البداية">↺</button>
+      </div>
     </div>
   </div>
 </div>
@@ -4898,7 +4903,7 @@ function _refreshLevelResume(L){
         : st.stage === 'between' ? 'تابِع: بقي اختبار الكتابة'
         : 'تابِع: نتيجتك جاهزة';
     }
-    if (lab) lab.textContent = t;
+    if (lab){ lab.textContent = t || lab.dataset.desc; lab.classList.toggle('resuming', !!t); }
     if (rst) rst.style.display = st ? '' : 'none';
   });
 }
@@ -4907,6 +4912,10 @@ function _updateRestartLink(){
   const el = document.getElementById('restartLink'); if (!el) return;
   const progressed = WROUNDS === null ? RI > 0 : (WRITING_ONLY ? WRI > 0 : true);
   el.style.display = (_resumeMode() !== 'connecting' && progressed) ? '' : 'none';
+}
+function restartLevel(level){
+  if (!confirm('هل تريد بدء هذا المستوى من البداية؟ سيُمسح موضع التوقف.')) return;
+  chooseLevel(level, true);
 }
 function restartExercise(){
   if (!CL) return;

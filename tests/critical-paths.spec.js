@@ -951,7 +951,8 @@ test('25) حرف متصل: الخروج بعد 7 جولات ثم العودة ي
   await openLevel(page, 'beginner', true);
   expect((await gameState(page)).RI).toBe(0);
   await back(page);
-  expect(await page.evaluate(() => document.getElementById('lvlRes-beginner').textContent)).toBe('');
+  expect(await page.evaluate(() => document.getElementById('lvlRes-beginner').textContent)).toBe('كلمات سهلة قصيرة'); // يعود الوصف الأصلي
+  expect(await page.evaluate(() => document.getElementById('lvlRestart-beginner').style.display)).toBe('none');
 });
 
 test('26) تغيُّر كلمات الحرف بعد تحديث التطبيق يُسقط الحفظ القديم ولا يستعيد كلمات حُذفت', async ({ page }) => {
