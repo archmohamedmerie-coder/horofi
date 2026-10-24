@@ -30,6 +30,9 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 #login>.login-float-letters{position:absolute;inset:0;pointer-events:none;z-index:0}
 .lfl{position:absolute;font-family:'Amiri',serif;font-weight:700;color:var(--purple);opacity:.22;animation:lflFloat var(--lfd,7s) ease-in-out infinite;animation-delay:var(--lfdel,0s)}
 @keyframes lflFloat{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-22px) rotate(4deg)}}
+/* أشكال أول الكلمة ووسطها: «تسبح» أسرع قليلاً (انجراف جانبي مع الطفو) */
+.lfs{animation-name:lflSwim}
+@keyframes lflSwim{0%,100%{transform:translate(0,0) rotate(-5deg)}25%{transform:translate(9px,-12px) rotate(2deg)}50%{transform:translate(0,-20px) rotate(5deg)}75%{transform:translate(-9px,-10px) rotate(-2deg)}}
 #login>div{position:relative;z-index:1}
 #login .login-card-anim{animation:cardRise .5s cubic-bezier(.2,.8,.3,1.1)}
 @keyframes cardRise{from{opacity:0;transform:translateY(26px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
@@ -623,6 +626,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
 .plan-opt .plan-note{font-size:.78rem;font-weight:600;color:var(--muted)}
 .plan-opt .plan-badge{position:absolute;top:-10px;left:12px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border-radius:999px;padding:2px 10px;font-size:.72rem;font-weight:900}
 .sub-secure-note{font-size:.75rem;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:5px;justify-content:center}
+/* ── حركة الشعار عند الفتح ── */
+#logoIntro{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#fff;transition:background-color .45s ease}
+#logoIntro svg{width:min(78vw,380px);height:auto;transform-origin:0 0;transition:transform .45s cubic-bezier(.4,0,.2,1);overflow:visible}
+#logoIntro.landing{background-color:rgba(255,255,255,0)}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -641,14 +648,24 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
     <span class="lfl" style="top:16%;right:16%;font-size:2.2rem;--lfd:7.2s;--lfdel:.9s">س</span>
     <span class="lfl" style="top:14%;left:15%;font-size:2.6rem;--lfd:8.4s;--lfdel:1.8s">ع</span>
     <span class="lfl" style="top:25%;right:5%;font-size:2.4rem;--lfd:7.8s;--lfdel:.3s">ن</span>
-    <span class="lfl" style="top:24%;left:30%;font-size:2rem;--lfd:6.6s;--lfdel:2.4s">ط</span>
+    <span class="lfl" style="top:10%;left:22.5%;font-size:2rem;--lfd:6.6s;--lfdel:2.4s">ط</span>
     <span class="lfl" style="top:27%;left:5%;font-size:2.8rem;--lfd:9.2s;--lfdel:1.1s">م</span>
     <span class="lfl" style="top:37%;right:24%;font-size:2.5rem;--lfd:8s;--lfdel:1.6s">ك</span>
     <span class="lfl" style="top:39%;left:9%;font-size:2.2rem;--lfd:7.4s;--lfdel:.7s">ص</span>
     <span class="lfl" style="top:47%;right:9%;font-size:2rem;--lfd:8.6s;--lfdel:2.1s">ل</span>
+    <span class="lfl lfs" style="top:0.5%;left:41%;font-size:1.7rem;--lfd:5.2s">بـ</span>
+    <span class="lfl lfs" style="top:9%;right:22%;font-size:2rem;--lfd:4.8s;--lfdel:.6s">ـبـ</span>
+    <span class="lfl lfs" style="top:18%;left:1%;font-size:2.2rem;--lfd:5.6s;--lfdel:1.1s">صـ</span>
+    <span class="lfl lfs" style="top:13%;right:1%;font-size:2rem;--lfd:5s;--lfdel:.3s">ـصـ</span>
+    <span class="lfl lfs" style="top:1%;right:20%;font-size:2rem;--lfd:5.4s;--lfdel:1.6s">عـ</span>
+    <span class="lfl lfs" style="top:23.5%;right:17%;font-size:1.9rem;--lfd:4.6s;--lfdel:.9s">ـعـ</span>
+    <span class="lfl lfs" style="top:24%;left:12%;font-size:2rem;--lfd:5.8s;--lfdel:.2s">خـ</span>
+    <span class="lfl lfs" style="top:0;left:2%;font-size:1.7rem;--lfd:4.9s;--lfdel:1.4s">ـخـ</span>
+    <span class="lfl lfs" style="top:0.5%;left:33%;font-size:1.8rem;--lfd:5.3s;--lfdel:2s">د</span>
+    <span class="lfl lfs" style="top:35%;right:1%;font-size:2rem;--lfd:5.1s;--lfdel:.7s">ـد</span>
   </div>
   <div style="text-align:center;padding:28px 20px 0;position:relative">
-    <img src="Logo.jpeg" style="width:130px;height:auto;display:block;margin:0 auto 8px">
+    <img id="loginLogo" src="logo.png" style="width:130px;height:auto;display:block;margin:0 auto 8px">
     <h2 style="font-family:'Tajawal',sans-serif;font-size:1.5rem;font-weight:900;color:#9B5DE5;margin:0">صحّح حروفك</h2>
   </div>
 
@@ -785,7 +802,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
   </div>
   <div class="mascot-wrap">
     <div class="logo-img-wrap2">
-  <img class="logo-bg2" src="Logo.jpeg">
+  <img class="logo-bg2" src="logo.png">
 </div>
 </div>
   <div class="home-title" style="font-size:2rem">أهلاً بك!</div>
@@ -879,7 +896,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);min-
   </div>
   <div class="mascot-wrap">
     <div class="logo-img-wrap2">
-  <img class="logo-bg2" src="Logo.jpeg">
+  <img class="logo-bg2" src="logo.png">
 </div>
 </div>
   <div class="home-mascot-duo">
@@ -5807,9 +5824,182 @@ loadProgress();
 buildHome();
 buildLetterGrid();
 
+/* حركة افتتاح الشعار (8 ث): الإطار يُرسم باليد، ريشة سوداء تكتب، ريشة حمراء تكتب الحرفين الخاطئين
+   وتضع ✗، ريشة خضراء ترسم الصاد الصحيحة والخط العمودي ثم تستقرّ مكانها، وينتقل الشعار إلى target.
+   الطبقات في splash/ مفصولة من Logo.jpeg نفسه (1024×1041) فتطابق logo.png (الشعار بخلفية شفافة) تماماً. */
+function playLogoIntro(target){
+  if (document.getElementById('logoIntro')) return;
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const NS = 'http://www.w3.org/2000/svg', W = 1024, H = 1041, NIB = [565, 488];
+  const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+  const ov = document.createElement('div'); ov.id = 'logoIntro';
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}` }); ov.appendChild(svg);
+  const defs = el('defs', {}, svg);
+  el('rect', { x: 100, y: 170, width: 760, height: 775, fill: '#fff' }, svg); // داخل الإطار فقط — حوله شفاف كـlogo.png
+  const img = (name, parent, extra) => el('image', Object.assign({ href: 'splash/' + name + '.webp', width: W, height: H }, extra || {}), parent);
+
+  let uid = 0;
+  /* قناع خطّي: يكشف الطبقة على امتداد مسار القلم */
+  function strokeMask(d, width, full){
+    const id = 'lm' + (++uid), m = el('mask', { id, maskUnits: 'userSpaceOnUse', x: 0, y: 0, width: W, height: H }, defs);
+    const p = el('path', { d, fill: 'none', stroke: '#fff', 'stroke-width': width, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, m);
+    const len = p.getTotalLength(); p.style.strokeDasharray = len; p.style.strokeDashoffset = len;
+    p.style.visibility = 'hidden'; // الطرف الدائري يُظهر نقطة قبل البدء
+    return { id, path: p, len, set: t => { p.style.visibility = t > 0 ? '' : 'hidden'; p.style.strokeDashoffset = len * (1 - t); p.setAttribute('stroke-width', t >= 1 && full ? 2000 : width); } };
+  }
+  /* قناع مسح من اليمين لليسار داخل منطقة (كتابة عربية) — يتبع موضع رأس الريشة */
+  function wipeMask(x0, y0, x1, y1){
+    const id = 'lm' + (++uid), m = el('mask', { id, maskUnits: 'userSpaceOnUse', x: 0, y: 0, width: W, height: H }, defs);
+    const r = el('rect', { x: x1, y: y0, width: 0, height: y1 - y0, fill: '#fff' }, m);
+    let minX = x1;
+    return { id, setX: x => { minX = Math.min(minX, x); r.setAttribute('x', minX); r.setAttribute('width', x1 - minX); }, done: () => { r.setAttribute('x', x0); r.setAttribute('width', x1 - x0); } };
+  }
+  const path = d => { const p = el('path', { d }, defs); return { p, len: p.getTotalLength() }; };
+
+  // الطبقات بالترتيب، كلٌّ بقناعه
+  const frameM = strokeMask('M865 165 H95 V945 H865 V158', 74);
+  img('frame', svg, { mask: `url(#${frameM.id})` });
+  // الكتابة بالأسود أولاً: الصاد كاملة (رأسها مرسوم بشكل رأس الصاد الخضراء) ثم «حّح» ثم «حروفك»
+  /* الصاد: صاد الشعار نفسها (الرأس الأخضر بلا الذراع القصيرة + القاع الأحمر) بالأسود ثم بالأحمر،
+     ثم الصاد الخضراء الأصلية فوقها — الأشكال الثلاثة متطابقة، والقناع يكشفها كلها عند الاكتمال */
+  const SAD = 'M628 470 C650 425 690 405 728 408 C768 412 774 452 752 472 C720 492 670 494 634 492 C644 522 628 556 592 566 C548 578 502 540 542 458';
+  const HEAD = 'M600 486 C618 470 640 440 680 412 C722 400 770 410 760 455 C740 490 660 494 600 488';
+  const sadBlack = strokeMask(SAD, 70, true);
+  const sadBlackImg = img('sad_black', svg, { mask: `url(#${sadBlack.id})` });
+  const w1 = wipeMask(170, 320, 515, 600), w2 = wipeMask(150, 630, 805, 880);
+  img('black', svg, { mask: `url(#${w1.id})` });
+  const g2 = el('g', { mask: `url(#${w2.id})` }, svg);
+  img('black', g2);
+  const faClip = el('clipPath', { id: 'faClip' }, defs); el('rect', { x: 300, y: 642, width: 150, height: 185 }, faClip);
+  img('red_black', g2, { 'clip-path': 'url(#faClip)' }); // الفاء فقط
+  // الريشة الحمراء تعيد الحرفين بالأحمر فوق الأسود، ثم ✗ على الفاء و✗ على الصاد
+  const sadRed = strokeMask(SAD, 70, true);
+  const faW = wipeMask(310, 640, 445, 820);
+  const sadRedImg = img('sad_red', svg, { mask: `url(#${sadRed.id})` });
+  img('red', svg, { mask: `url(#${faW.id})`, 'clip-path': 'url(#faClip)' });
+  const x1 = strokeMask('M428 552 L348 636', 40), x2 = strokeMask('M428 634 L352 556', 40);
+  img('red', svg, { mask: `url(#${x1.id})` }); img('red', svg, { mask: `url(#${x2.id})` });
+  // ✗ فوق الصاد: نسخة من ✗ الشعار نفسها مزاحة فوق رأس الصاد، تختفي حين تُرسم الصاد الصحيحة
+  const XD = [273, -247], xClip = el('clipPath', { id: 'xClip' }, defs); el('rect', { x: 330, y: 538, width: 115, height: 108 }, xClip);
+  const xs = el('g', { transform: `translate(${XD[0]} ${XD[1]})` }, svg);
+  const x3 = strokeMask('M428 552 L348 636', 40), x4 = strokeMask('M428 634 L352 556', 40);
+  img('red', xs, { mask: `url(#${x3.id})`, 'clip-path': 'url(#xClip)' }); img('red', xs, { mask: `url(#${x4.id})`, 'clip-path': 'url(#xClip)' });
+  const x3p = path('M701 305 L621 389'), x4p = path('M701 387 L625 309'); // مسارا الريشة بعد الإزاحة
+  // الريشة الخضراء: الصاد الصحيحة والخط العمودي معاً
+  const sadGreen = strokeMask(HEAD, 70, true);
+  // بعد الأخضر: القاع الأحمر الأصلي مكان النسخة الملوّنة، فلا تبقى حواف داكنة تحت الأخضر
+  const bowlClip = el('clipPath', { id: 'bowlClip' }, defs); el('rect', { x: 490, y: 440, width: 136, height: 152 }, bowlClip);
+  const bowlImg = img('red', svg, { 'clip-path': 'url(#bowlClip)' }); bowlImg.style.visibility = 'hidden';
+  img('sad_green', svg, { mask: `url(#${sadGreen.id})` });
+  const barM = strokeMask('M865 188 L865 505', 54);
+  img('bar', svg, { mask: `url(#${barM.id})` });
+
+  // الريش: الخضراء هي ريشة الشعار نفسها وتنتهي في مكانها الأصلي
+  const pens = { black: img('pen_black', svg), red: img('pen_red', svg), green: img('feather', svg) };
+  for (const k in pens) pens[k].style.opacity = 0;
+  let penPos = { black: [1150, 300], red: [1150, 700], green: [1150, 500] };
+  const placePen = (k, x, y) => { penPos[k] = [x, y]; pens[k].setAttribute('transform', `translate(${x - NIB[0]} ${y - NIB[1]})`); };
+
+  // مسارات رأس الريشة للكتابة (إحداثيات Logo.jpeg)
+  const P = {
+    word1: path('M505 445 C470 425 420 418 345 428 C310 440 296 470 318 520 C330 560 280 578 232 560 C200 545 196 470 205 430 C230 470 270 520 252 562 C235 578 200 572 186 548'),
+    shadda: path('M405 352 C415 338 425 348 432 342'),
+    word2: path('M792 748 C740 728 690 735 642 752 C610 768 600 800 570 838 C545 860 520 830 500 800 C480 780 452 790 448 838 C440 868 420 840 440 796 C410 802 360 804 330 792 C335 760 352 728 392 716 C420 724 424 760 392 780 C360 800 320 806 290 806 C250 808 200 798 176 752'),
+    marks2: path('M383 660 C388 664 390 672 384 676 M712 668 C718 660 722 676 714 684 M238 712 C230 722 246 730 236 738'),
+    fa: path('M440 796 C410 802 360 804 330 792 C335 760 352 728 392 716 C420 724 424 760 392 780 M383 660 C388 664 390 672 384 676')
+  };
+  const along = (o, t) => { const q = o.p.getPointAtLength(o.len * t); return [q.x, q.y]; };
+  const ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+  const lerp = (a, b, t) => a + (b - a) * t;
+
+  /* الخطّ الزمني (بالثواني) — المجموع 8 ث */
+  const steps = [
+    { t0: 0.10, t1: 1.30, run: t => frameM.set(ease(t)) },
+    // الريشة السوداء: الصاد ← «حّح» ← «حروفك»
+    { t0: 1.20, t1: 1.45, pen: 'black', fly: [628, 470] },
+    { t0: 1.45, t1: 2.10, pen: 'black', on: sadBlack.path, mask: sadBlack },
+    { t0: 2.10, t1: 2.18, pen: 'black', fly: along(P.word1, 0) },
+    { t0: 2.18, t1: 3.05, pen: 'black', on: P.word1, mask: w1 },
+    { t0: 3.05, t1: 3.18, pen: 'black', on: P.shadda },
+    { t0: 3.18, t1: 3.30, pen: 'black', fly: along(P.word2, 0) },
+    { t0: 3.30, t1: 4.60, pen: 'black', on: P.word2, mask: w2 },
+    { t0: 4.60, t1: 4.80, pen: 'black', on: P.marks2 },
+    { t0: 4.80, t1: 5.00, pen: 'black', fly: [1150, 250], hide: true },
+    // الريشة الحمراء: الحرفان الخاطئان بالأحمر ثم ✗ على الفاء و✗ على الصاد
+    { t0: 4.80, t1: 5.00, pen: 'red', fly: [628, 470] },
+    { t0: 5.00, t1: 5.50, pen: 'red', on: sadRed.path, mask: sadRed },
+    { t0: 5.50, t1: 5.55, pen: 'red', fly: along(P.fa, 0) },
+    { t0: 5.55, t1: 5.90, pen: 'red', on: P.fa, mask: faW },
+    { t0: 5.90, t1: 5.97, pen: 'red', fly: [428, 552] },
+    { t0: 5.97, t1: 6.10, pen: 'red', on: x1.path, mask: x1 },
+    { t0: 6.10, t1: 6.15, pen: 'red', fly: [428, 634] },
+    { t0: 6.15, t1: 6.28, pen: 'red', on: x2.path, mask: x2 },
+    { t0: 6.28, t1: 6.35, pen: 'red', fly: [701, 305] },
+    { t0: 6.35, t1: 6.47, pen: 'red', on: x3p, mask: x3 },
+    { t0: 6.47, t1: 6.52, pen: 'red', fly: [701, 387] },
+    { t0: 6.52, t1: 6.64, pen: 'red', on: x4p, mask: x4 },
+    { t0: 6.64, t1: 6.82, pen: 'red', fly: [1150, 900], hide: true },
+    // الريشة الخضراء: الصاد الصحيحة، والخط العمودي يُرسم في الزمن نفسه
+    { t0: 6.62, t1: 6.82, pen: 'green', fly: [600, 486] },
+    { t0: 6.82, t1: 7.30, pen: 'green', on: sadGreen.path, mask: sadGreen },
+    { t0: 6.82, t1: 7.30, run: t => barM.set(t) },
+    { t0: 6.82, t1: 7.30, run: t => { xs.style.opacity = 1 - t; } },
+    { t0: 5.50, t1: 5.51, run: t => { sadBlackImg.style.visibility = t >= 1 ? 'hidden' : ''; } },
+    { t0: 7.30, t1: 7.31, run: t => { const done = t >= 1; sadRedImg.style.visibility = done ? 'hidden' : ''; bowlImg.style.visibility = done ? '' : 'hidden'; } },
+    { t0: 7.30, t1: 7.50, pen: 'green', fly: NIB }   // تستقرّ ريشة الشعار في مكانها
+  ];
+  const LAND = 7.55; // الانتقال إلى مكان الشعار في الصفحة (0.45 ث) فينتهي عند 8.0
+
+  for (const s of steps){ if (s.on && !s.on.len) s.on = { p: s.on, len: s.on.getTotalLength() }; }
+  document.body.appendChild(ov);
+  if (target) target.style.visibility = 'hidden';
+  const start = performance.now();
+  let raf, landed = false, finished = false;
+
+  function frame(now){
+    const T = (now - start) / 1000;
+    for (const s of steps){
+      if (T < s.t0) continue;
+      const t = Math.min(1, (T - s.t0) / (s.t1 - s.t0));
+      if (s.run){ s.run(t); continue; }
+      const pen = pens[s.pen];
+      if (s.fly){
+        if (s.from === undefined) s.from = penPos[s.pen].slice();
+        const e = ease(t); placePen(s.pen, lerp(s.from[0], s.fly[0], e), lerp(s.from[1], s.fly[1], e));
+        pen.style.opacity = s.hide ? 1 - t : Math.max(+pen.style.opacity, Math.min(1, t * 2));
+      } else if (s.on){
+        const q = s.on.p.getPointAtLength(s.on.len * t);
+        placePen(s.pen, q.x, q.y); pen.style.opacity = 1;
+        if (s.mask){ if (s.mask.setX) s.mask.setX(q.x - 14); else s.mask.set(t); if (t === 1 && s.mask.done) s.mask.done(); }
+      }
+    }
+    if (!landed && T >= LAND) land();
+    if (T < 8.05) raf = requestAnimationFrame(frame); else finish();
+  }
+  /* FLIP: يصغر الشعار وينتقل حتى يطابق صورة الشعار في الصفحة */
+  function land(){
+    landed = true;
+    if (!target){ ov.style.transition = 'opacity .45s'; ov.style.opacity = 0; return; }
+    const a = svg.getBoundingClientRect(), b = target.getBoundingClientRect();
+    const s = b.width / a.width;
+    svg.style.transform = `translate(${b.left - a.left}px, ${b.top - a.top}px) scale(${s})`;
+    ov.classList.add('landing');
+  }
+  function finish(){
+    if (finished) return; finished = true;
+    cancelAnimationFrame(raf);
+    if (target) target.style.visibility = '';
+    ov.remove();
+  }
+  ov.addEventListener('click', finish); // لمسة تتخطّى الحركة
+  raf = requestAnimationFrame(frame);
+}
+let _logoIntroDone = false; // مرة واحدة عند الإقلاع، ولمن تظهر له شاشة الدخول فقط
+
 /* ── Firebase Auth State — تسجيل دخول تلقائي ── */
 auth.onAuthStateChanged(async function(user){
   if (user){
+    _logoIntroDone = true;
     const switched = _hadAuthUser && CURRENT_UID !== user.uid; // حساب آخر بعد الأول في هذه الجلسة
     _hadAuthUser = true;
     CURRENT_UID = user.uid;
@@ -5836,6 +6026,7 @@ auth.onAuthStateChanged(async function(user){
     var guestSec = document.getElementById('guestSection');
     if (guestSec) guestSec.style.display = '';
     nav('login');
+    if (!_logoIntroDone){ _logoIntroDone = true; playLogoIntro(document.getElementById('loginLogo')); }
   }
 });
 
