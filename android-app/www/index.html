@@ -5952,9 +5952,8 @@ function playLogoIntro(target){
 
   for (const s of steps){ if (s.on && !s.on.len) s.on = { p: s.on, len: s.on.getTotalLength() }; }
   document.body.appendChild(ov);
-  if (target) target.style.visibility = 'hidden';
   const start = performance.now();
-  let raf, landed = false, finished = false;
+  let raf, landed = false, finished = false, tgt = null;
 
   function frame(now){
     const T = (now - start) / 1000;
@@ -5979,8 +5978,11 @@ function playLogoIntro(target){
   /* FLIP: يصغر الشعار وينتقل حتى يطابق صورة الشعار في الصفحة */
   function land(){
     landed = true;
-    if (!target){ ov.style.transition = 'opacity .45s'; ov.style.opacity = 0; return; }
-    const a = svg.getBoundingClientRect(), b = target.getBoundingClientRect();
+    // الهدف يُعرف عند الهبوط: شعار الشاشة الظاهرة حينها (الدخول أو الرئيسية أو التهيئة)
+    tgt = typeof target === 'function' ? target() : target;
+    if (!tgt || !tgt.offsetParent){ tgt = null; ov.style.transition = 'opacity .45s'; ov.style.opacity = 0; return; }
+    tgt.style.visibility = 'hidden';
+    const a = svg.getBoundingClientRect(), b = tgt.getBoundingClientRect();
     const s = b.width / a.width;
     svg.style.transform = `translate(${b.left - a.left}px, ${b.top - a.top}px) scale(${s})`;
     ov.classList.add('landing');
@@ -5988,18 +5990,18 @@ function playLogoIntro(target){
   function finish(){
     if (finished) return; finished = true;
     cancelAnimationFrame(raf);
-    if (target) target.style.visibility = '';
+    if (tgt) tgt.style.visibility = '';
     ov.remove();
   }
   ov.addEventListener('click', finish); // لمسة تتخطّى الحركة
   raf = requestAnimationFrame(frame);
 }
-let _logoIntroDone = false; // مرة واحدة عند الإقلاع، ولمن تظهر له شاشة الدخول فقط
+// عند كل إقلاع للتطبيق (لا عند العودة من الخلفية)، ويستقرّ على شعار الشاشة التي ظهرت بعد التحقق من الحساب
+playLogoIntro(() => document.querySelector('.screen.active img[src="logo.png"]'));
 
 /* ── Firebase Auth State — تسجيل دخول تلقائي ── */
 auth.onAuthStateChanged(async function(user){
   if (user){
-    _logoIntroDone = true;
     const switched = _hadAuthUser && CURRENT_UID !== user.uid; // حساب آخر بعد الأول في هذه الجلسة
     _hadAuthUser = true;
     CURRENT_UID = user.uid;
@@ -6026,7 +6028,6 @@ auth.onAuthStateChanged(async function(user){
     var guestSec = document.getElementById('guestSection');
     if (guestSec) guestSec.style.display = '';
     nav('login');
-    if (!_logoIntroDone){ _logoIntroDone = true; playLogoIntro(document.getElementById('loginLogo')); }
   }
 });
 
