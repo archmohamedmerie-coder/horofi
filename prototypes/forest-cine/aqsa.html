@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
+<style>.cont body>*{visibility:hidden}</style>
+<script>if (/[?&]cont=/.test(location.search)) document.documentElement.classList.add('cont');  // صفحة قادمة من رحلة: لا يُرسم شيء قبل لقطة البداية</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>المسجد الأقصى — من رحلة الزيتون</title>
@@ -62,6 +64,7 @@ html,body{height:100%;overflow:hidden;background:#15130c;font-family:'Tajawal',s
 <div class="screen" id="start"><h1>🕌 قبة الصخرة والمسجد الأقصى</h1><p>أكمل الكلمة: اختر البلاطة التي عليها الباء الصحيحة.</p><button>ابدأ</button></div>
 <script type="module">
 import { ARFORMS, LETTER_BA } from '/prototypes/forest-env/data.js';
+import { arrive, leave, keepClear } from './cine.js';
 
 /* ── السؤال: «الحرف الناقص» — نسخة مطابقة لدالّة التطبيق getNaturalForm، وتشكيل كل حرف على حدة ── */
 function naturalForm(L, i){ const f = ARFORMS[L[i]], p = L[i-1], pc = p && ARFORMS[p] && ARFORMS[p].c, hn = L[i+1] !== undefined;
@@ -140,7 +143,7 @@ const shake = e => e.animate([{marginLeft: '0'}, {marginLeft: '-10px'}, {marginL
 
 /* ── تسلسل المحطة ── */
 async function run(){
-  build();
+  build(); keepClear(stage);                       // الخيارات لا تقع تحت اللافتة على أي مقاس (cine.js)
   const looking = play('look');                     // يلتفت نحو الماء، وأثناءها تظهر اللافتة وتطفو الأوراق واحدة تلو الأخرى
   await W(900); sign.classList.add('show');
   nodes.forEach((n, i) => setTimeout(() => n.e.classList.add('show'), 700 + i*500));
@@ -159,9 +162,9 @@ async function choose(n){
     await W(400); figToBasket(r.left + r.width/2, r.top + r.height/2);
     await say(R.wordAudio); n.e.classList.add('sink'); sign.classList.remove('show');
     await say('/audio/praise/praise_m_1.mp3'); await happy;
-    const glow = document.createElement('div'); glow.style.cssText = 'position:fixed;inset:0;background:#fffdf4;opacity:0;z-index:9;transition:opacity 1.2s ease-in';
-    document.body.appendChild(glow); requestAnimationFrame(() => glow.style.opacity = 1); await W(1300);
-    location.href = 'kaaba?cont=1';                // بلا .html: الخادم يعيد التوجيه ويُسقط الاستعلام
+    await leave('aqsa', async () => {               // بعد فاصل الكلمات يبيضّ المشهد، ومن النور تبدأ محطة الكعبة
+      const glow = document.createElement('div'); glow.style.cssText = 'position:fixed;inset:0;background:#fffdf4;opacity:0;z-index:9;transition:opacity 1.2s ease-in';
+      document.body.appendChild(glow); requestAnimationFrame(() => glow.style.opacity = 1); await W(1300); });
   } else {
     n.e.classList.add('bad'); shake(n.e); sadTune(); flash();
     await Promise.all([play('sad'), W(2600).then(() => say('/audio/wrong/wrong_m_1.mp3'))]);
@@ -172,11 +175,10 @@ async function choose(n){
 
 Object.values(vids).forEach(v => v.load());
 document.querySelector('#start button').onclick = () => { document.getElementById('start').remove(); run(); };
-// ?cont=1: قادمون من رحلة الزيتون. نبدأ بآخر لقطة في الرحلة نفسها، ثم تذوب في الصورة النظيفة (تبدو كأن الصورة اتّضحت)، ثم تبدأ المحطة وحدها
+// ?cont=1: قادمون من المحطة السابقة. البداية هي آخر لقطة فيها نفسها، تنزلق وتذوب في صورة المحطة (cine.js)، ثم تبدأ المحطة وحدها
 if (new URLSearchParams(location.search).get('cont')){
   document.getElementById('start').remove();
-  const cover = new Image(); cover.src = VD + 'travel_olive_aqsa_last.png'; cover.className = 'on'; cover.style.transition = 'opacity .6s'; stage.appendChild(cover);
-  setTimeout(() => { cover.classList.remove('on'); setTimeout(() => { cover.remove(); run(); }, 650); }, 300);
+  arrive('aqsa', stage, CX).then(run);
 }
 document.getElementById('replay').onclick = () => say(R.audio);
 window.__rv = () => ({locked, on: [...stage.children].filter(e => e.classList.contains('on')).map(e => (e.src || '').split('/').pop()),

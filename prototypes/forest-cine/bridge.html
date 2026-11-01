@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
+<style>.cont body>*{visibility:hidden}</style>
+<script>if (/[?&]cont=/.test(location.search)) document.documentElement.classList.add('cont');  // صفحة قادمة من رحلة: لا يُرسم شيء قبل لقطة البداية</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>الجسر — من رحلة الجدول</title>
@@ -62,6 +64,7 @@ html,body{height:100%;overflow:hidden;background:#15130c;font-family:'Tajawal',s
 <div class="screen" id="start"><h1>🌉 الجسر</h1><p>رتّب ألواح الحروف لتكتب الكلمة موصولة.</p><button>ابدأ</button></div>
 <script type="module">
 import { ARFORMS } from '/prototypes/forest-env/data.js';
+import { arrive, leave, keepClear } from './cine.js';
 
 /* ── السؤال: «التجميع» — نسخة مطابقة لـ_assembleExpected وbuildAssembleRound في التطبيق ── */
 function naturalForm(L, i){ const f = ARFORMS[L[i]], p = L[i-1], pc = p && ARFORMS[p] && ARFORMS[p].c, hn = L[i+1] !== undefined;
@@ -152,7 +155,7 @@ const question = async () => { await say('/audio/write/assemble_prompt.mp3'); aw
 
 /* ── تسلسل المحطة ── */
 async function run(){
-  build();
+  build(); keepClear(stage);                       // الخيارات لا تقع تحت اللافتة على أي مقاس (cine.js)
   const looking = play('look');                     // ينظر إلى الجسر، وأثناءها تظهر اللافتة والألواح
   await W(900); sign.classList.add('show'); await W(500); tray.classList.add('show');
   await Promise.all([question(), looking]);
@@ -170,7 +173,7 @@ async function check(){
     await W(400); figToBasket(r.left + r.width/2, r.top + r.height/2);
     await say(`/audio/words/${word}.mp3`); await say('/audio/praise/praise_m_1.mp3'); sign.classList.remove('show');
     await journey;
-    location.href = 'glade?cont=1';                 // بلا .html: الخادم يعيد التوجيه ويُسقط الاستعلام
+    await leave('bridge');                          // فاصل الكلمات ثم المحطة التالية (cine.js)
   } else {
     shake(wordEl); sadTune(); flash();
     await Promise.all([play('sad'), W(2600).then(() => say('/audio/wrong/wrong_m_1.mp3'))]);
@@ -180,11 +183,10 @@ async function check(){
 
 Object.values(vids).forEach(v => v.load());
 document.querySelector('#start button').onclick = () => { document.getElementById('start').remove(); run(); };
-// ?cont=1: قادمون من رحلة الجدول. نبدأ بآخر لقطة في الرحلة نفسها، ثم تذوب في الصورة النظيفة، ثم تبدأ المحطة وحدها
+// ?cont=1: قادمون من المحطة السابقة. البداية هي آخر لقطة فيها نفسها، تنزلق وتذوب في صورة المحطة (cine.js)، ثم تبدأ المحطة وحدها
 if (new URLSearchParams(location.search).get('cont')){
   document.getElementById('start').remove();
-  const cover = new Image(); cover.src = VD + 'travel_river_bridge_last.png'; cover.className = 'on'; cover.style.transition = 'opacity .6s'; stage.appendChild(cover);
-  setTimeout(() => { cover.classList.remove('on'); setTimeout(() => { cover.remove(); run(); }, 650); }, 300);
+  arrive('bridge', stage, CX).then(run);
 }
 document.getElementById('replay').onclick = question;
 window.__br = () => ({locked, sel: sel.map(s => s.form), expected: expected.map(e => e.form), on: [...stage.children].filter(e => e.classList.contains('on')).map(e => (e.src || '').split('/').pop())});

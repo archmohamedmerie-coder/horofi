@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
+<style>.cont body>*{visibility:hidden}</style>
+<script>if (/[?&]cont=/.test(location.search)) document.documentElement.classList.add('cont');  // صفحة قادمة من رحلة: لا يُرسم شيء قبل لقطة البداية</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>الكعبة المشرّفة — من نور الأقصى</title>
@@ -64,6 +66,7 @@ html,body{height:100%;overflow:hidden;background:#15130c;font-family:'Tajawal',s
 <div class="screen" id="start"><h1>🕋 الكعبة المشرّفة</h1><p>رتّب ألواح الحروف لتكتب الكلمة موصولة.</p><button>ابدأ</button></div>
 <script type="module">
 import { ARFORMS } from '/prototypes/forest-env/data.js';
+import { arrive, leave, keepClear } from './cine.js';
 
 /* ── السؤال: «التجميع» — نسخة مطابقة لـ_assembleExpected وbuildAssembleRound في التطبيق ── */
 function naturalForm(L, i){ const f = ARFORMS[L[i]], p = L[i-1], pc = p && ARFORMS[p] && ARFORMS[p].c, hn = L[i+1] !== undefined;
@@ -144,7 +147,7 @@ const question = async () => { await say('/audio/write/assemble_prompt.mp3'); aw
 
 /* ── تسلسل المحطة ── */
 async function run(){
-  build();
+  build(); keepClear(stage);                       // الخيارات لا تقع تحت اللافتة على أي مقاس (cine.js)
   const looking = play('look');                     // ينظر إلى الجسر، وأثناءها تظهر اللافتة والألواح
   await W(900); sign.classList.add('show'); await W(500); tray.classList.add('show');
   await Promise.all([question(), looking]);
@@ -174,11 +177,10 @@ async function check(){
 
 Object.values(vids).forEach(v => v.load());
 document.querySelector('#start button').onclick = () => { document.getElementById('start').remove(); run(); };
-// ?cont=1: قادمون من نور الأقصى: الشاشة بيضاء، ثم يصفو النور عن الكعبة، ثم تبدأ المحطة وحدها
+// ?cont=1: قادمون من المحطة السابقة. البداية هي آخر لقطة فيها نفسها، تنزلق وتذوب في صورة المحطة (cine.js)، ثم تبدأ المحطة وحدها
 if (new URLSearchParams(location.search).get('cont')){
   document.getElementById('start').remove();
-  const glow = document.createElement('div'); glow.style.cssText = 'position:fixed;inset:0;background:#fffdf4;z-index:9;transition:opacity 1.4s ease-out'; document.body.appendChild(glow);
-  setTimeout(() => { glow.style.opacity = 0; setTimeout(() => { glow.remove(); run(); }, 1450); }, 400);
+  arrive('kaaba', stage, CX).then(run);
 }
 document.getElementById('replay').onclick = question;
 window.__br = () => ({locked, sel: sel.map(s => s.form), expected: expected.map(e => e.form), on: [...stage.children].filter(e => e.classList.contains('on')).map(e => (e.src || '').split('/').pop())});
