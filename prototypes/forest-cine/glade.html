@@ -66,7 +66,7 @@ function shapeWord(L, ov = {}, d = null){ let o = ''; for (let i = 0; i < L.leng
   if (!f){ o += L[i] + m; continue; } o += String.fromCodePoint(f[ov[i] || naturalForm(L, i)] || f.iso) + m; } return o; }
 const B = LETTER_BA.levels.beginner, word = B.mid_c[2], L = Array.from(word), ti = L.indexOf('ب');
 const R = {word, L, d: B.mid_cD[2], ti, correct: naturalForm(L, ti), pos: 'فِي وَسَطِ الْكَلِمَة بَعْدَ حَرْفٍ مُتَّصِل', audio: '/audio/questions/ب_med_c.mp3', wordAudio: `/audio/words/${word}.mp3`};
-const opt = form => { let w = shapeWord(R.L, {[R.ti]: form}, R.d); if (form === 'med' || form === 'fin') w = 'ـ' + w; return w; };
+const opt = form => shapeWord(R.L, {[R.ti]: form}, R.d);   // الكلمة كاملة كما تُكتب، بلا تطويل قبلها
 
 /* ── المشهد: صورة/فيديو 768×1364 يملأ الشاشة (cover)، ويُقصّ من الجانبين حول CX (الطفل والأوراق ظاهران) ── */
 const VD = '/prototypes/assets/magiclight/', IW = 768, IH = 1364, CX = 384;

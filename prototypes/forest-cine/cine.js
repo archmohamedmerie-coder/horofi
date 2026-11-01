@@ -18,13 +18,13 @@ const SEAMS = {
   bridge:   {cover: 'travel_river_bridge_last.png',   align: [1.002, 0, -50],     fromCX: 425},
   glade:    {cover: 'travel_bridge_glade_last.png',   align: [1.002, -10, -56]},
   meadow:   {cover: 'link_glade_meadow_last.png',     align: [0.91, -4, 60]},     // آخر لقطة في مقطع الوصل
-  oasis:    {cover: 'link_meadow_oasis_last.png',     align: [1.06, -48, -100]},
-  beach:    {cover: 'link_oasis_beach_last.png',      align: [1.2, -24, -20]},
+  oasis:    {cover: 'link_meadow_oasis2_last.png',    align: [0.88, -40, 12]},
+  beach:    {cover: 'link_oasis_beach2_last.png',     align: [1.16, -12, -120]},
   savanna:  {cover: 'link_beach_savanna_last.png',    align: [0.85, 36, -116]},
   snow:     {cover: 'link_savanna_snow_last.png',     align: [1.1, 4, -28]},
   damascus: {cover: 'link_snow_damascus_last.png',    align: [1.2, 28, 48]},       // الوصل ينتهي في زقاق: أول ما يظهر من الدار هو الصحيح
   rain:     {cover: 'travel_damascus_rain_last.png',  align: [0.984, -6, -12]},
-  autumn:   {cover: 'link_rain_autumn_last.png',      align: [1.08, -8, -120]},
+  autumn:   {cover: 'link_rain_autumn2_last.png',     align: [1.13, -48, -120]},
   olive:    {cover: 'link_autumn_olive_last.png',     align: [1.04, 8, -100]},
   aqsa:     {cover: 'link_olive_aqsa_last.png',       align: [0.9, 12, 28], intro: 'rev_aqsa.mp4'},
   kaaba:    {white: true, intro: 'rev_kaaba.mp4'},   // الثياب تتبدّل إلى الإحرام عبر نور أبيض، ثم تهبط الكاميرا على الطفل
@@ -34,10 +34,10 @@ const SEAMS = {
    ويكون آخر ما في الرحلة: آخر لقطة فيه هي بداية المحطة التالية (SEAMS). المفتاح: صفحة المغادرة.
    (جُرّب استئناف بقية مقطع الرحلة بعده بذوبان، فظهر مرجان مختلفان والطفل بحجمين: الوصل لا يتحكّم بآخر لقطته) */
 const CHAINS = {
-  glade:   {link: 'link_glade_meadow.mp4', cut: 1.3},   meadow: {link: 'link_meadow_oasis.mp4', cut: 2.6},
-  oasis:   {link: 'link_oasis_beach.mp4', cut: .9},     beach:  {link: 'link_beach_savanna.mp4', cut: 1.4},
+  glade:   {link: 'link_glade_meadow.mp4', cut: 1.3},   meadow: {link: 'link_meadow_oasis2.mp4', cut: 2.6},
+  oasis:   {link: 'link_oasis_beach2.mp4', cut: .4},  // قبل أن يدخل بركة الواحة: الوصل يدور حولها   beach:  {link: 'link_beach_savanna.mp4', cut: 1.4},
   savanna: {link: 'link_savanna_snow.mp4', cut: 1.5},   snow:   {link: 'link_snow_damascus.mp4', cut: .9},
-  rain:    {link: 'link_rain_autumn.mp4', cut: 1.4},    autumn: {link: 'link_autumn_olive.mp4', cut: 1.2},
+  rain:    {link: 'link_rain_autumn2.mp4', cut: 1.4},  // على حافة البركة الصخرية لا فوق الماء    autumn: {link: 'link_autumn_olive.mp4', cut: 1.2},
   olive:   {link: 'link_olive_aqsa.mp4', cut: .5},      // يُقطع قبل أن تظهر القبة (كانت تُرسم برجاً)
 };
 const PAGE = location.pathname.split('/').pop().replace('.html', '');
@@ -70,13 +70,14 @@ const STILLS = {river2: 'station_riv2.jpg', bridge: 'station_bridge.jpg', glade:
   damascus: 'station_damascus.jpg', rain: 'station_rain.jpg', autumn: 'station_autumn.jpg', olive: 'station_olive.jpg',
   aqsa: 'station_aqsa.jpg', kaaba: 'station_kaaba.jpg'};
 
-/* كلمات الرحلة بعد كل محطة: كلمات من كلمات الباء في التطبيق، غير كلمات المحطات نفسها حتى لا تكشف الجواب */
+/* كلمات الرحلة بعد كل محطة: من كلمات الباء في التطبيق، **في الموضع نفسه** الذي اختُبر فيه الطفل للتو (بداية،
+   وسط بعد متّصل، وسط بعد غير متّصل، نهاية بعد متّصل، نهاية بعد غير متّصل)، وغير كلمات المحطات حتى لا تكشف جواباً */
 const WORDS = {
-  fig: ['باب', 'بحر', 'بحيرة'],      river2: ['لبن', 'زبد', 'نبض'],      bridge: ['ذهب', 'عرب', 'بقرة'],
-  glade: ['كبير', 'جبهة', 'زبدة'],   meadow: ['ربطة', 'ملعب', 'شراب'],   oasis: ['بستان', 'برتقال', 'مكتبة'],
-  beach: ['حقيبة', 'مختبر', 'مربية'], savanna: ['أربعة', 'ملاعب', 'مكاتب'], snow: ['كواكب', 'أقارب', 'تجارب'],
-  damascus: ['مشارب', 'باب', 'بحر'], rain: ['بحيرة', 'لبن', 'بقرة'],     autumn: ['ذهب', 'كبير', 'بستان'],
-  olive: ['برتقال', 'حقيبة', 'مكتبة'], aqsa: ['كواكب', 'أربعة', 'باب'],
+  fig: ['باب', 'بحر', 'بقرة'],             river2: ['ملعب', 'كواكب', 'مكاتب'],   bridge: ['بحيرة', 'بستان', 'برتقال'],   // بداية | نهاية بعد متّصل | بداية
+  glade: ['لبن', 'كبير', 'حقيبة'],         meadow: ['زبدة', 'ربطة', 'أربعة'],    oasis: ['شراب', 'أقارب', 'عرب'],        // وسط بعد متّصل | وسط بعد غير متّصل | نهاية بعد غير متّصل
+  beach: ['عرب', 'تجارب', 'مشارب'],        savanna: ['ملاعب', 'مكاتب', 'كواكب'], snow: ['ملعب', 'ملاعب', 'كواكب'],       // نهاية بعد غير متّصل | نهاية بعد متّصل ×2
+  damascus: ['باب', 'بحيرة', 'برتقال'],    rain: ['نبض', 'جبهة', 'مكتبة'],      autumn: ['ملعب', 'مكاتب', 'كواكب'],     // بداية | وسط بعد متّصل | نهاية بعد متّصل
+  olive: ['زبد', 'مربية', 'أربعة'],        aqsa: ['بحر', 'بستان', 'بقرة'],                                                // وسط بعد غير متّصل | بداية
 };
 // تشكيل الكلمة من بيانات التطبيق (مصفوفة حركات لكل حرف)
 function voweled(w){

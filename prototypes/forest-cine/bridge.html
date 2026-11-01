@@ -25,7 +25,7 @@ html,body{height:100%;overflow:hidden;background:#15130c;font-family:'Tajawal',s
 #word{display:flex;flex-direction:row;justify-content:center;gap:0;margin-top:6px;min-height:72px;direction:rtl}
 #word .slot{min-width:46px;height:68px;display:flex;align-items:center;justify-content:center;border:3px dashed #ffe08a99;border-radius:10px;margin:0 3px;
   font:700 54px/1 'Noto Naskh Arabic','Amiri',serif;color:#fffbe8;text-shadow:0 3px 0 #3d250e;transition:border-color .3s,margin .3s}
-#word .slot.full{border-color:transparent;margin:0}
+#word .slot.full{border:0;margin:0;padding:0;min-width:0}   /* الحرف الممتلئ بعرضه هو، فتتّصل الحروف كلمةً واحدة */
 #word.ok .slot{color:#ffe36e;text-shadow:0 0 14px rgba(255,220,90,.9),0 3px 0 #3d250e}
 
 /* لوحة الألواح: صف لكل حرف (بترتيب ظهوره)، وأشكاله الأربعة مخلوطة — مثل asm-panel في التطبيق */
