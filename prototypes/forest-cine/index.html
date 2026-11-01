@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>التينة السينمائية — تجربة</title>
+<link rel="stylesheet" href="/fonts/fonts.css">
+<style>
+/* تجربة «2.5D سينمائي»: مشهد مولّد في MagicLight (GPT Image 2) + طبقة تفاعلية فوقه.
+   التمرين: «الكلمات الأربع» الأصلي ببيانات حرف الباء الحقيقية وأصواته. مستقلة عن التطبيق. */
+:root{--ink:#fffbe8;--edge:#1f4a17}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#2b2116;font-family:'Tajawal',sans-serif}
+#view{position:fixed;inset:0;overflow:hidden}
+/* المسرح بإحداثيات الصورة نفسها (768×1344) ثم يُكبَّر ليغطّي الشاشة */
+#stage{position:absolute;width:768px;height:1344px;transform-origin:0 0}
+/* الخلفية الحيّة: فيديو بلا أوراق السؤال (الكاميرا ثابتة)، والصورة الثابتة نفسها احتياطاً حتى يُحمَّل */
+#bgwrap{position:absolute;left:0;top:0;width:768px;height:1344px;background:url(/prototypes/assets/magiclight/plate_enter.png) 0 0/768px 1344px}
+/* طبقتا فيديو متراكبتان: المقطع التالي يُحمَّل في المخفيّة ثم تتلاشى إليه (كل المقاطع تبدأ وتنتهي بوضعية الوقوف نفسها) */
+.bgv{position:absolute;left:0;top:0;width:768px;height:1344px;object-fit:fill;opacity:0;transition:opacity .25s}
+.bgv.on{opacity:1}
+/* أوراق السؤال: مقصوصة من الصورة الأصلية، تتمايل حول عنقها */
+.leaf{position:absolute;pointer-events:none;transform-origin:50% 4%;animation:sway 4.2s ease-in-out infinite alternate;transition:filter .5s}
+@keyframes sway{from{transform:rotate(-1.6deg)}to{transform:rotate(1.6deg)}}
+.leaf.win{filter:brightness(1.25) saturate(1.15) drop-shadow(0 0 18px rgba(255,236,140,.95))}
+.leaf.dead{filter:sepia(.85) saturate(.7) brightness(.8) hue-rotate(-12deg)}
+
+/* ضوء ذهبي يتنفّس خلف كل ورقة */
+.halo{position:absolute;width:300px;height:300px;margin:-150px 0 0 -150px;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle,rgba(255,236,150,.55),rgba(255,220,120,.18) 45%,rgba(255,210,120,0) 70%);
+  opacity:0;transition:opacity .6s;mix-blend-mode:screen}
+.halo.on{opacity:.35;animation:pulse 2.6s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.6}}
+.halo.win{opacity:1;animation:none;background:radial-gradient(circle,rgba(255,250,200,.95),rgba(255,214,90,.45) 45%,rgba(255,210,120,0) 72%)}
+
+/* الكلمة على الورقة: عاجيّة بحافّة خضراء داكنة كأنها محفورة */
+.word{position:absolute;width:240px;margin-left:-120px;text-align:center;direction:rtl;pointer-events:none;
+  font:700 64px/1 'Noto Naskh Arabic','Amiri',serif;color:var(--ink);
+  -webkit-text-stroke:5px var(--edge);paint-order:stroke fill;text-shadow:0 4px 10px rgba(0,0,0,.45);
+  opacity:0;transform:scale(.6);transition:opacity .5s,transform .6s cubic-bezier(.3,1.7,.5,1)}
+.word.show{opacity:1;transform:scale(1)}
+.word.ok{color:#fff7b8;-webkit-text-stroke-color:#5a4200}
+.word.bad{color:#c99a62;-webkit-text-stroke-color:#4a2d10;animation:shake .45s}
+@keyframes shake{20%,60%{transform:translateX(-9px)}40%,80%{transform:translateX(9px)}}
+.word.gone{opacity:0;transition:opacity .8s}
+
+/* منطقة اللمس لكل ورقة */
+.hit{position:absolute;width:250px;height:270px;margin:-135px 0 0 -125px;border-radius:45%;cursor:pointer}
+
+/* لوحة السؤال — النص محفور على الخشب الموجود في الصورة */
+#sign{position:absolute;left:292px;top:888px;width:250px;height:84px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;color:#fff1cf;text-shadow:0 2px 0 #3d250e,0 0 6px rgba(0,0,0,.4);opacity:0;transition:opacity .6s}
+#sign.show{opacity:1}
+#sign b{font:800 26px/1.15 Tajawal} #sign i{font:800 21px/1.2 Tajawal;color:#ffe08a;font-style:normal}
+
+/* بقع ضوء طافية وفراشات */
+.mote{position:absolute;width:6px;height:6px;border-radius:50%;background:#fff3b0;box-shadow:0 0 10px 3px rgba(255,236,150,.8);pointer-events:none;opacity:0}
+.fly{position:absolute;width:34px;height:28px;pointer-events:none}
+.fly i{position:absolute;top:0;width:17px;height:28px;border-radius:60% 40% 50% 50%;transform-origin:100% 50%}
+.fly i:first-child{left:0} .fly i:last-child{left:17px;transform-origin:0 50%;border-radius:40% 60% 50% 50%}
+.petal,.dry{position:absolute;pointer-events:none}
+
+/* الواجهة */
+#hud{position:fixed;top:max(10px,env(safe-area-inset-top));left:10px;right:10px;display:flex;justify-content:space-between;z-index:5}
+.pill{background:#0009;color:#fff;border:0;border-radius:999px;padding:7px 14px;font:800 .95rem Tajawal;cursor:pointer}
+#streak{color:#ffd75e}
+#start{position:fixed;inset:0;z-index:9;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;background:rgba(20,14,6,.55);color:#fff;text-align:center;padding:20px}
+#start h1{font:900 1.7rem Tajawal} #start p{opacity:.9}
+#start button,#next{font:900 1.25rem Tajawal;border:0;border-radius:18px;padding:14px 34px;background:#ffb648;color:#3b2408;box-shadow:0 5px 0 #c27d1c;cursor:pointer}
+#next{position:fixed;left:50%;bottom:max(22px,env(safe-area-inset-bottom));transform:translateX(-50%) scale(0);z-index:6;transition:transform .4s cubic-bezier(.3,1.7,.5,1)}
+#next.show{transform:translateX(-50%) scale(1)}
+</style>
+</head>
+<body>
+<div id="view"><div id="stage"><div id="bgwrap"><video class="bgv" muted playsinline preload="auto"></video><video class="bgv" muted playsinline preload="auto"></video></div><div id="sign"><b></b><i></i></div></div></div>
+<div id="hud"><button class="pill" id="replay">🔊 أعِد</button><span class="pill" id="streak">⭐ 0</span></div>
+<div id="start"><h1>🌳 تينة الحروف</h1><p>تجربة الأسلوب السينمائي — جولات حقيقية من حرف الباء.</p><button>ابدأ</button></div>
+<button id="next">التالي ←</button>
+
+<script type="module">
+import { ARFORMS, LETTER_BA } from '/prototypes/forest-env/data.js';
+
+/* ── نسخة مطابقة لدالتَي التطبيق (shapeWord / getNaturalForm) ── */
+function naturalForm(L, i){ const f = ARFORMS[L[i]], p = L[i-1], pc = p && ARFORMS[p] && ARFORMS[p].c, hn = L[i+1] !== undefined;
+  return (pc && hn && f.med) ? 'med' : (pc && f.fin) ? 'fin' : (!pc && hn && f.ini) ? 'ini' : 'iso'; }
+function shapeWord(L, ov = {}, d = null){ let o = ''; for (let i = 0; i < L.length; i++){ const f = ARFORMS[L[i]], m = (d && d[i]) || '';
+  if (!f){ o += L[i] + m; continue; } o += String.fromCodePoint(f[ov[i] || naturalForm(L, i)] || f.iso) + m; } return o; }
+
+/* جولات «الكلمات الأربع» للغابة الأولى: الكلمة الثالثة من مواضع البداية والوسط (المبتدئ) */
+const B = LETTER_BA.levels.beginner;
+const POS = {start:'فِي بِدَايَةِ الْكَلِمَة', mid_c:'فِي وَسَطِ الْكَلِمَة، بَعْدَ مُتَّصِل', mid_n:'فِي وَسَطِ الْكَلِمَة، بَعْدَ مُنْفَصِل'};
+const AUD = {start:'ب_ini', mid_c:'ب_med_c', mid_n:'ب_med_n'};
+const ROUNDS = ['start', 'mid_c', 'mid_n'].map(cat => {
+  const word = B[cat][2], L = Array.from(word), ti = L.indexOf('ب', cat === 'start' ? 0 : 1), correct = naturalForm(L, ti);
+  return {word, L, d: B[cat + 'D'][2], ti, correct, isStart: cat === 'start', pos: POS[cat], audio: `/audio/questions/${AUD[cat]}.mp3`, wordAudio: `/audio/words/${word}.mp3`};
+});
+const opt = (R, form) => { let w = shapeWord(R.L, {[R.ti]: form}, R.d); if (R.isStart && (form === 'med' || form === 'fin')) w = 'ـ' + w; return w; };
+
+/* مواضع أوراق التين في الصورة (بكسلات الصورة 768×1344) — مركز نصل الورقة، وإطار قصّها */
+const LEAVES = [{x: 272, y: 420, box: [138, 252, 408, 552]}, {x: 538, y: 425, box: [402, 262, 672, 556]},
+                {x: 272, y: 690, box: [142, 536, 404, 822]}, {x: 546, y: 695, box: [412, 542, 678, 826]}];
+
+/* قصّ الورقة من الصورة الأصلية: بكسلات الأخضر المتوهّج المتّصلة بمركز الورقة (ملء من المركز)، بحافّة ناعمة */
+async function cutLeaves(){
+  // onload لا decode(): الأخيرة لا تنتهي حين تكون الصفحة غير ظاهرة
+  const img = new Image(); await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = '/prototypes/assets/magiclight/q_merged_1.jpg'; });
+  const cv = document.createElement('canvas'); cv.width = 768; cv.height = 1344; const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0);
+  return LEAVES.map(L => {
+    const [x0, y0, x1, y1] = L.box, w = x1 - x0, h = y1 - y0, d = cx.getImageData(x0, y0, w, h).data;
+    // قيم مقيسة من الصورة: الورقة أصفر مخضرّ مضيء (مثلاً 169,188,45 و184,179,36)، والجذع والخلفية داكنان (80,81,3)
+    const isLeaf = i => { const r = d[i], g = d[i+1], b = d[i+2]; return (r + g + b) > 245 && g > b*2.1 && g > r*0.88; };
+    const mask = new Uint8Array(w*h), stack = [[L.x - x0, L.y - y0]];
+    while (stack.length){ const [px, py] = stack.pop(); if (px < 0 || py < 0 || px >= w || py >= h) continue; const k = py*w + px;
+      if (mask[k] || !isLeaf(k*4)) continue; mask[k] = 1; stack.push([px+1, py], [px-1, py], [px, py+1], [px, py-1]); }
+    // تجاويف صغيرة داخل الورقة (العروق الداكنة) تُملأ: كل بكسل محاط بالورقة أفقياً وعمودياً
+    for (let y = 0; y < h; y++){ let a = -1, b = -1; for (let x = 0; x < w; x++) if (mask[y*w+x]){ if (a < 0) a = x; b = x; }
+      for (let x = a; x >= 0 && x <= b; x++) if (!mask[y*w+x]){ let up = 0, dn = 0; for (let t = y-1; t >= 0; t--) if (mask[t*w+x]){ up = 1; break; } for (let t = y+1; t < h; t++) if (mask[t*w+x]){ dn = 1; break; } if (up && dn) mask[y*w+x] = 2; } }
+    const out = document.createElement('canvas'); out.width = w; out.height = h; const ox = out.getContext('2d');
+    const id = ox.createImageData(w, h); for (let k = 0; k < w*h; k++){ id.data.set(d.subarray(k*4, k*4+3), k*4); id.data[k*4+3] = mask[k] ? 255 : 0; }
+    ox.putImageData(id, 0, 0);
+    const soft = document.createElement('canvas'); soft.width = w; soft.height = h; const sx = soft.getContext('2d');
+    sx.filter = 'blur(1.2px)'; sx.drawImage(out, 0, 0); sx.filter = 'none'; sx.globalCompositeOperation = 'source-atop'; sx.drawImage(out, 0, 0);
+    soft.className = 'leaf'; soft.style.left = x0 + 'px'; soft.style.top = y0 + 'px';
+    soft.style.animationDelay = (-Math.random()*4).toFixed(2) + 's';
+    return soft;
+  });
+}
+let leafSprites = [];
+
+/* ── المسرح يغطّي الشاشة ويحافظ على نسبة الصورة ── */
+const stage = document.getElementById('stage');
+function fit(){ const s = Math.max(innerWidth/768, innerHeight/1344); stage.style.transform = `scale(${s})`;
+  stage.style.left = (innerWidth - 768*s)/2 + 'px'; stage.style.top = (innerHeight - 1344*s)/2 + 'px'; }
+addEventListener('resize', fit); fit();
+const el = (cls, parent = stage, tag = 'div') => { const e = document.createElement(tag); e.className = cls; parent.appendChild(e); return e; };
+
+/* ── الحياة المحيطة: بقع ضوء طافية وفراشتان ── */
+for (let i = 0; i < 22; i++){
+  const m = el('mote'); const x = 80 + Math.random()*600, y = 250 + Math.random()*800, d = 6 + Math.random()*7;
+  m.style.left = x + 'px'; m.style.top = y + 'px';
+  m.animate([{opacity: 0, transform: 'translate(0,0)'}, {opacity: .9, offset: .3}, {opacity: .7, offset: .7}, {opacity: 0, transform: `translate(${(Math.random()-.5)*80}px,${-40 - Math.random()*80}px)`}],
+    {duration: d*1000, iterations: Infinity, delay: Math.random()*d*1000});
+}
+function butterfly(color, path, dur){
+  const f = el('fly'); f.innerHTML = `<i style="background:${color}"></i><i style="background:${color}"></i>`;
+  const [l, r] = f.children;
+  l.animate([{transform: 'rotateY(0)'}, {transform: 'rotateY(70deg)'}], {duration: 140, iterations: Infinity, direction: 'alternate'});
+  r.animate([{transform: 'rotateY(0)'}, {transform: 'rotateY(-70deg)'}], {duration: 140, iterations: Infinity, direction: 'alternate'});
+  f.animate(path.map(([x, y]) => ({transform: `translate(${x}px,${y}px)`})), {duration: dur, iterations: Infinity, direction: 'alternate', easing: 'ease-in-out'});
+  return f;
+}
+butterfly('#ffb13d', [[60, 1100], [180, 980], [120, 860], [260, 900]], 9000);
+butterfly('#7fd0ff', [[640, 1180], [560, 1040], [690, 950], [600, 880]], 11000);
+
+/* ── طبقة الجولة ── */
+const sign = document.getElementById('sign');
+let ri = 0, locked = true, streak = 0, missed = false, nodes = [], cur = null;
+const W = ms => new Promise(r => setTimeout(r, ms));
+function play(src, vol = 1){ return new Promise(res => { try{ cur && cur.pause(); }catch(e){} const a = new Audio(src); a.volume = vol; cur = a; a.onended = a.onerror = () => res(); a.play().catch(() => res()); }); }
+const sfx = n => { const a = new Audio(`/prototypes/forest-env/assets/sfx/${n}.ogg`); a.volume = .6; a.play().catch(()=>{}); };
+/* لحن حزين قصير (صندوق موسيقى هابط بسلّم صغير) — مولَّد بـWebAudio فيعمل على iOS بلا ملف */
+let actx = null;
+function sadTune(){
+  try{
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume();
+    const notes = [[659.3, 0, .45], [587.3, .42, .45], [523.3, .84, .45], [493.9, 1.26, .5], [440, 1.8, 1.4], [329.6, 1.8, 1.4]];
+    const out = actx.createGain(); out.gain.value = .22; out.connect(actx.destination);
+    const t0 = actx.currentTime + .05;
+    notes.forEach(([f, at, len]) => {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = 'triangle'; o.frequency.value = f; o.detune.setValueAtTime(0, t0 + at); o.detune.linearRampToValueAtTime(-25, t0 + at + len);
+      g.gain.setValueAtTime(0, t0 + at); g.gain.linearRampToValueAtTime(1, t0 + at + .03); g.gain.exponentialRampToValueAtTime(.001, t0 + at + len);
+      o.connect(g); g.connect(out); o.start(t0 + at); o.stop(t0 + at + len + .05);
+    });
+  }catch(e){}
+}
+
+function buildRound(){
+  nodes.forEach(n => Object.values(n).forEach(e => e && e.remove && e.remove())); nodes = [];
+  const R = ROUNDS[ri]; missed = false; locked = true;
+  leafSprites.forEach(s => { s.getAnimations().filter(a => a.id === 'fall').forEach(a => a.cancel()); s.classList.remove('win', 'dead'); s.style.opacity = 0; });
+  sign.classList.remove('show'); sign.querySelector('b').textContent = 'اِخْتَرِ الْبَاءَ الصَّحِيحَة'; sign.querySelector('i').textContent = R.pos;
+  const forms = [R.correct, ...['ini','med','fin','iso'].filter(f => f !== R.correct)].sort(() => Math.random() - .5);
+  forms.forEach((form, k) => {
+    const p = LEAVES[k], halo = el('halo'), word = el('word'), hit = el('hit');
+    halo.style.left = p.x + 'px'; halo.style.top = p.y + 'px';
+    word.style.left = p.x + 'px'; word.style.top = (p.y - 32) + 'px'; word.textContent = opt(R, form);
+    hit.style.left = p.x + 'px'; hit.style.top = p.y + 'px';
+    const n = {halo, word, hit, ok: form === R.correct, k, done: false}; nodes.push(n);
+    hit.onclick = () => choose(n);
+  });
+}
+
+/* السؤال يتشكّل مع الصوت: اللوحة أولاً، ثم تتوهّج الأوراق وتظهر كلماتها واحدة تلو الأخرى، والقفل حتى ينتهي الصوت */
+async function ask(){
+  const R = ROUNDS[ri];
+  const a = new Audio(R.audio); await new Promise(r => { a.onloadedmetadata = r; a.onerror = r; setTimeout(r, 800); });
+  const dur = isFinite(a.duration) ? a.duration : 4;
+  // الطفل يمشي نحو الشجرة، وفي أثناء مشيه تُقرأ اللوحة وتتفتّح الأوراق واحدة تلو الأخرى
+  const walked = clip(V.enter).then(() => clip(V.idle, true));
+  sign.classList.add('show');
+  // موزّعة على مدّة المشي (~5.9ث) لا على الصوت القصير، فتكتمل الأوراق قبيل وقوفه
+  nodes.forEach((n, k) => setTimeout(() => { unfold(leafSprites[n.k]); setTimeout(() => { n.halo.classList.add('on'); n.word.classList.add('show'); }, 450); },
+    600 + k * 1250));
+  await Promise.all([play(R.audio), walked]);
+  locked = false;
+  nodes.forEach(n => n.halo.animate([{opacity: .35}, {opacity: .9}, {opacity: .35}], {duration: 600}));     // لمعة: دورك الآن
+}
+
+/* الورقة تتفتّح من برعم عند عنقها: صغيرة ملتفّة ثم تنبسط بارتداد خفيف */
+function unfold(s){
+  if (!s) return; s.style.opacity = 1;
+  s.animate([{transform: 'scale(.08,.02) rotate(-35deg)', filter: 'brightness(.6)', opacity: 0}, {opacity: 1, offset: .2},
+             {transform: 'scale(1.06,.95) rotate(4deg)', filter: 'brightness(1.15)', offset: .7}, {transform: 'scale(1) rotate(0)', filter: 'brightness(1)'}],
+            {duration: 900, easing: 'cubic-bezier(.25,.8,.4,1)'});
+}
+
+async function choose(n){
+  if (locked || n.done) return;
+  const R = ROUNDS[ri];
+  // الطفل يقفز ويمدّ يده إلى الورقة المختارة؛ النتيجة تظهر لحظة وصول يده
+  locked = true; const r = reach(n.k); await r.hit;
+  // بعد أن يهبط: الطفل والحيوانات يفرحون أو يحزنون، ثم يعود للانتظار
+  r.done.then(() => react(n.ok)).then(() => { if (!n.ok) locked = false; });
+  if (n.ok){
+    n.done = true; sfx('correct');
+    n.halo.classList.add('win'); n.word.classList.add('ok'); leafSprites[n.k] && leafSprites[n.k].classList.add('win');
+    nodes.filter(m => m !== n && !m.done).forEach(m => { m.word.classList.add('gone'); m.halo.classList.remove('on'); });
+    burst(LEAVES[n.k]);
+    if (!missed){ streak++; document.getElementById('streak').textContent = '⭐ ' + streak; }
+    await W(1000); await play(R.wordAudio);
+    if (streak === 3 && !missed) sfx('streak3');
+    await play(`/audio/praise/praise_m_${1 + ri % 5}.mp3`);
+    if (ri < ROUNDS.length - 1) document.getElementById('next').classList.add('show');
+  } else {
+    n.done = true; missed = true; streak = 0; document.getElementById('streak').textContent = '⭐ 0';
+    n.word.classList.add('bad'); n.halo.classList.remove('on');
+    const s = leafSprites[n.k];
+    if (s){
+      // الورقة نفسها تذبل ثم تنفصل عن غصنها وتسقط متأرجحة، والكلمة معها
+      s.classList.add('dead');
+      setTimeout(() => {
+        const fall = [{transform: 'translate(0,0) rotate(0)', opacity: 1}, {transform: 'translate(-30px,180px) rotate(-28deg)', offset: .45},
+                      {transform: 'translate(25px,560px) rotate(24deg)', opacity: 0}];
+        const o = {duration: 2200, easing: 'ease-in', fill: 'forwards'};
+        s.animate(fall, {...o, id: 'fall'}); n.word.animate(fall, o);
+      }, 650);
+    } else dryLeaf(LEAVES[n.k]);
+    sadTune(); await W(2600);
+    await play('/audio/wrong/wrong_m_1.mp3');
+  }
+}
+
+/* ── مقاطع الطفل ── */
+const VD = '/prototypes/assets/magiclight/';
+// قفزة لكل ورقة: 0 أعلى يسار، 1 أعلى يمين، 2 أسفل يسار، 3 أسفل يمين
+const V = {enter: VD + 'fig_enter.mp4', idle: VD + 'fig_idle.mp4', reach: [0, 1, 2, 3].map(k => VD + `fig_hop_${k}.mp4`),
+           happy: VD + 'fig_happy.mp4', sad: VD + 'fig_sad.mp4'};
+// لكل قفزة: ثانية وصول اليد، وثانية الهبوط (ما بعدها يتجوّل الطفل)
+// (مقيسة من لقطات كل 0.5ث)
+// from: يبدأ المقطع من هنا متخطّياً ثانية التمهيد الساكنة كي يستجيب الطفل فور النقر
+const REACH = [{from: 1, t: 2.3, until: 3.6}, {from: .7, t: 1.7, until: 3.6}, {from: 1, t: 2.5, until: 3.6}, {from: 1, t: 2.5, until: 3.6}];
+const REACT = {happy: 4.2, sad: 5.2};                       // نهاية مقطع ردّ الفعل قبل أن يبتعد عن وضعية الانتظار
+const vids = [...document.querySelectorAll('.bgv')]; let front = null;
+/* يشغّل مقطعاً في الطبقة المخفيّة ثم يظهرها. loop: يتكرّر ويُرجَع فوراً، وإلا يُرجَع عند انتهائه.
+   at = {t, until, fn}: fn عند الثانية t، وينتهي المقطع عند until. إن فشل التحميل يبقى المشهد كما هو */
+function clip(src, loop = false, at = null){
+  return new Promise(res => {
+    const v = vids.find(x => x !== front);
+    v.onended = v.ontimeupdate = null; v.loop = loop;
+    v.onerror = () => { at && at.fn(); res(); };
+    v.oncanplay = () => { v.oncanplay = null;
+      v.play().then(() => { v.classList.add('on'); if (front){ const old = front; setTimeout(() => { old.classList.remove('on'); old.pause(); }, 260); } front = v; })
+        .catch(() => { at && at.fn(); res(); });
+      if (loop) return res();
+      let fired = !at, over = false;
+      const end = () => { if (over) return; over = true; if (!fired){ fired = true; at.fn(); } res(); };
+      v.ontimeupdate = () => { if (!fired && v.currentTime >= at.t){ fired = true; at.fn(); } if (at && at.until && v.currentTime >= at.until) end(); };
+      v.onended = end;
+    };
+    v.src = src;
+  });
+}
+// القفزة نحو الورقة k: hit يُحَلّ لحظة وصول اليد، وdone عند الهبوط
+function reach(k){
+  let fn; const hit = new Promise(r => fn = r);
+  return {hit, done: clip(V.reach[k] + '#t=' + REACH[k].from, false, {...REACH[k], fn})};
+}
+// ردّ فعل الطفل والقرد والعصفورين، ثم الانتظار
+function react(ok){
+  return clip(ok ? V.happy : V.sad, false, {t: 0, until: REACT[ok ? 'happy' : 'sad'], fn(){}}).then(() => clip(V.idle, true));
+}
+
+/* احتفال: نافورة بتلات وأوراق صغيرة من الورقة الصحيحة */
+function burst(p){
+  const cols = ['#ffc1d9', '#fff', '#ffe27a', '#ff8fb8', '#c8f08a', '#ffd38a'];
+  for (let i = 0; i < 46; i++){
+    const e = el('petal'); const s = 10 + Math.random()*12;
+    e.style.cssText += `left:${p.x}px;top:${p.y}px;width:${s}px;height:${s*1.5}px;background:${cols[i % 6]};border-radius:60% 0 60% 0`;
+    const a = Math.random()*Math.PI*2, v = 160 + Math.random()*260, dx = Math.cos(a)*v, dy = Math.sin(a)*v*0.6 - 220;
+    e.animate([{transform: 'translate(0,0) rotate(0)', opacity: 1},
+               {transform: `translate(${dx*.7}px,${dy}px) rotate(${Math.random()*360}deg)`, opacity: 1, offset: .35},
+               {transform: `translate(${dx}px,${dy + 520}px) rotate(${Math.random()*720}deg)`, opacity: 0}],
+              {duration: 2600 + Math.random()*900, easing: 'cubic-bezier(.2,.6,.4,1)'}).onfinish = () => e.remove();
+  }
+}
+/* خطأ: ورقة يابسة تنفصل وتسقط متأرجحة */
+function dryLeaf(p){
+  const e = el('dry'); e.innerHTML = `<svg width="120" height="120" viewBox="0 0 100 100"><path d="M50 4 C60 22 82 18 86 38 C74 40 72 52 90 60 C78 74 62 66 56 86 L50 96 L44 86 C38 66 22 74 10 60 C28 52 26 40 14 38 C18 18 40 22 50 4Z" fill="#b8874a" stroke="#6e4a20" stroke-width="2"/><path d="M50 10 L50 94" stroke="#6e4a20" stroke-width="2"/></svg>`;
+  e.style.left = (p.x - 60) + 'px'; e.style.top = (p.y - 60) + 'px';
+  e.animate([{transform: 'translate(0,0) rotate(0)', opacity: 0}, {opacity: 1, offset: .1},
+             {transform: 'translate(-40px,260px) rotate(-40deg)', offset: .5}, {transform: 'translate(30px,620px) rotate(30deg)', opacity: 0}],
+            {duration: 2600, easing: 'ease-in'}).onfinish = () => e.remove();
+}
+
+[V.enter, V.idle, ...V.reach, V.happy, V.sad].forEach(u => fetch(u).catch(() => {}));     // تحميل مسبق كي لا يتوقّف المشي في أوله
+document.querySelector('#start button').onclick = async () => {
+  document.getElementById('start').remove();
+  leafSprites = await cutLeaves(); leafSprites.forEach(s => stage.insertBefore(s, sign));
+  buildRound(); ask();
+};
+document.getElementById('next').onclick = () => { document.getElementById('next').classList.remove('show'); ri++; buildRound(); ask(); };
+document.getElementById('replay').onclick = () => play(ROUNDS[ri].audio);
+window.__cine = () => ({ri, locked, clip: front && front.src.split('/').pop(), t: front && +front.currentTime.toFixed(2), streak, nodes: nodes.map(n => { const r = n.hit.getBoundingClientRect(); return {ok: n.ok, done: n.done, x: Math.round(r.left + r.width/2), y: Math.round(r.top + r.height/2), w: n.word.textContent}; })});
+</script>
+</body>
+</html>

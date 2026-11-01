@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>تجربة تدوير الكاميرا</title>
+<link rel="stylesheet" href="/fonts/fonts.css">
+<style>
+/* تجربة قرار: بانوراما 360° ملفوفة على أسطوانة، والكاميرا في مركزها تدور بالإصبع، ثم تعود إلى الأمام (مكان السؤال) وحدها. */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#15130c;font-family:'Tajawal',sans-serif;touch-action:none}
+canvas{display:block}
+#hint{position:fixed;bottom:max(20px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:#000a;color:#fff;
+  padding:8px 16px;border-radius:999px;font:800 .95rem Tajawal;transition:opacity .6s;pointer-events:none}
+/* كلمة فوق ورقة: مثبّتة على نقطة من المشهد، تُسقَط على الشاشة في كل إطار فتبقى في مكانها مهما دارت الكاميرا */
+.lbl{position:fixed;left:0;top:0;transform:translate(-50%,-50%);pointer-events:none;white-space:nowrap;
+  font:700 30px/1 'Noto Naskh Arabic','Amiri',serif;color:#fffbe8;-webkit-text-stroke:4px #1f4a17;paint-order:stroke fill;text-shadow:0 3px 8px rgba(0,0,0,.5)}
+#deg{position:fixed;top:max(10px,env(safe-area-inset-top));left:10px;background:#000a;color:#ffd75e;padding:6px 12px;border-radius:999px;font:800 .85rem Tajawal}
+</style>
+<script type="importmap">{"imports":{"three":"/prototypes/forest-env/node_modules/three/build/three.module.js"}}</script>
+</head>
+<body>
+<div id="hint">👆 أدِر الكاميرا بإصبعك</div>
+<span id="deg">0°</span>
+<script type="module">
+import * as THREE from 'three';
+// الصورة بـ?src= (افتراضياً بانوراما التينة)
+const Q = new URLSearchParams(location.search);
+const SRC = Q.get('src') || '/prototypes/assets/magiclight/pano_fig.png';
+// ARC: الزاوية الأفقية الحقيقية التي تغطّيها الصورة. لقطة المولّد العريضة ≈ 100°؛ لفّها على 360° يمطّها فتتشوّه.
+// أقل من 360 ⇒ قوس من الأسطوانة، والتدوير محصور فيه
+const ARC = +(Q.get('arc') || 100) * Math.PI/180, FULL = ARC >= 2*Math.PI - 1e-6;
+const renderer = new THREE.WebGLRenderer({antialias: true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(75, 1, .1, 100);
+let yaw = 0, pitch = 0, maxPitch = 0, cyl = null;
+
+// المولِّد لا يعطي طرفين متطابقين تماماً: نقصّ شريطاً عرضه B ونمزج آخر الصورة بأوّلها تدريجياً فيختفي خط اللقاء خلف الطفل
+function seamless(img, B = 120){
+  const w = img.width - B, h = img.height, c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');
+  g.drawImage(img, 0, 0);
+  for (let x = 0; x < B; x++){ g.globalAlpha = 1 - x/B; g.drawImage(img, w + x, 0, 1, h, x, 0, 1, h); }
+  g.globalAlpha = 1; return c;
+}
+// ?video=: مقطع يُعرض على القوس نفسه بدل الصورة (الصورة تبقى إلى أن يجهز)
+const VIDEO = Q.get('video');
+// ?labels=1: كلمات تجريبية على أوراق التين (بكسلات صورة pano_fig 1360×768) — كلها في وسط المشهد (≈ x 503–857)
+// لأن الهاتف العمودي لا يُظهر من الأمام إلا هذا الشريط
+// ?lb=x,y;x,y;… مواضع خاصة بصورة أخرى (مثل station_fig: مراكز الأوراق الأربع)
+const DEMO = ['بَاب', 'ـبَاب', 'بـاب', 'ـبـاب'];
+const LABELS = Q.get('lb') ? Q.get('lb').split(';').map((p, i) => { const [x, y] = p.split(',').map(Number); return {x, y, t: DEMO[i % 4]}; })
+  : Q.get('labels') ? [{x: 600, y: 105, t: 'بَاب'}, {x: 705, y: 120, t: 'ـبَاب'}, {x: 815, y: 150, t: 'بـاب'}, {x: 560, y: 175, t: 'ـبـاب'}] : [];
+const lblEls = LABELS.map(l => { const e = document.createElement('div'); e.className = 'lbl'; e.textContent = l.t; document.body.appendChild(e); return e; });
+let geomInfo = null;                              // {R, H, start} لتحويل بكسل الصورة إلى نقطة على القوس
+function scenePoint(px, py, W, Hpx){
+  const {R, H, start} = geomInfo, th = start + (1 - px/W)*ARC;    // الملمس معكوس أفقياً (repeat.x = −1)
+  return new THREE.Vector3(R*Math.sin(th), H*(.5 - py/Hpx), R*Math.cos(th));
+}
+new THREE.TextureLoader().load(SRC, t0 => {
+  let tex = new THREE.CanvasTexture(FULL ? seamless(t0.image) : t0.image);
+  if (VIDEO){
+    const v = document.createElement('video'); Object.assign(v, {src: VIDEO, muted: true, loop: true, playsInline: true, crossOrigin: 'anonymous'});
+    v.play().catch(() => addEventListener('pointerdown', () => v.play(), {once: true}));
+    v.addEventListener('playing', () => { const vt = new THREE.VideoTexture(v); vt.colorSpace = THREE.SRGBColorSpace; vt.wrapS = THREE.RepeatWrapping; vt.repeat.x = -1;
+      cyl.material.map = vt; cyl.material.needsUpdate = true; }, {once: true});
+  }
+  tex.colorSpace = THREE.SRGBColorSpace; tex.wrapS = THREE.RepeatWrapping; tex.repeat.x = -1;   // من الداخل: نعكس الأفقي فلا يُقرأ المشهد مقلوباً
+  tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  const R = 10, H = ARC*R * tex.image.height / tex.image.width;                              // طول القوس = عرض الصورة
+  // القوس متمركز على −Z (أمام الكاميرا عند yaw = 0)، فوسط الصورة (الطفل والشجرة) في الأمام
+  const geo = FULL ? new THREE.CylinderGeometry(R, R, H, 128, 1, true) : new THREE.CylinderGeometry(R, R, H, 96, 1, true, Math.PI - ARC/2, ARC);
+  cyl = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({map: tex, side: THREE.BackSide}));
+  scene.add(cyl);
+  geomInfo = {R, H, start: FULL ? 0 : Math.PI - ARC/2, W: tex.image.width, Hpx: tex.image.height};
+  cyl.userData.H = H; cyl.userData.R = R; resize();
+});
+
+function resize(){
+  renderer.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight;
+  if (cyl){                                   // مجال الرؤية العمودي يملأ ارتفاع الأسطوانة ما أمكن بلا تشويه زائد
+    const full = 2*Math.atan(cyl.userData.H/2/cyl.userData.R)*180/Math.PI;
+    cam.fov = Math.min(full, 80); maxPitch = (full - cam.fov)/2*Math.PI/180;
+  }
+  cam.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+
+// السحب يدير الكاميرا (يمين/يسار بلا حدود، وأعلى/أسفل في حدود الصورة)، مع زخم، وعودة إلى الأمام بعد 4 ثوانٍ
+let drag = null, vy = 0, back = 0, home = null;
+const hint = document.getElementById('hint'), deg = document.getElementById('deg');
+const radPerPx = () => cam.fov*Math.PI/180 / innerHeight;
+addEventListener('pointerdown', e => { drag = {x: e.clientX, y: e.clientY, t: performance.now()}; vy = 0; home = null; clearTimeout(back); hint.style.opacity = 0; });
+addEventListener('pointermove', e => { if (!drag) return; const k = radPerPx(), dx = e.clientX - drag.x, dy = e.clientY - drag.y, now = performance.now();
+  yaw += dx*k; pitch = Math.max(-maxPitch, Math.min(maxPitch, pitch + dy*k)); vy = dx*k / Math.max(1, now - drag.t) * 16;
+  drag = {x: e.clientX, y: e.clientY, t: now}; });
+addEventListener('pointerup', () => { drag = null; back = setTimeout(() => home = performance.now(), 4000); });
+
+renderer.setAnimationLoop(() => {
+  if (!drag && Math.abs(vy) > 1e-4){ yaw += vy; vy *= .93; }
+  if (home !== null){                          // أقصر طريق إلى الأمام
+    const target = Math.round(yaw/(2*Math.PI))*2*Math.PI; yaw += (target - yaw)*.06; pitch *= .94;
+    if (Math.abs(target - yaw) < .002){ yaw = target; home = null; }
+  }
+  if (!FULL){                                   // لا تتجاوز طرفي القوس: حافة الشاشة تقف عند حافة الصورة
+    const half = Math.max(0, ARC/2 - Math.atan(Math.tan(cam.fov*Math.PI/360)*cam.aspect));
+    if (Math.abs(yaw) > half){ yaw = Math.sign(yaw)*half; vy = 0; }
+  }
+  cam.rotation.set(pitch, yaw, 0, 'YXZ');
+  deg.textContent = Math.round(((-yaw*180/Math.PI) % 360 + 360) % 360) + '°';
+  renderer.render(scene, cam);
+  if (geomInfo) LABELS.forEach((l, i) => {
+    const p = scenePoint(l.x, l.y, geomInfo.W, geomInfo.Hpx).project(cam), e = lblEls[i];
+    e.style.display = p.z < 1 ? '' : 'none';
+    e.style.left = (p.x + 1)/2*innerWidth + 'px'; e.style.top = (1 - p.y)/2*innerHeight + 'px';
+  });
+});
+</script>
+</body>
+</html>

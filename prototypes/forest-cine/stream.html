@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>الجدول السينمائي — تجربة</title>
+<link rel="stylesheet" href="/fonts/fonts.css">
+<style>
+/* المحطة 2: «الحرف الناقص» على الجدول. الطفل يعبر 5 حجارة: كل إجابة صحيحة = قفزة إلى الحجر التالي.
+   المقاطع من MagicLight (Hailuo 02) بكاميرا ثابتة، والخيارات على أوراق الزنبق طبقة HTML فوقها. */
+:root{--ink:#fffbe8;--edge:#1f4a17}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#1d1a10;font-family:'Tajawal',sans-serif}
+#view{position:fixed;inset:0;overflow:hidden}
+/* المسرح بإحداثيات المقاطع (768×1360)، يملأ ارتفاع الشاشة */
+#stage{position:absolute;width:768px;height:1360px;transform-origin:0 0}
+#bgwrap{position:absolute;inset:0;background:url(/prototypes/assets/magiclight/stream_line_anchor.png) 0 0/768px 1360px}
+.bgv{position:absolute;left:0;top:0;width:768px;height:1360px;object-fit:fill;opacity:0;transition:opacity .25s}
+.bgv.on{opacity:1}
+
+/* أوراق الزنبق: مقصوصة من لقطة المرساة (لا تتحرّك في المقاطع)، تهتزّ عند الخطأ */
+.pad{position:absolute;pointer-events:none}
+.pad.glow{filter:brightness(1.3) drop-shadow(0 0 14px rgba(255,236,140,.95))}
+.pad.dead{filter:saturate(.3) brightness(.75)}
+.opt{position:absolute;text-align:center;pointer-events:none;direction:rtl;
+  font-family:'Noto Naskh Arabic','Amiri',serif;font-weight:700;line-height:1;color:var(--ink);
+  -webkit-text-stroke:5px var(--edge);paint-order:stroke fill;text-shadow:0 4px 10px rgba(0,0,0,.5);
+  opacity:0;transform:translate(-50%,-50%) scale(.5);transition:opacity .45s,transform .55s cubic-bezier(.3,1.7,.5,1),color .5s}
+.opt.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.opt.ok{color:#fff7b8;-webkit-text-stroke-color:#5a4200;transform:translate(-50%,-50%) scale(1.15)}
+.opt.bad{color:#9b9b9b;-webkit-text-stroke-color:#3a3a3a;opacity:.55}
+.opt.gone{opacity:0}
+.hit{position:absolute;cursor:pointer}
+
+/* لافتة السؤال: خشبية معلّقة أعلى الشاشة، والكلمة فيها بفراغ مكان الباء */
+#sign{position:fixed;top:max(56px,calc(env(safe-area-inset-top) + 50px));left:50%;transform:translate(-50%,-20px);opacity:0;z-index:4;
+  min-width:250px;padding:10px 26px 14px;border-radius:16px;text-align:center;color:#fff1cf;
+  background:linear-gradient(#8a5a2b,#6b421c);box-shadow:inset 0 2px 0 #a8713a,inset 0 -3px 0 #4a2c10,0 8px 18px rgba(0,0,0,.45);
+  transition:opacity .5s,transform .5s}
+#sign.show{opacity:1;transform:translate(-50%,0)}
+#sign::before,#sign::after{content:'';position:absolute;top:-46px;width:3px;height:46px;background:#3b2a14}
+#sign::before{left:28px} #sign::after{right:28px}
+#sign b{display:block;font:800 18px/1.3 Tajawal;text-shadow:0 2px 0 #3d250e}
+#sign i{display:block;font:800 15px/1.3 Tajawal;color:#ffe08a;font-style:normal}
+#sign .w{display:block;margin-top:6px;font:700 58px/1.25 'Noto Naskh Arabic','Amiri',serif;color:#fffbe8;text-shadow:0 3px 0 #3d250e}
+#sign .gap{display:inline-block;min-width:.55em;color:transparent;border:3px dashed #ffe08a;border-radius:10px;padding:0 4px;margin:0 3px;transition:color .5s,border-color .5s}
+#sign .gap.fill{color:#ffe36e;border-color:transparent;text-shadow:0 0 14px rgba(255,220,90,.9),0 3px 0 #3d250e}
+
+/* التينة الطائرة والسلّة */
+.fig{position:absolute;width:44px;height:52px;pointer-events:none;z-index:3}
+.fig.fixed{position:fixed;z-index:8}
+#basket{display:flex;align-items:center;gap:6px}
+#basket.bump{animation:bump .5s}
+@keyframes bump{40%{transform:scale(1.35)}}
+
+/* الواجهة */
+#hud{position:fixed;top:max(10px,env(safe-area-inset-top));left:10px;right:10px;display:flex;justify-content:space-between;z-index:5}
+#hud div{display:flex;gap:8px}
+.pill{background:#0009;color:#fff;border:0;border-radius:999px;padding:7px 14px;font:800 .95rem Tajawal;cursor:pointer}
+#streak{color:#ffd75e}
+.screen{position:fixed;inset:0;z-index:9;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;background:rgba(20,14,6,.55);color:#fff;text-align:center;padding:20px}
+.screen h1{font:900 1.7rem Tajawal} .screen p{opacity:.9;font-size:1.1rem}
+.screen button{font:900 1.25rem Tajawal;border:0;border-radius:18px;padding:14px 34px;background:#ffb648;color:#3b2408;box-shadow:0 5px 0 #c27d1c;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="view"><div id="stage"><div id="bgwrap"><video class="bgv" muted playsinline preload="auto"></video><video class="bgv" muted playsinline preload="auto"></video></div></div></div>
+<div id="sign"><b>اِخْتَرِ الْبَاءَ الصَّحِيحَة</b><i></i><span class="w"></span></div>
+<div id="hud"><button class="pill" id="replay">🔊 أعِد</button><div><span class="pill" id="basket"></span><span class="pill" id="streak">⭐ 0</span></div></div>
+<div class="screen" id="start"><h1>🪨 حجارة الجدول</h1><p>أكمل الكلمة بالباء الصحيحة، وكل إجابة صحيحة تعبر بك حجراً.</p><button>ابدأ</button></div>
+
+<script type="module">
+import { ARFORMS, LETTER_BA } from '/prototypes/forest-env/data.js';
+
+/* ── نسخة مطابقة لدالّة التطبيق getNaturalForm، وتشكيل كل حرف على حدة (لإخفاء حرف واحد) ── */
+function naturalForm(L, i){ const f = ARFORMS[L[i]], p = L[i-1], pc = p && ARFORMS[p] && ARFORMS[p].c, hn = L[i+1] !== undefined;
+  return (pc && hn && f.med) ? 'med' : (pc && f.fin) ? 'fin' : (!pc && hn && f.ini) ? 'ini' : 'iso'; }
+const glyphs = (L, d) => L.map((ch, i) => { const f = ARFORMS[ch], m = (d && d[i]) || ''; return (f ? String.fromCodePoint(f[naturalForm(L, i)] || f.iso) : ch) + m; });
+
+/* جولات «الحرف الناقص» (forest-plan.md §3): وسط بعد منفصل ×1، نهاية بعد متّصل ×2، نهاية بعد منفصل ×2 —
+   الكلمة الثالثة للنهايتين من المبتدئ + كلمات من المتوسّط */
+const LV = LETTER_BA.levels;
+const POS = {mid_n: 'فِي وَسَطِ الْكَلِمَة، بَعْدَ مُنْفَصِل', end_c: 'فِي نِهَايَةِ الْكَلِمَة، بَعْدَ مُتَّصِل', end_n: 'فِي نِهَايَةِ الْكَلِمَة، بَعْدَ مُنْفَصِل'};
+const AUD = {mid_n: 'ب_med_n', end_c: 'ب_fin_c', end_n: 'ب_fin_n'};
+const ROUNDS = [['mid_n', 'intermediate', 1], ['end_c', 'beginner', 2], ['end_c', 'intermediate', 1], ['end_n', 'beginner', 2], ['end_n', 'intermediate', 2]]
+  .map(([cat, lv, k]) => { const word = LV[lv][cat][k], L = Array.from(word), ti = L.lastIndexOf('ب');
+    return {word, L, g: glyphs(L, LV[lv][cat + 'D'][k]), ti, correct: naturalForm(L, ti), pos: POS[cat], audio: `/audio/questions/${AUD[cat]}.mp3`, wordAudio: `/audio/words/${word}.mp3`}; });
+const FORM_TXT = {ini: 'بـ', med: 'ـبـ', fin: 'ـب', iso: 'ب'};
+
+/* أوراق الزنبق في المقاطع (بكسلات 768×1360، مقيسة من 6 لقطات — ثابتة): مركز، نصف قطرَي القطع، حجم الخطّ */
+const PADS = [{x: 583, y: 818, rx: 64, ry: 17, fs: 62}, {x: 632, y: 882, rx: 84, ry: 25, fs: 76}, {x: 650, y: 968, rx: 98, ry: 33, fs: 92}];
+/* موضع الحقيبة على ظهره في كل موقف (0 = الضفّة، 1–4 = الحجارة، 5 = الضفّة البعيدة) */
+const PACK = [[288, 1140], [316, 880], [320, 830], [322, 740], [327, 640], [332, 545]];
+const BUSH = [[118, 380], [690, 330]];                       // شجيرتا التين يسار القوس ويمينه
+
+/* ── المقاطع ── */
+const VD = '/prototypes/assets/magiclight/';
+// قفزة الجولة k: مقطع مقصوص من مقطع أطول (Hailuo لا يتوقّف عند حجر واحد) — التوقيتات في HANDOFF.md
+const HOPS = [{src: 'sline_hop_1b.mp4', from: 0, until: 2.8}, {src: 'sline_hop_2.mp4', from: 0, until: 2.05}, {src: 'sline_hop_2.mp4', from: 2.05, until: 5.8},
+              {src: 'sline_hop_45.mp4', from: 0, until: 1.45}, {src: 'sline_hop_45.mp4', from: 1.45, until: 2.15}];
+// حزن لكل موقف؛ sad_2 يبدأ من 2.0 لأن أوّله يرفع ذراعيه
+const SAD = [0, 0, 2.0, 0, 0].map((from, k) => ({src: `sline_sad_${k}.mp4`, from, until: 5.8}));
+const ARRIVE = {src: 'sline_arrive.mp4', from: 0, until: 5.85, pick: 4.2};
+
+/* ── المسرح يملأ ارتفاع الشاشة؛ على الهاتف يُقصّ من الجانبين حول x=395 (الضفدع يساراً والأوراق يميناً) ── */
+const stage = document.getElementById('stage');
+function fit(){ const s = innerHeight/1360, cx = Math.min(Math.max(395, innerWidth/s/2), 768 - innerWidth/s/2);
+  stage.style.transform = `scale(${s})`; stage.style.top = '0px';
+  stage.style.left = (innerWidth <= 768*s ? innerWidth/2 - cx*s : (innerWidth - 768*s)/2) + 'px'; }
+addEventListener('resize', fit); fit();
+const el = (cls, parent = stage, tag = 'div') => { const e = document.createElement(tag); e.className = cls; parent.appendChild(e); return e; };
+
+/* قصّ الأوراق: قطع ناقص بحافّة ناعمة من لقطة المرساة */
+async function cutPads(){
+  const img = new Image(); await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = VD + 'stream_line_anchor.png'; });
+  return PADS.map(p => {
+    const w = p.rx*2 + 8, h = p.ry*2 + 8, c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');
+    g.filter = 'blur(1.5px)'; g.beginPath(); g.ellipse(w/2, h/2, p.rx, p.ry, 0, 0, Math.PI*2); g.fill(); g.filter = 'none';
+    g.globalCompositeOperation = 'source-in'; g.drawImage(img, p.x - w/2, p.y - h/2, w, h, 0, 0, w, h);
+    c.className = 'pad'; c.style.left = (p.x - w/2) + 'px'; c.style.top = (p.y - h/2) + 'px'; stage.appendChild(c);
+    return c;
+  });
+}
+let padSprites = [];
+
+/* ── مشغّل المقاطع: طبقتان تتلاشى بينهما. المقطع يُوقَف بدقّة عند until (rAF لا timeupdate الذي يتأخّر حتى ربع ثانية)
+   فتبقى آخر لقطة منه هي «الانتظار» على الحجر ── */
+const vids = [...document.querySelectorAll('.bgv')]; let front = null;
+// الإخفاء بعد التلاشي مؤجَّل، فإظهار الطبقة نفسها قبل انقضائه (نقرة سريعة بعد الحزن) يلغيه
+const show = v => { clearTimeout(v._hide); v.classList.add('on'); };
+const hideLater = v => { clearTimeout(v._hide); v._hide = setTimeout(() => v.classList.remove('on'), 260); };
+function clip({src, from, until, at, fn}){
+  return new Promise(res => {
+    const v = vids.find(x => x !== front);
+    let fired = !fn, done = false;
+    const finish = () => { if (done) return; done = true; if (!fired){ fired = true; fn(); } v.pause(); res(); };
+    v.onerror = finish;
+    v.oncanplay = () => { v.oncanplay = null;
+      v.play().then(() => {
+        show(v); if (front && front !== v) hideLater(front); front = v;
+        // فحص كل 30ms للدقّة (الحجر 4 يُغادَر بعد ~0.15ث)، وtimeupdate/ended احتياطاً حين تُبطئ الصفحة المؤقّتات
+        const check = () => { if (done){ clearInterval(iv); return; } if (!fired && v.currentTime >= at){ fired = true; fn(); }
+          if (v.currentTime >= until - .02 || v.ended){ clearInterval(iv); finish(); } };
+        const iv = setInterval(check, 30); v.ontimeupdate = check; v.onended = finish;
+      }).catch(finish);
+    };
+    v.src = VD + src + '#t=' + from;
+  });
+}
+// العودة إلى لقطة الانتظار المحفوظة في الطبقة الأخرى (بعد مقطع الحزن)؛ في الموقف 0 هي صورة المرساة تحت الطبقتين
+let stillVid = null;
+function back(){
+  vids.forEach(v => { if (v !== stillVid) hideLater(v); });
+  if (stillVid){ show(stillVid); front = stillVid; } else front = null;
+}
+
+/* ── الأصوات ── */
+const W = ms => new Promise(r => setTimeout(r, ms));
+let cur = null;
+function play(src, vol = 1){ return new Promise(res => { try{ cur && cur.pause(); }catch(e){} const a = new Audio(src); a.volume = vol; cur = a; a.onended = a.onerror = () => res(); a.play().catch(() => res()); }); }
+const sfx = n => { const a = new Audio(`/prototypes/forest-env/assets/sfx/${n}.ogg`); a.volume = .6; a.play().catch(()=>{}); };
+let actx = null;
+function sadTune(){                                            // اللحن الحزين نفسه في محطة التينة
+  try{
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume();
+    const notes = [[659.3, 0, .45], [587.3, .42, .45], [523.3, .84, .45], [493.9, 1.26, .5], [440, 1.8, 1.4], [329.6, 1.8, 1.4]];
+    const out = actx.createGain(); out.gain.value = .22; out.connect(actx.destination);
+    const t0 = actx.currentTime + .05;
+    notes.forEach(([f, at, len]) => {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = 'triangle'; o.frequency.value = f; o.detune.setValueAtTime(0, t0 + at); o.detune.linearRampToValueAtTime(-25, t0 + at + len);
+      g.gain.setValueAtTime(0, t0 + at); g.gain.linearRampToValueAtTime(1, t0 + at + .03); g.gain.exponentialRampToValueAtTime(.001, t0 + at + len);
+      o.connect(g); g.connect(out); o.start(t0 + at); o.stop(t0 + at + len + .05);
+    });
+  }catch(e){}
+}
+
+/* ── السلّة: تتراكم عبر المحطات والحروف (forest.fruits في forest-plan.md §5) ── */
+const basket = document.getElementById('basket');
+let fruits = 0; try{ fruits = +localStorage.getItem('forest.fruits') || 0; }catch(e){}
+const FIG_SVG = `<svg viewBox="0 0 44 52" width="100%" height="100%"><path d="M22 6c3 0 4 3 4 6 7 4 14 12 14 22 0 10-8 16-18 16S4 44 4 34c0-10 7-18 14-22 0-3 1-6 4-6z" fill="#6b3a78"/><path d="M14 22c-4 4-5 10-3 15" stroke="#a46bb3" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M22 7c0-3 2-5 5-6" stroke="#4d6b21" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`;
+const showBasket = () => basket.innerHTML = `<span style="width:20px;height:24px;display:inline-block">${FIG_SVG}</span> ${fruits}`;
+showBasket();
+function addFruit(){ fruits++; try{ localStorage.setItem('forest.fruits', fruits); }catch(e){} showBasket(); basket.classList.remove('bump'); void basket.offsetWidth; basket.classList.add('bump'); sfx('correct'); }
+/* تينة تطير من الشجيرة إلى حقيبته وتصغر داخلها، ثم نسخة صغيرة تطير من الحقيبة إلى السلّة */
+async function figToPack(pos){
+  const [bx, by] = BUSH[pos % 2], [px, py] = PACK[pos], f = el('fig'); f.innerHTML = FIG_SVG;
+  const mx = (bx + px)/2, my = Math.min(by, py) - 160;
+  await f.animate([{transform: `translate(${bx-22}px,${by-26}px) scale(.4)`, opacity: 0}, {transform: `translate(${bx-22}px,${by-26}px) scale(1.3)`, opacity: 1, offset: .15},
+                   {transform: `translate(${mx-22}px,${my-26}px) scale(1.5) rotate(200deg)`, offset: .55}, {transform: `translate(${px-22}px,${py-26}px) scale(.5) rotate(360deg)`, opacity: .9}],
+                  {duration: 1300, easing: 'ease-in-out', fill: 'forwards'}).finished;
+  const r = f.getBoundingClientRect(); f.remove(); toBasket(r.left + r.width/2, r.top + r.height/2);
+}
+async function toBasket(x, y){
+  const b = basket.getBoundingClientRect(), f = el('fig fixed', document.body); f.innerHTML = FIG_SVG;
+  await f.animate([{transform: `translate(${x-22}px,${y-26}px) scale(.6)`}, {transform: `translate(${b.left+10-22}px,${b.top+b.height/2-26}px) scale(.45)`, opacity: .8}],
+                  {duration: 700, easing: 'cubic-bezier(.5,0,.7,1)', fill: 'forwards'}).finished;
+  f.remove(); addFruit();
+}
+
+/* ── الجولة ── */
+const sign = document.getElementById('sign');
+let ri = 0, locked = true, streak = 0, missed = false, nodes = [];
+function buildRound(){
+  nodes.forEach(n => { n.opt.remove(); n.hit.remove(); }); nodes = [];
+  const R = ROUNDS[ri]; missed = false; locked = true;
+  padSprites.forEach(s => s.classList.remove('glow', 'dead'));
+  sign.classList.remove('show'); sign.querySelector('i').textContent = R.pos;
+  sign.querySelector('.w').innerHTML = R.g.map((g, i) => i === R.ti ? `<span class="gap">${g}</span>` : g).join('');
+  const others = ['ini', 'med', 'fin', 'iso'].filter(f => f !== R.correct).sort(() => Math.random() - .5).slice(0, 2);
+  [R.correct, ...others].sort(() => Math.random() - .5).forEach((form, k) => {
+    const p = PADS[k], opt = el('opt'), hit = el('hit');
+    opt.textContent = FORM_TXT[form]; opt.style.cssText = `left:${p.x}px;top:${p.y - p.fs*.3}px;font-size:${p.fs}px`;
+    // مناطق لمس متلاصقة عمودياً تغطّي الورقة والنصّ فوقها
+    const top = [770, 850, 925][k], bot = [850, 925, 1015][k];
+    hit.style.cssText = `left:${p.x - p.rx - 30}px;top:${top}px;width:${p.rx*2 + 60}px;height:${bot - top}px`;
+    const n = {opt, hit, ok: form === R.correct, form, k, done: false}; nodes.push(n);
+    hit.onclick = () => choose(n);
+  });
+}
+async function ask(){
+  const R = ROUNDS[ri];
+  sign.classList.add('show');
+  nodes.forEach((n, k) => setTimeout(() => { n.opt.classList.add('show'); padSprites[n.k].classList.add('glow'); setTimeout(() => padSprites[n.k].classList.remove('glow'), 500); }, 500 + k*450));
+  await Promise.all([play(R.audio), W(500 + nodes.length*450)]);
+  locked = false;
+}
+async function choose(n){
+  if (locked || n.done) return;
+  const R = ROUNDS[ri];
+  locked = true; n.done = true;
+  if (n.ok){
+    sfx('correct'); n.opt.classList.add('ok'); padSprites[n.k].classList.add('glow');
+    sign.querySelector('.gap').classList.add('fill');
+    nodes.filter(m => m !== n).forEach(m => m.opt.classList.add('gone'));
+    if (!missed){ streak++; document.getElementById('streak').textContent = '⭐ ' + streak; }
+    const words = play(R.wordAudio);
+    // القفزة إلى الحجر التالي، ثم تبقى آخر لقطة منها انتظاراً
+    await clip(HOPS[ri]); stillVid = front;
+    padSprites[n.k].classList.remove('glow'); n.opt.classList.add('gone'); sign.classList.remove('show');
+    if (ri < ROUNDS.length - 1){
+      figToPack(ri + 1); await words;
+      if (streak === 3 && !missed) sfx('streak3');
+      await play(`/audio/praise/praise_m_${1 + ri % 5}.mp3`);
+      ri++; buildRound(); ask();
+    } else { await words; finale(); }
+  } else {
+    missed = true; streak = 0; document.getElementById('streak').textContent = '⭐ 0';
+    n.opt.classList.add('bad'); const s = padSprites[n.k]; s.classList.add('dead');
+    const shake = [{transform: 'translateX(0)'}, {transform: 'translateX(-7px)'}, {transform: 'translateX(7px)'}, {transform: 'translateX(-5px)'}, {transform: 'translateX(0)'}];
+    s.animate(shake, 450); n.opt.animate(shake.map(k => ({transform: k.transform + ' translate(-50%,-50%)'})), 450);
+    sadTune();
+    // الطفل يطأطئ في موقفه الحالي، والضفدع والبطّة يحزنان معه، ثم يعود إلى وقفة الانتظار
+    await Promise.all([clip(SAD[ri]).then(back), W(2600).then(() => play('/audio/wrong/wrong_m_1.mp3'))]);
+    s.classList.remove('dead');
+    locked = false;
+  }
+}
+const figCount = n => n === 1 ? 'تينة واحدة' : n === 2 ? 'تينتان' : (n % 100 >= 3 && n % 100 <= 10) ? `${n} تينات` : `${n} تينة`;
+/* الوصول: يحتفل على الضفّة ويقطف تينة إلى حقيبته ثم يدخل البوّابة */
+async function finale(){
+  await clip({...ARRIVE, at: ARRIVE.pick, fn: () => { const r = stage.getBoundingClientRect(), s = r.width/768;
+    toBasket(r.left + PACK[5][0]*s, r.top + PACK[5][1]*s); }});
+  await play(`/audio/praise/praise_m_5.mp3`);
+  const end = el('screen', document.body); end.innerHTML = `<h1>🎉 عبرتَ الجدول!</h1><p>في سلّتك الآن ${figCount(fruits)}.</p><button>من جديد</button>`;
+  end.querySelector('button').onclick = () => location.reload();
+}
+
+[...new Set([...HOPS, ...SAD, ARRIVE].map(c => c.src))].forEach(u => fetch(VD + u).catch(() => {}));    // تحميل مسبق
+document.querySelector('#start button').onclick = async () => {
+  document.getElementById('start').remove();
+  padSprites = await cutPads();
+  buildRound(); ask();
+};
+document.getElementById('replay').onclick = () => play(ROUNDS[ri].audio);
+window.__stream = () => ({ri, locked, streak, fruits, clip: front && front.src.split('/').pop(), t: front && +front.currentTime.toFixed(2),
+  nodes: nodes.map(n => { const r = n.hit.getBoundingClientRect(); return {ok: n.ok, form: n.form, done: n.done, x: Math.round(r.left + r.width/2), y: Math.round(r.top + r.height/2)}; })});
+</script>
+</body>
+</html>

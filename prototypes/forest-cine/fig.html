@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>شجرة التين — 9:16</title>
+<link rel="stylesheet" href="/fonts/fonts.css">
+<style>
+/* محطة واحدة = سؤال واحد («الكلمات الأربع»). المشهد 9:16 يملأ الشاشة بلا تدوير.
+   الفيديو (Hailuo 02) يحرّك الطفل والطبيعة فقط؛ أوراق التين والكلمات مرسومة بالكود فوقه فلا تتشوّه أبداً. */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#15130c;font-family:'Tajawal',sans-serif;user-select:none}
+#stage{position:fixed;left:0;top:0;width:768px;height:1364px;transform-origin:0 0}
+#stage img,#stage video{position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .25s}
+#stage .on{opacity:1}
+
+/* ورقة التين: SVG بخمسة فصوص معلّقة بعنقها، تتأرجح قليلاً */
+.leaf{position:absolute;transform:translate(-50%,-50%) scale(.2);opacity:0;cursor:pointer;
+  transition:opacity .5s,transform .7s cubic-bezier(.3,1.5,.5,1),filter .4s}
+.leaf.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.leaf svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;transform-origin:50% 0;animation:sway 3.6s ease-in-out infinite}
+.leaf:nth-of-type(2) svg{animation-delay:-.9s} .leaf:nth-of-type(3) svg{animation-delay:-1.8s} .leaf:nth-of-type(4) svg{animation-delay:-2.7s}
+@keyframes sway{50%{transform:rotate(2.5deg)}}
+.leaf .w{position:absolute;left:50%;top:58%;transform:translate(-50%,-50%);white-space:nowrap;direction:rtl;
+  font-family:'Noto Naskh Arabic','Amiri',serif;font-weight:700;line-height:1;color:#fffbe8;
+  -webkit-text-stroke:.11em #1f4a17;paint-order:stroke fill;text-shadow:0 .06em .2em rgba(0,0,0,.6);transition:color .4s}
+.leaf.ok{filter:drop-shadow(0 0 18px rgba(255,236,140,.95)) brightness(1.15)}
+.leaf.ok .w{color:#fff3a0;-webkit-text-stroke-color:#5a4200}
+.leaf.bad{filter:saturate(.25) brightness(.7);cursor:default}
+.leaf.bad .w{color:#a7a7a7;-webkit-text-stroke-color:#3a3a3a}
+.leaf.gone{opacity:0;transform:translate(-50%,-40%) scale(.7)}
+
+#sign{position:fixed;top:max(56px,calc(env(safe-area-inset-top) + 50px));left:50%;transform:translate(-50%,-16px);opacity:0;z-index:4;
+  padding:8px 22px 10px;border-radius:14px;text-align:center;color:#fff1cf;background:linear-gradient(#8a5a2b,#6b421c);white-space:nowrap;
+  box-shadow:inset 0 2px 0 #a8713a,inset 0 -3px 0 #4a2c10,0 8px 18px rgba(0,0,0,.45);transition:opacity .5s,transform .5s;pointer-events:none}
+#sign.show{opacity:1;transform:translate(-50%,0)}
+#sign b{display:block;font:800 17px/1.3 Tajawal} #sign i{display:block;font:800 14px/1.3 Tajawal;color:#ffe08a;font-style:normal}
+
+#flash{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 45%,rgba(255,244,190,.9),rgba(255,214,110,.5) 45%,rgba(255,200,90,0) 75%);z-index:3}
+#curtain{position:fixed;inset:0;z-index:7;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 30%,#2f4a1c,#0f1a08 70%)}
+#hud{position:fixed;top:max(10px,env(safe-area-inset-top));left:10px;right:10px;display:flex;justify-content:space-between;z-index:5}
+.pill{background:#0009;color:#fff;border:0;border-radius:999px;padding:7px 14px;font:800 .95rem Tajawal;cursor:pointer}
+#basket{display:flex;align-items:center;gap:6px} #basket.bump{animation:bump .5s} @keyframes bump{40%{transform:scale(1.35)}}
+.fig{position:fixed;left:0;top:0;width:44px;height:52px;pointer-events:none;z-index:8}
+.screen{position:fixed;inset:0;z-index:9;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;background:rgba(20,14,6,.55);color:#fff;text-align:center;padding:20px}
+.screen h1{font:900 1.7rem Tajawal} .screen p{opacity:.9;font-size:1.1rem} .screen h1,.screen p{text-shadow:0 2px 8px rgba(0,0,0,.75)}
+.screen button{font:900 1.25rem Tajawal;border:0;border-radius:18px;padding:14px 34px;background:#ffb648;color:#3b2408;box-shadow:0 5px 0 #c27d1c;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="stage"><img class="on" alt=""></div>
+<div id="sign"><b>اِخْتَرِ الْبَاءَ الصَّحِيحَة</b><i></i></div>
+<div id="flash"></div><div id="curtain"></div>
+<div id="hud"><button class="pill" id="replay">🔊 أعِد</button><span class="pill" id="basket"></span></div>
+<div class="screen" id="start"><h1>🌳 شجرة التين</h1><p>اختر ورقة التين التي عليها الكلمة الصحيحة.</p><button>ابدأ</button></div>
+<script type="module">
+import { ARFORMS, LETTER_BA } from '/prototypes/forest-env/data.js';
+
+/* ── السؤال: «الكلمات الأربع» — نسخة مطابقة لدالّتَي التطبيق ── */
+function naturalForm(L, i){ const f = ARFORMS[L[i]], p = L[i-1], pc = p && ARFORMS[p] && ARFORMS[p].c, hn = L[i+1] !== undefined;
+  return (pc && hn && f.med) ? 'med' : (pc && f.fin) ? 'fin' : (!pc && hn && f.ini) ? 'ini' : 'iso'; }
+function shapeWord(L, ov = {}, d = null){ let o = ''; for (let i = 0; i < L.length; i++){ const f = ARFORMS[L[i]], m = (d && d[i]) || '';
+  if (!f){ o += L[i] + m; continue; } o += String.fromCodePoint(f[ov[i] || naturalForm(L, i)] || f.iso) + m; } return o; }
+const B = LETTER_BA.levels.beginner, word = B.start[2], L = Array.from(word), ti = L.indexOf('ب');
+const R = {word, L, d: B.startD[2], ti, correct: naturalForm(L, ti), pos: 'فِي بِدَايَةِ الْكَلِمَة', audio: '/audio/questions/ب_ini.mp3', wordAudio: `/audio/words/${word}.mp3`};
+const opt = form => { let w = shapeWord(R.L, {[R.ti]: form}, R.d); if (form === 'med' || form === 'fin') w = 'ـ' + w; return w; };
+
+/* ── المشهد: صورة/فيديو 768×1364 يملأ الشاشة (cover)، ويُقصّ من الجانبين حول CX (الطفل والأوراق ظاهران) ── */
+const VD = '/prototypes/assets/magiclight/', IW = 768, IH = 1364, CX = 450;
+const STILL = 'station_fig916.jpg';
+const CLIPS = {look: 'sfig916_look2.mp4', sad: 'sfig916_sad.mp4', happy: 'sfig916_happy.mp4', travel: 'travel_fig_river3.mp4'};
+// مقطع الرحلة وُلّد من لقطة الفرح عند هذه الثانية (الولد ما زال كبيراً)، فيبدأ منها بلا قطع، وآخر لقطة فيه = أول لقطة في المحطة التالية
+const TRAVEL_AT = 2.4;
+/* أوراق التين بإحداثيات الصورة: في الفراغ المضيء تحت الأغصان، فوق رأس الطفل الذي ينظر إليها */
+const LEAVES = [{x: 408, y: 470}, {x: 606, y: 470}, {x: 420, y: 670}, {x: 612, y: 670}], LR = 96;
+const stage = document.getElementById('stage');
+let S = 1;
+function fit(){ S = Math.max(innerWidth/IW, innerHeight/IH);
+  const cx = Math.min(Math.max(CX, innerWidth/S/2), IW - innerWidth/S/2);
+  stage.style.transform = `translate(${innerWidth/2 - cx*S}px,${(innerHeight - IH*S)/2}px) scale(${S})`; }
+addEventListener('resize', fit); fit();
+stage.querySelector('img').src = VD + STILL;
+
+const vids = {};
+for (const [k, f] of Object.entries(CLIPS)){ const v = document.createElement('video'); Object.assign(v, {src: VD + f, muted: true, playsInline: true, preload: 'auto'});
+  stage.appendChild(v); vids[k] = v; }
+const only = v => [...stage.children].forEach(e => e.classList.toggle('on', e === v));
+function play(k){ return new Promise(res => { const v = vids[k]; v.currentTime = 0; v.onended = () => res();
+  v.play().then(() => only(v)).catch(() => res()); }); }
+const hold = k => only(vids[k]);                    // العودة إلى آخر لقطة في مقطع منتهٍ
+// الفرح ثم الرحلة: عند TRAVEL_AT يُستبدل مقطع الفرح بمقطع الرحلة في الإطار نفسه، فيستمرّ الركض بلا قطع
+function happyThenTravel(){ return new Promise(res => {
+  const h = vids.happy, t = vids.travel; let done = false;
+  const go = () => { if (done) return; done = true; t.currentTime = 0; t.onended = () => res();
+    t.play().then(() => { only(t); h.pause(); }).catch(() => res()); };
+  const watch = (now, m) => { if (m.mediaTime >= TRAVEL_AT - .02) go(); else h.requestVideoFrameCallback(watch); };
+  if (h.requestVideoFrameCallback) h.requestVideoFrameCallback(watch);
+  h.ontimeupdate = () => { if (h.currentTime >= TRAVEL_AT + .1) go(); };     // احتياط: rVFC لا يعمل في صفحة لا تُرسم
+  h.currentTime = 0; h.onended = go; h.play().then(() => only(h)).catch(go);
+}); }
+const flash = () => document.getElementById('flash').animate([{opacity: 0}, {opacity: 1, offset: .35}, {opacity: 0}], {duration: 650, easing: 'ease-out'});
+
+/* ── أوراق التين والكلمات ── */
+const LEAF_SVG = `<svg viewBox="-100 -100 200 200"><path d="M0 -100 L0 -78" stroke="#4d6b21" stroke-width="7" stroke-linecap="round"/>
+  <path d="M0 -76 C-14 -84 -30 -70 -26 -52 C-44 -70 -76 -60 -68 -34 C-92 -36 -102 -8 -84 6 C-100 22 -84 52 -60 46 C-62 74 -30 88 -12 70 L0 92 L12 70 C30 88 62 74 60 46 C84 52 100 22 84 6 C102 -8 92 -36 68 -34 C76 -60 44 -70 26 -52 C30 -70 14 -84 0 -76 Z"
+    fill="#5f9e2f" stroke="#3f7a1d" stroke-width="4" stroke-linejoin="round"/>
+  <g stroke="#8cc653" stroke-width="3" fill="none" opacity=".7" stroke-linecap="round"><path d="M0 -70 L0 84"/><path d="M0 -20 L-60 -40"/><path d="M0 -20 L60 -40"/><path d="M0 14 L-74 14"/><path d="M0 14 L74 14"/><path d="M0 40 L-46 60"/><path d="M0 40 L46 60"/></g>
+  <ellipse cx="-30" cy="-30" rx="34" ry="14" fill="#b6e27a" opacity=".25"/></svg>`;
+const sign = document.getElementById('sign');
+let nodes = [], locked = true;
+function build(){
+  sign.querySelector('i').textContent = R.pos;
+  ['ini', 'med', 'fin', 'iso'].sort(() => Math.random() - .5).forEach((form, k) => {
+    const p = LEAVES[k], e = document.createElement('div'); e.className = 'leaf';
+    e.style.cssText = `left:${p.x}px;top:${p.y}px;width:${LR*2}px;height:${LR*2}px`;
+    e.innerHTML = LEAF_SVG + `<span class="w">${opt(form)}</span>`;
+    stage.appendChild(e);
+    const n = {e, ok: form === R.correct, done: false}; nodes.push(n);
+    e.onclick = () => choose(n);
+  });
+  // حجم خطّ واحد للكلمات الأربع: أطولها يملأ ≈ 80% من عرض الورقة
+  const ws = nodes.map(n => n.e.querySelector('.w')); ws.forEach(w => w.style.fontSize = '100px');
+  const fs = Math.min(LR*2*.8/Math.max(...ws.map(w => w.offsetWidth/100 || 1.6)), LR*.8); ws.forEach(w => w.style.fontSize = fs + 'px');
+}
+
+/* ── الأصوات والسلّة ── */
+const W = ms => new Promise(r => setTimeout(r, ms));
+let cur = null;
+function say(src){ return new Promise(res => { try{ cur && cur.pause(); }catch(e){} const a = new Audio(src); cur = a; a.onended = a.onerror = () => res(); a.play().catch(() => res()); }); }
+const sfx = n => { const a = new Audio(`/prototypes/forest-env/assets/sfx/${n}.ogg`); a.volume = .6; a.play().catch(()=>{}); };
+let actx = null;
+function sadTune(){ try{ actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume();
+  const out = actx.createGain(); out.gain.value = .22; out.connect(actx.destination); const t0 = actx.currentTime + .05;
+  [[659.3, 0, .45], [587.3, .42, .45], [523.3, .84, .45], [493.9, 1.26, .5], [440, 1.8, 1.4], [329.6, 1.8, 1.4]].forEach(([f, s, len]) => {
+    const o = actx.createOscillator(), g = actx.createGain(); o.type = 'triangle'; o.frequency.value = f;
+    g.gain.setValueAtTime(0, t0 + s); g.gain.linearRampToValueAtTime(1, t0 + s + .03); g.gain.exponentialRampToValueAtTime(.001, t0 + s + len);
+    o.connect(g); g.connect(out); o.start(t0 + s); o.stop(t0 + s + len + .05); }); }catch(e){} }
+const basket = document.getElementById('basket');
+let fruits = 0; try{ fruits = +localStorage.getItem('forest.fruits') || 0; }catch(e){}
+const FIG = `<svg viewBox="0 0 44 52" width="100%" height="100%"><path d="M22 6c3 0 4 3 4 6 7 4 14 12 14 22 0 10-8 16-18 16S4 44 4 34c0-10 7-18 14-22 0-3 1-6 4-6z" fill="#6b3a78"/><path d="M14 22c-4 4-5 10-3 15" stroke="#a46bb3" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M22 7c0-3 2-5 5-6" stroke="#4d6b21" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`;
+const showBasket = () => basket.innerHTML = `<span style="width:20px;height:24px;display:inline-block">${FIG}</span> ${fruits}`; showBasket();
+async function figToBasket(x, y){ const b = basket.getBoundingClientRect(), f = document.createElement('div'); f.className = 'fig'; f.innerHTML = FIG; document.body.appendChild(f);
+  await f.animate([{transform: `translate(${x-22}px,${y-26}px) scale(.4)`, opacity: 0}, {transform: `translate(${x-22}px,${y-70}px) scale(1.4)`, opacity: 1, offset: .3},
+                   {transform: `translate(${b.left-12}px,${b.top+b.height/2-26}px) scale(.45)`, opacity: .9}], {duration: 1300, easing: 'ease-in-out', fill: 'forwards'}).finished;
+  f.remove(); fruits++; try{ localStorage.setItem('forest.fruits', fruits); }catch(e){} showBasket(); basket.classList.remove('bump'); void basket.offsetWidth; basket.classList.add('bump'); }
+const shake = e => e.animate([{marginLeft: '0'}, {marginLeft: '-10px'}, {marginLeft: '10px'}, {marginLeft: '-6px'}, {marginLeft: '0'}], 450);
+
+/* ── تسلسل المحطة ── */
+async function run(){
+  build();
+  const looking = play('look');                     // يرفع رأسه نحو الفراغ المضيء، وأثناءها تظهر اللافتة وتتدلّى الأوراق واحدة تلو الأخرى
+  await W(900); sign.classList.add('show');
+  nodes.forEach((n, i) => setTimeout(() => n.e.classList.add('show'), 700 + i*450));
+  await Promise.all([say(R.audio), looking, W(700 + nodes.length*450)]);
+  locked = false;
+}
+// الخطأ لا ينهي المحطة: الورقة الخاطئة تبهت وتُقفل، ويبقى الطفل يختار حتى يصيب
+async function choose(n){
+  if (locked || n.done) return;
+  locked = true; n.done = true;
+  if (n.ok){
+    sfx('correct'); n.e.classList.add('ok'); nodes.filter(m => m !== n).forEach(m => m.e.classList.add('gone'));
+    // يقفز فرحاً ثم يركض، والكاميرا تتبعه بلا قطع حتى ضفة الجدول: أول لقطة في المحطة التالية
+    flash(); const journey = happyThenTravel(), r = n.e.getBoundingClientRect();
+    await W(400); figToBasket(r.left + r.width/2, r.top + r.height/2);
+    await say(R.wordAudio); n.e.classList.add('gone'); sign.classList.remove('show');
+    await say('/audio/praise/praise_m_1.mp3'); await journey;
+    // المحطة التالية تبدأ من هذه اللقطة نفسها
+    location.href = 'river2?cont=1';                // بلا .html: الخادم يعيد التوجيه ويُسقط الاستعلام
+  } else {
+    n.e.classList.add('bad'); shake(n.e); sadTune(); flash();
+    await Promise.all([play('sad'), W(2600).then(() => say('/audio/wrong/wrong_m_1.mp3'))]);
+    flash(); hold('look');                          // العودة إلى وقفة الانتظار (آخر لقطة في مقطع النظر)
+    locked = false;
+  }
+}
+
+Object.values(vids).forEach(v => v.load());
+document.querySelector('#start button').onclick = () => { document.getElementById('start').remove(); run(); };
+document.getElementById('replay').onclick = () => say(R.audio);
+window.__fg = () => ({locked, on: [...stage.children].filter(e => e.classList.contains('on')).map(e => (e.src || '').split('/').pop()),
+  nodes: nodes.map(n => { const b = n.e.getBoundingClientRect(); return {ok: n.ok, done: n.done, t: n.e.textContent.trim(), x: Math.round(b.left), y: Math.round(b.top), w: Math.round(b.width), cls: n.e.className}; })});
+</script>
+</body>
+</html>

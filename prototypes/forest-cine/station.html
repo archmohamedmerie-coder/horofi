@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>محطة التينة — الشكل الجديد</title>
+<link rel="stylesheet" href="/fonts/fonts.css">
+<style>
+/* محطة واحدة = سؤال واحد. المشهد 16:9 ملفوف على قوس بزاويته الحقيقية (≈100°)، والطفل يدير الكاميرا بإصبعه.
+   الفيديو (Hailuo 02) على القوس نفسه، والكلمات HTML مثبّتة على مراكز الأوراق وتُسقَط على الشاشة في كل إطار. */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#15130c;font-family:'Tajawal',sans-serif;touch-action:none;user-select:none}
+canvas{display:block}
+/* الكلمة على الورقة: كبيرة تملأ الورقة (الحجم يُحسب من عرض الورقة على الشاشة) */
+.word{position:fixed;left:0;top:0;transform:translate(-50%,-50%) scale(.4);opacity:0;pointer-events:none;white-space:nowrap;direction:rtl;
+  font-family:'Noto Naskh Arabic','Amiri',serif;font-weight:700;line-height:1;color:#fffbe8;
+  -webkit-text-stroke:.12em #1f4a17;paint-order:stroke fill;text-shadow:0 .06em .18em rgba(0,0,0,.55);
+  transition:opacity .45s,transform .55s cubic-bezier(.3,1.7,.5,1),color .4s}
+.word.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.word.ok{color:#fff3a0;-webkit-text-stroke-color:#5a4200;transform:translate(-50%,-50%) scale(1.15);text-shadow:0 0 .35em rgba(255,230,120,.95)}
+.word.bad{color:#a7a7a7;-webkit-text-stroke-color:#3a3a3a;opacity:.6}
+.word.gone{opacity:0}
+/* اللافتة أعلى الشاشة */
+#sign{position:fixed;top:max(56px,calc(env(safe-area-inset-top) + 50px));left:50%;transform:translate(-50%,-16px);opacity:0;z-index:4;
+  padding:8px 22px 10px;border-radius:14px;text-align:center;color:#fff1cf;background:linear-gradient(#8a5a2b,#6b421c);
+  box-shadow:inset 0 2px 0 #a8713a,inset 0 -3px 0 #4a2c10,0 8px 18px rgba(0,0,0,.45);transition:opacity .5s,transform .5s;pointer-events:none}
+#sign.show{opacity:1;transform:translate(-50%,0)}
+#sign b{display:block;font:800 17px/1.3 Tajawal} #sign i{display:block;font:800 14px/1.3 Tajawal;color:#ffe08a;font-style:normal}
+/* ومضة ذهبية تغطّي الانتقال بين مقطعين */
+#flash{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 35%,rgba(255,244,190,.95),rgba(255,214,110,.55) 45%,rgba(255,200,90,0) 75%);z-index:3}
+#hud{position:fixed;top:max(10px,env(safe-area-inset-top));left:10px;right:10px;display:flex;justify-content:space-between;z-index:5}
+#hud div{display:flex;gap:8px}
+.pill{background:#0009;color:#fff;border:0;border-radius:999px;padding:7px 14px;font:800 .95rem Tajawal;cursor:pointer}
+#basket{display:flex;align-items:center;gap:6px} #basket.bump{animation:bump .5s} @keyframes bump{40%{transform:scale(1.35)}}
+.fig{position:fixed;left:0;top:0;width:44px;height:52px;pointer-events:none;z-index:8}
+.screen{position:fixed;inset:0;z-index:9;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;background:rgba(20,14,6,.55);color:#fff;text-align:center;padding:20px}
+.screen h1{font:900 1.7rem Tajawal} .screen p{opacity:.9;font-size:1.1rem}
+.screen button{font:900 1.25rem Tajawal;border:0;border-radius:18px;padding:14px 34px;background:#ffb648;color:#3b2408;box-shadow:0 5px 0 #c27d1c;cursor:pointer}
+</style>
+<script type="importmap">{"imports":{"three":"/prototypes/forest-env/node_modules/three/build/three.module.js"}}</script>
+</head>
+<body>
+<div id="sign"><b></b><i></i></div>
+<div id="flash"></div>
+<div id="hud"><button class="pill" id="replay">🔊 أعِد</button><div><span class="pill" id="basket"></span></div></div>
+<div class="screen" id="start"><h1>🌳 شجرة التين</h1><p>أدِر الكاميرا بإصبعك، واختر الكلمة الصحيحة من أوراق التين.</p><button>ابدأ</button></div>
+<script type="module">
+import * as THREE from 'three';
+import { ARFORMS, LETTER_BA } from '/prototypes/forest-env/data.js';
+
+/* ── السؤال: «الكلمات الأربع» — نسخة مطابقة لدالّتَي التطبيق ── */
+function naturalForm(L, i){ const f = ARFORMS[L[i]], p = L[i-1], pc = p && ARFORMS[p] && ARFORMS[p].c, hn = L[i+1] !== undefined;
+  return (pc && hn && f.med) ? 'med' : (pc && f.fin) ? 'fin' : (!pc && hn && f.ini) ? 'ini' : 'iso'; }
+function shapeWord(L, ov = {}, d = null){ let o = ''; for (let i = 0; i < L.length; i++){ const f = ARFORMS[L[i]], m = (d && d[i]) || '';
+  if (!f){ o += L[i] + m; continue; } o += String.fromCodePoint(f[ov[i] || naturalForm(L, i)] || f.iso) + m; } return o; }
+const B = LETTER_BA.levels.beginner, word = B.start[2], L = Array.from(word), ti = L.indexOf('ب');
+const R = {word, L, d: B.startD[2], ti, correct: naturalForm(L, ti), pos: 'فِي بِدَايَةِ الْكَلِمَة', audio: '/audio/questions/ب_ini.mp3', wordAudio: `/audio/words/${word}.mp3`};
+const opt = form => { let w = shapeWord(R.L, {[R.ti]: form}, R.d); if (form === 'med' || form === 'fin') w = 'ـ' + w; return w; };
+
+/* مراكز الأوراق الأربع كنسبة من عرض/ارتفاع المشهد (مقيسة من station_fig.png 1672×941؛ الفيديو بالنسبة نفسها)، وعرض الورقة */
+const LEAVES = [{fx: .4217, fy: .175}, {fx: .592, fy: .175}, {fx: .4217, fy: .409}, {fx: .595, fy: .409}], LEAF_W = .14;
+const VD = '/prototypes/assets/magiclight/';
+const CLIPS = {look: 'sfig_look2.mp4', sad: 'sfig_sad2.mp4', happy: 'sfig_happy2.mp4'};
+
+/* ── المشهد: قوس أسطواني بزاوية الصورة الحقيقية، والكاميرا في مركزه ── */
+const ARC = 100*Math.PI/180;
+const renderer = new THREE.WebGLRenderer({antialias: true}); renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); document.body.prepend(renderer.domElement);
+const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(60, 1, .1, 100);
+let cyl = null, geo = null, yaw = 0, pitch = 0, maxPitch = 0;
+const texOf = src => { const t = src; t.colorSpace = THREE.SRGBColorSpace; t.wrapS = THREE.RepeatWrapping; t.repeat.x = -1; return t; };
+new THREE.TextureLoader().load(VD + 'station_fig.png', t => {
+  texOf(t); t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  const Rr = 10, H = ARC*Rr * t.image.height/t.image.width, start = Math.PI - ARC/2;
+  cyl = new THREE.Mesh(new THREE.CylinderGeometry(Rr, Rr, H, 96, 1, true, start, ARC), new THREE.MeshBasicMaterial({map: t, side: THREE.BackSide}));
+  scene.add(cyl); geo = {R: Rr, H, start}; resize();
+});
+// نقطة من المشهد (نسبة أفقية/عمودية) على القوس
+const at = (fx, fy) => { const th = geo.start + (1 - fx)*ARC; return new THREE.Vector3(geo.R*Math.sin(th), geo.H*(.5 - fy), geo.R*Math.cos(th)); };
+// على الهاتف العمودي يُظهر ملء الارتفاع ≈26% فقط من عرض مشهد 16:9، والأوراق الأربع والطفل تحتاج ≈40%.
+// لذلك نوسّع مجال الرؤية حتى يظهر SHOW من القوس عرضاً، ويبقى فوق المشهد وتحته شريطان سينمائيان (لون الخلفية)
+const SHOW = 40*Math.PI/180;
+scene.background = new THREE.Color('#15130c');
+function resize(){
+  renderer.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight;
+  if (geo){ const full = 2*Math.atan(geo.H/2/geo.R), need = 2*Math.atan(Math.tan(SHOW/2)/cam.aspect);
+    cam.fov = Math.max(full, Math.min(need, 100*Math.PI/180))*180/Math.PI; maxPitch = 0; }
+  cam.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+
+/* ── المقاطع: لكل مقطع فيديو وملمس؛ نبدّل ملمس القوس. المقطع المنتهي يبقى على آخر لقطة (انتظار) ── */
+const vids = {};
+for (const [k, f] of Object.entries(CLIPS)){ const v = document.createElement('video'); Object.assign(v, {src: VD + f, muted: true, playsInline: true, preload: 'auto'});
+  vids[k] = {v, tex: texOf(new THREE.VideoTexture(v))}; }
+function play(k){ return new Promise(res => { const {v, tex} = vids[k]; v.currentTime = 0; v.onended = () => res();
+  v.play().then(() => { if (cyl){ cyl.material.map = tex; cyl.material.needsUpdate = true; } }).catch(() => res()); }); }
+function hold(k){ if (cyl){ cyl.material.map = vids[k].tex; cyl.material.needsUpdate = true; } }        // العودة إلى آخر لقطة في مقطع منتهٍ
+const flash = () => document.getElementById('flash').animate([{opacity: 0}, {opacity: 1, offset: .35}, {opacity: 0}], {duration: 650, easing: 'ease-out'});
+
+/* ── التدوير بالإصبع (والنقر القصير = اختيار) ── */
+let drag = null, vy = 0, back = 0, home = null;
+addEventListener('pointerdown', e => { if (e.target.closest('button')) return; drag = {x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, t0: performance.now(), t: performance.now()}; vy = 0; home = null; clearTimeout(back); });
+addEventListener('pointermove', e => { if (!drag) return; const k = cam.fov*Math.PI/180/innerHeight, dx = e.clientX - drag.x, dy = e.clientY - drag.y, now = performance.now();
+  yaw += dx*k; pitch = Math.max(-maxPitch, Math.min(maxPitch, pitch + dy*k)); vy = dx*k/Math.max(1, now - drag.t)*16; drag.x = e.clientX; drag.y = e.clientY; drag.t = now; });
+addEventListener('pointerup', e => { if (!drag) return; const tap = Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 10 && performance.now() - drag.t0 < 450;
+  drag = null; if (tap){ vy = 0; tapAt(e.clientX, e.clientY); } back = setTimeout(() => home = performance.now(), 4000); });
+
+/* ── الكلمات على الأوراق ── */
+const sign = document.getElementById('sign');
+let nodes = [], locked = true;
+function build(){
+  sign.querySelector('b').textContent = 'اِخْتَرِ الْبَاءَ الصَّحِيحَة'; sign.querySelector('i').textContent = R.pos;
+  ['ini', 'med', 'fin', 'iso'].sort(() => Math.random() - .5).forEach((form, k) => {
+    const e = document.createElement('div'); e.className = 'word'; e.textContent = opt(form); document.body.appendChild(e);
+    nodes.push({e, ok: form === R.correct, k, done: false, sx: 0, sy: 0, r: 0});
+  });
+}
+// حجم الخطّ واحد للكلمات الأربع: أطولها يملأ ≈ 75% من عرض الورقة، ولا يتجاوز ارتفاعُها نصف الورقة
+const ratio = new Map();
+const em = n => { if (!ratio.has(n.e)){ n.e.style.fontSize = '100px'; ratio.set(n.e, n.e.offsetWidth/100 || 1.6); } return ratio.get(n.e); };
+function fitAll(leafPx){ const fs = Math.max(26, Math.min(leafPx*.75/Math.max(...nodes.map(em)), leafPx*.5)); nodes.forEach(n => n.e.style.fontSize = fs + 'px'); }
+function tapAt(x, y){ if (locked) return; const n = nodes.filter(m => !m.done).find(m => Math.hypot(x - m.sx, y - m.sy) < m.r); if (n) choose(n); }
+
+/* ── الأصوات والسلّة ── */
+const W = ms => new Promise(r => setTimeout(r, ms));
+let cur = null;
+function say(src){ return new Promise(res => { try{ cur && cur.pause(); }catch(e){} const a = new Audio(src); cur = a; a.onended = a.onerror = () => res(); a.play().catch(() => res()); }); }
+const sfx = n => { const a = new Audio(`/prototypes/forest-env/assets/sfx/${n}.ogg`); a.volume = .6; a.play().catch(()=>{}); };
+let actx = null;
+function sadTune(){ try{ actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume();
+  const out = actx.createGain(); out.gain.value = .22; out.connect(actx.destination); const t0 = actx.currentTime + .05;
+  [[659.3, 0, .45], [587.3, .42, .45], [523.3, .84, .45], [493.9, 1.26, .5], [440, 1.8, 1.4], [329.6, 1.8, 1.4]].forEach(([f, s, len]) => {
+    const o = actx.createOscillator(), g = actx.createGain(); o.type = 'triangle'; o.frequency.value = f;
+    g.gain.setValueAtTime(0, t0 + s); g.gain.linearRampToValueAtTime(1, t0 + s + .03); g.gain.exponentialRampToValueAtTime(.001, t0 + s + len);
+    o.connect(g); g.connect(out); o.start(t0 + s); o.stop(t0 + s + len + .05); }); }catch(e){} }
+const basket = document.getElementById('basket');
+let fruits = 0; try{ fruits = +localStorage.getItem('forest.fruits') || 0; }catch(e){}
+const FIG = `<svg viewBox="0 0 44 52" width="100%" height="100%"><path d="M22 6c3 0 4 3 4 6 7 4 14 12 14 22 0 10-8 16-18 16S4 44 4 34c0-10 7-18 14-22 0-3 1-6 4-6z" fill="#6b3a78"/><path d="M14 22c-4 4-5 10-3 15" stroke="#a46bb3" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M22 7c0-3 2-5 5-6" stroke="#4d6b21" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`;
+const showBasket = () => basket.innerHTML = `<span style="width:20px;height:24px;display:inline-block">${FIG}</span> ${fruits}`; showBasket();
+async function figToBasket(x, y){ const b = basket.getBoundingClientRect(), f = document.createElement('div'); f.className = 'fig'; f.innerHTML = FIG; document.body.appendChild(f);
+  await f.animate([{transform: `translate(${x-22}px,${y-26}px) scale(.4)`, opacity: 0}, {transform: `translate(${x-22}px,${y-60}px) scale(1.4)`, opacity: 1, offset: .3},
+                   {transform: `translate(${b.left-12}px,${b.top+b.height/2-26}px) scale(.45)`, opacity: .9}], {duration: 1300, easing: 'ease-in-out', fill: 'forwards'}).finished;
+  f.remove(); fruits++; try{ localStorage.setItem('forest.fruits', fruits); }catch(e){} showBasket(); basket.classList.remove('bump'); void basket.offsetWidth; basket.classList.add('bump'); }
+
+/* ── تسلسل المحطة ── */
+async function run(){
+  build();
+  const looking = play('look');                     // يرفع رأسه نحو الأوراق، وأثناءها تظهر اللافتة والكلمات واحدة تلو الأخرى
+  await W(900); sign.classList.add('show');
+  nodes.forEach((n, i) => setTimeout(() => n.e.classList.add('show'), 600 + i*500));
+  await Promise.all([say(R.audio), looking, W(600 + nodes.length*500)]);
+  locked = false;
+}
+async function choose(n){
+  locked = true; n.done = true; home = performance.now();          // الكاميرا تعود إلى الأمام لتُرى ردّة الفعل
+  if (n.ok){
+    sfx('correct'); n.e.classList.add('ok'); nodes.filter(m => m !== n).forEach(m => m.e.classList.add('gone'));
+    flash(); const happy = play('happy');
+    await W(700); figToBasket(n.sx, n.sy);
+    await say(R.wordAudio); await say('/audio/praise/praise_m_1.mp3');
+    await happy; n.e.classList.add('gone'); sign.classList.remove('show');
+    const end = document.createElement('div'); end.className = 'screen';
+    end.innerHTML = `<h1>🎉 أحسنت!</h1><p>تينة جديدة في سلّتك.</p><button>من جديد</button>`; document.body.appendChild(end);
+    end.querySelector('button').onclick = () => location.reload();
+  } else {
+    n.e.classList.add('bad'); n.e.animate([{marginLeft: '0'}, {marginLeft: '-10px'}, {marginLeft: '10px'}, {marginLeft: '-6px'}, {marginLeft: '0'}], 450);
+    sadTune(); flash();
+    await Promise.all([play('sad'), W(2600).then(() => say('/audio/wrong/wrong_m_1.mp3'))]);
+    flash(); hold('look');                          // العودة إلى وقفة الانتظار (آخر لقطة في مقطع النظر)
+    locked = false;
+  }
+}
+
+/* ── الحلقة: تدوير، وعودة إلى الأمام، وإسقاط الكلمات على أوراقها ── */
+renderer.setAnimationLoop(() => {
+  if (!drag && Math.abs(vy) > 1e-4){ yaw += vy; vy *= .93; }
+  if (home !== null){ yaw += (0 - yaw)*.07; pitch *= .93; if (Math.abs(yaw) < .002){ yaw = 0; home = null; } }
+  const half = Math.max(0, ARC/2 - Math.atan(Math.tan(cam.fov*Math.PI/360)*cam.aspect));
+  if (Math.abs(yaw) > half){ yaw = Math.sign(yaw)*half; vy = 0; }
+  cam.rotation.set(pitch, yaw, 0, 'YXZ'); renderer.render(scene, cam);
+  if (!geo || !nodes.length) return;
+  let leafPx = 0;
+  nodes.forEach(n => { const p = LEAVES[n.k], c = at(p.fx, p.fy).project(cam), a = at(p.fx - LEAF_W/2, p.fy).project(cam), b = at(p.fx + LEAF_W/2, p.fy).project(cam);
+    n.sx = (c.x + 1)/2*innerWidth; n.sy = (1 - c.y)/2*innerHeight; leafPx = Math.abs(b.x - a.x)/2*innerWidth; n.r = leafPx*.55;
+    n.e.style.left = n.sx + 'px'; n.e.style.top = n.sy + 'px'; });
+  fitAll(leafPx);
+});
+
+Object.values(vids).forEach(({v}) => v.load());
+document.querySelector('#start button').onclick = () => { document.getElementById('start').remove(); run(); };
+document.getElementById('replay').onclick = () => say(R.audio);
+window.__st = () => ({locked, yaw: +yaw.toFixed(3), map: cyl && cyl.material.map && (cyl.material.map.image?.src || '').split('/').pop(), nodes: nodes.map(n => ({ok: n.ok, done: n.done, x: Math.round(n.sx), y: Math.round(n.sy), r: Math.round(n.r), fs: n.e.style.fontSize, w: n.e.textContent}))});
+</script>
+</body>
+</html>

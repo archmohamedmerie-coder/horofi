@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>محطة الجدول — 9:16</title>
+<link rel="stylesheet" href="/fonts/fonts.css">
+<style>
+/* محطة واحدة = سؤال واحد («الحرف الناقص»). المشهد 9:16 يملأ الشاشة بلا تدوير.
+   الفيديو (Hailuo 02) يحرّك الطفل والطبيعة فقط؛ أوراق الزنبق والحروف مرسومة بالكود فوقه فلا تتشوّه أبداً. */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#15130c;font-family:'Tajawal',sans-serif;user-select:none}
+#stage{position:fixed;left:0;top:0;width:768px;height:1344px;transform-origin:0 0}
+#stage img,#stage video{position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .25s}
+#stage .on{opacity:1}
+
+/* ورقة الزنبق: SVG بمنظور (قطع ناقص)، تطفو وتتمايل قليلاً */
+.pad{position:absolute;transform:translate(-50%,-50%) scale(.2);opacity:0;cursor:pointer;
+  transition:opacity .5s,transform .7s cubic-bezier(.3,1.5,.5,1),filter .4s}
+.pad.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.pad svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;animation:bob 3.2s ease-in-out infinite}
+.pad:nth-of-type(2) svg{animation-delay:-1.1s} .pad:nth-of-type(3) svg{animation-delay:-2.2s}
+@keyframes bob{50%{transform:translateY(4px) rotate(1.2deg)}}
+.pad .l{position:absolute;left:50%;top:22%;transform:translate(-50%,-50%);white-space:nowrap;direction:rtl;
+  font-family:'Noto Naskh Arabic','Amiri',serif;font-weight:700;line-height:1;color:#fffbe8;
+  -webkit-text-stroke:.11em #1f4a17;paint-order:stroke fill;text-shadow:0 .06em .2em rgba(0,0,0,.6);transition:color .4s}
+.pad.ok{filter:drop-shadow(0 0 18px rgba(255,236,140,.95)) brightness(1.15)}
+.pad.ok .l{color:#fff3a0;-webkit-text-stroke-color:#5a4200}
+.pad.bad{filter:saturate(.25) brightness(.7);cursor:default}
+.pad.bad .l{color:#a7a7a7;-webkit-text-stroke-color:#3a3a3a}
+.pad.sink{opacity:0;transform:translate(-50%,-30%) scale(.7)}
+
+/* لافتة السؤال أعلى الشاشة، والكلمة فيها بفراغ مكان الحرف */
+#sign{position:fixed;top:max(56px,calc(env(safe-area-inset-top) + 50px));left:50%;transform:translate(-50%,-16px);opacity:0;z-index:4;min-width:240px;
+  padding:8px 22px 12px;border-radius:16px;text-align:center;color:#fff1cf;background:linear-gradient(#8a5a2b,#6b421c);
+  box-shadow:inset 0 2px 0 #a8713a,inset 0 -3px 0 #4a2c10,0 8px 18px rgba(0,0,0,.45);transition:opacity .5s,transform .5s;pointer-events:none}
+#sign.show{opacity:1;transform:translate(-50%,0)}
+#sign b{display:block;font:800 17px/1.3 Tajawal} #sign i{display:block;font:800 14px/1.3 Tajawal;color:#ffe08a;font-style:normal}
+#sign .w{display:block;margin-top:4px;font:700 56px/1.25 'Noto Naskh Arabic','Amiri',serif;color:#fffbe8;text-shadow:0 3px 0 #3d250e}
+#sign .gap{display:inline-block;min-width:.55em;color:transparent;border:3px dashed #ffe08a;border-radius:10px;padding:0 4px;margin:0 3px;transition:color .5s,border-color .5s}
+#sign .gap.fill{color:#ffe36e;border-color:transparent;text-shadow:0 0 14px rgba(255,220,90,.9),0 3px 0 #3d250e}
+
+#flash{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 45%,rgba(255,244,190,.9),rgba(255,214,110,.5) 45%,rgba(255,200,90,0) 75%);z-index:3}
+/* ستارة الانتقال إلى المحطة التالية */
+#curtain{position:fixed;inset:0;z-index:7;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 30%,#2f4a1c,#0f1a08 70%)}
+#hud{position:fixed;top:max(10px,env(safe-area-inset-top));left:10px;right:10px;display:flex;justify-content:space-between;z-index:5}
+.pill{background:#0009;color:#fff;border:0;border-radius:999px;padding:7px 14px;font:800 .95rem Tajawal;cursor:pointer}
+#basket{display:flex;align-items:center;gap:6px} #basket.bump{animation:bump .5s} @keyframes bump{40%{transform:scale(1.35)}}
+.fig{position:fixed;left:0;top:0;width:44px;height:52px;pointer-events:none;z-index:8}
+.screen{position:fixed;inset:0;z-index:9;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;background:rgba(20,14,6,.55);color:#fff;text-align:center;padding:20px}
+.screen h1{font:900 1.7rem Tajawal} .screen p{opacity:.9;font-size:1.1rem}
+.screen button{font:900 1.25rem Tajawal;border:0;border-radius:18px;padding:14px 34px;background:#ffb648;color:#3b2408;box-shadow:0 5px 0 #c27d1c;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="stage"><img class="on" alt=""></div>
+<div id="sign"><b>أَكْمِلِ الْكَلِمَةَ بِالْبَاءِ الصَّحِيحَة</b><i></i><span class="w"></span></div>
+<div id="flash"></div><div id="curtain"></div>
+<div id="hud"><button class="pill" id="replay">🔊 أعِد</button><span class="pill" id="basket"></span></div>
+<div class="screen" id="start"><h1>🪨 الجدول</h1><p>أكمل الكلمة: اختر ورقة الزنبق التي عليها الباء الصحيحة.</p><button>ابدأ</button></div>
+<script type="module">
+import { ARFORMS, LETTER_BA } from '/prototypes/forest-env/data.js';
+
+/* ── السؤال: «الحرف الناقص» — نسخة مطابقة لدالّة التطبيق getNaturalForm، وتشكيل كل حرف على حدة ── */
+function naturalForm(L, i){ const f = ARFORMS[L[i]], p = L[i-1], pc = p && ARFORMS[p] && ARFORMS[p].c, hn = L[i+1] !== undefined;
+  return (pc && hn && f.med) ? 'med' : (pc && f.fin) ? 'fin' : (!pc && hn && f.ini) ? 'ini' : 'iso'; }
+const glyphs = (L, d) => L.map((ch, i) => { const f = ARFORMS[ch], m = (d && d[i]) || ''; return (f ? String.fromCodePoint(f[naturalForm(L, i)] || f.iso) : ch) + m; });
+const LV = LETTER_BA.levels.beginner, word = LV.end_c[2], L = Array.from(word), ti = L.lastIndexOf('ب');
+const R = {word, L, g: glyphs(L, LV.end_cD[2]), ti, correct: naturalForm(L, ti), pos: 'فِي نِهَايَةِ الْكَلِمَة، بَعْدَ مُتَّصِل',
+  audio: '/audio/questions/ب_fin_c.mp3', wordAudio: `/audio/words/${word}.mp3`};
+const FORM_TXT = {ini: 'بـ', med: 'ـبـ', fin: 'ـب', iso: 'ب'};
+
+/* ── المشهد: صورة/فيديو 768×1344 يملأ الشاشة (cover). على الهاتف العمودي يُقصّ من الجانبين حول CX
+   (الطفل يساراً والأوراق يميناً يبقيان ظاهرين) ── */
+const VD = '/prototypes/assets/magiclight/', IW = 768, IH = 1344, CX = 410;
+const STILL = 'station_river916.jpg';
+const CLIPS = {look: 'sriver_look.mp4', sad: 'sriver_sad.mp4', happy: 'sriver_happy.mp4'};
+/* أوراق الزنبق بإحداثيات الصورة: مركز ونصف قطر أفقي — أبعد = أصغر (منظور الماء) */
+// في الماء يمين الحجارة، حيث ينظر الطفل في آخر لقطة من مقطع النظر
+const PADS = [{x: 628, y: 590, r: 72}, {x: 626, y: 770, r: 86}, {x: 610, y: 985, r: 104}];
+const stage = document.getElementById('stage');
+let S = 1;
+function fit(){ S = Math.max(innerWidth/IW, innerHeight/IH);
+  const cx = Math.min(Math.max(CX, innerWidth/S/2), IW - innerWidth/S/2);
+  stage.style.transform = `translate(${innerWidth/2 - cx*S}px,${(innerHeight - IH*S)/2}px) scale(${S})`; }
+addEventListener('resize', fit); fit();
+stage.querySelector('img').src = VD + STILL;
+
+/* ── المقاطع: فيديو لكل مقطع فوق الصورة؛ المقطع المنتهي يبقى على آخر لقطة (انتظار) ── */
+const vids = {};
+for (const [k, f] of Object.entries(CLIPS)){ const v = document.createElement('video'); Object.assign(v, {src: VD + f, muted: true, playsInline: true, preload: 'auto'});
+  stage.appendChild(v); vids[k] = v; }
+const only = v => [...stage.children].forEach(e => e.classList.toggle('on', e === v));
+function play(k){ return new Promise(res => { const v = vids[k]; v.currentTime = 0; v.onended = () => res();
+  v.play().then(() => only(v)).catch(() => res()); }); }
+const hold = k => only(vids[k]);                    // العودة إلى آخر لقطة في مقطع منتهٍ
+const flash = () => document.getElementById('flash').animate([{opacity: 0}, {opacity: 1, offset: .35}, {opacity: 0}], {duration: 650, easing: 'ease-out'});
+
+/* ── أوراق الزنبق والحروف ── */
+const PAD_SVG = `<svg viewBox="-100 -40 200 80"><ellipse cx="0" cy="6" rx="98" ry="30" fill="rgba(0,30,20,.35)"/>
+  <path d="M0 0 L-12 -33 A98 33 0 1 0 12 -33 Z" fill="#5f9e2f"/><path d="M0 0 L-12 -33 A98 33 0 1 0 12 -33 Z" fill="none" stroke="#3f7a1d" stroke-width="3"/>
+  <g stroke="#7fbf45" stroke-width="2" opacity=".7"><path d="M0 0 L-80 -14"/><path d="M0 0 L-90 8"/><path d="M0 0 L-45 28"/><path d="M0 0 L45 28"/><path d="M0 0 L90 8"/><path d="M0 0 L80 -14"/></g>
+  <ellipse cx="-30" cy="-12" rx="40" ry="9" fill="#a6db6a" opacity=".35"/></svg>`;
+const sign = document.getElementById('sign');
+let nodes = [], locked = true;
+function build(){
+  sign.querySelector('i').textContent = R.pos;
+  sign.querySelector('.w').innerHTML = R.g.map((g, i) => i === R.ti ? `<span class="gap">${g}</span>` : g).join('');
+  const others = ['ini', 'med', 'fin', 'iso'].filter(f => f !== R.correct).sort(() => Math.random() - .5).slice(0, 2);
+  [R.correct, ...others].sort(() => Math.random() - .5).forEach((form, k) => {
+    const p = PADS[k], e = document.createElement('div'); e.className = 'pad';
+    e.style.cssText = `left:${p.x}px;top:${p.y}px;width:${p.r*2}px;height:${p.r*.8}px`;
+    e.innerHTML = PAD_SVG + `<span class="l" style="font-size:${p.r*1.2}px">${FORM_TXT[form]}</span>`;
+    stage.appendChild(e);
+    const n = {e, ok: form === R.correct, done: false}; nodes.push(n);
+    e.onclick = () => choose(n);
+  });
+}
+
+/* ── الأصوات والسلّة ── */
+const W = ms => new Promise(r => setTimeout(r, ms));
+let cur = null;
+function say(src){ return new Promise(res => { try{ cur && cur.pause(); }catch(e){} const a = new Audio(src); cur = a; a.onended = a.onerror = () => res(); a.play().catch(() => res()); }); }
+const sfx = n => { const a = new Audio(`/prototypes/forest-env/assets/sfx/${n}.ogg`); a.volume = .6; a.play().catch(()=>{}); };
+let actx = null;
+function sadTune(){ try{ actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume();
+  const out = actx.createGain(); out.gain.value = .22; out.connect(actx.destination); const t0 = actx.currentTime + .05;
+  [[659.3, 0, .45], [587.3, .42, .45], [523.3, .84, .45], [493.9, 1.26, .5], [440, 1.8, 1.4], [329.6, 1.8, 1.4]].forEach(([f, s, len]) => {
+    const o = actx.createOscillator(), g = actx.createGain(); o.type = 'triangle'; o.frequency.value = f;
+    g.gain.setValueAtTime(0, t0 + s); g.gain.linearRampToValueAtTime(1, t0 + s + .03); g.gain.exponentialRampToValueAtTime(.001, t0 + s + len);
+    o.connect(g); g.connect(out); o.start(t0 + s); o.stop(t0 + s + len + .05); }); }catch(e){} }
+const basket = document.getElementById('basket');
+let fruits = 0; try{ fruits = +localStorage.getItem('forest.fruits') || 0; }catch(e){}
+const FIG = `<svg viewBox="0 0 44 52" width="100%" height="100%"><path d="M22 6c3 0 4 3 4 6 7 4 14 12 14 22 0 10-8 16-18 16S4 44 4 34c0-10 7-18 14-22 0-3 1-6 4-6z" fill="#6b3a78"/><path d="M14 22c-4 4-5 10-3 15" stroke="#a46bb3" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M22 7c0-3 2-5 5-6" stroke="#4d6b21" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`;
+const showBasket = () => basket.innerHTML = `<span style="width:20px;height:24px;display:inline-block">${FIG}</span> ${fruits}`; showBasket();
+async function figToBasket(x, y){ const b = basket.getBoundingClientRect(), f = document.createElement('div'); f.className = 'fig'; f.innerHTML = FIG; document.body.appendChild(f);
+  await f.animate([{transform: `translate(${x-22}px,${y-26}px) scale(.4)`, opacity: 0}, {transform: `translate(${x-22}px,${y-70}px) scale(1.4)`, opacity: 1, offset: .3},
+                   {transform: `translate(${b.left-12}px,${b.top+b.height/2-26}px) scale(.45)`, opacity: .9}], {duration: 1300, easing: 'ease-in-out', fill: 'forwards'}).finished;
+  f.remove(); fruits++; try{ localStorage.setItem('forest.fruits', fruits); }catch(e){} showBasket(); basket.classList.remove('bump'); void basket.offsetWidth; basket.classList.add('bump'); }
+const shake = e => e.animate([{marginLeft: '0'}, {marginLeft: '-10px'}, {marginLeft: '10px'}, {marginLeft: '-6px'}, {marginLeft: '0'}], 450);
+
+/* ── تسلسل المحطة ── */
+async function run(){
+  build();
+  const looking = play('look');                     // يلتفت نحو الماء، وأثناءها تظهر اللافتة وتطفو الأوراق واحدة تلو الأخرى
+  await W(900); sign.classList.add('show');
+  nodes.forEach((n, i) => setTimeout(() => n.e.classList.add('show'), 700 + i*500));
+  await Promise.all([say(R.audio), looking, W(700 + nodes.length*500)]);
+  locked = false;
+}
+// الخطأ لا ينهي المحطة: الورقة الخاطئة تبهت وتُقفل، ويبقى الطفل يختار حتى يصيب
+async function choose(n){
+  if (locked || n.done) return;
+  locked = true; n.done = true;
+  if (n.ok){
+    sfx('correct'); n.e.classList.add('ok'); sign.querySelector('.gap').classList.add('fill');
+    nodes.filter(m => m !== n).forEach(m => m.e.classList.add('sink'));
+    // يقفز فرحاً فوراً (≈0.8ث)، ثم يقفز من حجر إلى حجر حتى البوّابة (≈2–5.8ث): الطريق إلى المحطة التالية
+    flash(); const happy = play('happy'), r = n.e.getBoundingClientRect();
+    await W(400); figToBasket(r.left + r.width/2, r.top + r.height/2);
+    await say(R.wordAudio); n.e.classList.add('sink'); sign.classList.remove('show');
+    await say('/audio/praise/praise_m_1.mp3'); await happy;
+    // ستارة خضراء داكنة تغطّي الانتقال (بمؤقّت لا بـ.finished: الرسوم تتوقّف في صفحة مخفية)
+    document.getElementById('curtain').animate([{opacity: 0}, {opacity: 1}], {duration: 700, fill: 'forwards'}); await W(700);
+    const end = document.createElement('div'); end.className = 'screen';
+    end.innerHTML = `<h1>🎉 أحسنت!</h1><p>هنا تبدأ المحطة التالية.</p><button>من جديد</button>`; document.body.appendChild(end);
+    end.querySelector('button').onclick = () => location.reload();
+  } else {
+    n.e.classList.add('bad'); shake(n.e); sadTune(); flash();
+    await Promise.all([play('sad'), W(2600).then(() => say('/audio/wrong/wrong_m_1.mp3'))]);
+    flash(); hold('look');                          // العودة إلى وقفة الانتظار (آخر لقطة في مقطع النظر)
+    locked = false;
+  }
+}
+
+Object.values(vids).forEach(v => v.load());
+document.querySelector('#start button').onclick = () => { document.getElementById('start').remove(); run(); };
+document.getElementById('replay').onclick = () => say(R.audio);
+window.__rv = () => ({locked, on: [...stage.children].filter(e => e.classList.contains('on')).map(e => (e.src || '').split('/').pop()),
+  nodes: nodes.map(n => { const b = n.e.getBoundingClientRect(); return {ok: n.ok, done: n.done, t: n.e.textContent.trim(), x: Math.round(b.left), y: Math.round(b.top), w: Math.round(b.width), cls: n.e.className}; })});
+</script>
+</body>
+</html>

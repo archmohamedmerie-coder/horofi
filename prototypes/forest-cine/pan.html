@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>تجربة السحب</title>
+<link rel="stylesheet" href="/fonts/fonts.css">
+<style>
+/* تجربة قرار: مشهد بالعرض 16:9 على هاتف عمودي، يُسحب يميناً وشمالاً.
+   المنطقة الآمنة في الوسط (الطفل والخيارات) تبقى قابلة للوصول دائماً، والمشهد يعود إليها وحده بعد قليل. */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#15130c;font-family:'Tajawal',sans-serif;touch-action:none}
+#view{position:fixed;inset:0;overflow:hidden}
+#stage{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform}
+#stage img{display:block;width:100%;height:100%;user-select:none;-webkit-user-drag:none;pointer-events:none}
+/* إطار المنطقة الآمنة: للتجربة فقط */
+#safe{position:absolute;top:0;bottom:0;border-inline:2px dashed rgba(255,230,120,.55);pointer-events:none}
+#hint{position:fixed;bottom:max(20px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:#000a;color:#fff;
+  padding:8px 16px;border-radius:999px;font:800 .95rem Tajawal;transition:opacity .6s}
+#ctl{position:fixed;top:max(10px,env(safe-area-inset-top));left:10px;display:flex;gap:8px}
+#ctl button{background:#000a;color:#fff;border:0;border-radius:999px;padding:7px 14px;font:800 .9rem Tajawal}
+</style>
+</head>
+<body>
+<div id="view"><div id="stage"><img id="img" alt=""><div id="safe"></div></div></div>
+<div id="ctl"><button id="tSafe">إطار الوسط</button></div>
+<div id="hint">👆 اسحب يميناً وشمالاً</div>
+<script>
+// الصورة تُمرَّر بـ?src= (افتراضياً صورة التينة بالعرض)
+const SRC = new URLSearchParams(location.search).get('src') || '/prototypes/assets/magiclight/wide_fig.png';
+const SAFE = .42;                                   // عرض المنطقة الآمنة نسبةً إلى عرض الصورة، في وسطها
+// ?ar=1 أو 1.33: يقصّ وسط الصورة إلى هذه النسبة لمقارنة الإحساس بلا توليد جديد
+const AR = +new URLSearchParams(location.search).get('ar') || 0;
+const img = document.getElementById('img'), stage = document.getElementById('stage'), safe = document.getElementById('safe');
+let W = 0, H = 0, s = 1, x = 0, minX = 0, maxX = 0, home = 0;
+function layout(){
+  if (!img.naturalWidth) return;
+  const nh = img.naturalHeight, nw = AR ? Math.min(img.naturalWidth, Math.round(nh * AR)) : img.naturalWidth;
+  img.style.objectFit = 'cover';
+  s = innerHeight / nh; W = nw * s; H = innerHeight;
+  stage.style.width = nw + 'px'; stage.style.height = nh + 'px';
+  minX = Math.min(0, innerWidth - W); maxX = 0; home = (innerWidth - W) / 2;
+  safe.style.left = (nw * (.5 - SAFE/2)) + 'px'; safe.style.width = (nw * SAFE) + 'px';
+  set(home);
+}
+function set(v){ x = Math.max(minX, Math.min(maxX, v)); stage.style.transform = `translate(${x}px,0) scale(${s})`; }
+img.onload = layout; img.src = SRC; addEventListener('resize', layout);
+
+// السحب بإصبع واحد مع زخم خفيف، ثم عودة هادئة إلى الوسط بعد 4 ثوانٍ من آخر لمس
+let drag = null, vel = 0, back = 0, raf = 0;
+const hint = document.getElementById('hint');
+addEventListener('pointerdown', e => { if (e.target.closest('#ctl')) return; drag = {x0: e.clientX, v0: x, t: performance.now(), px: e.clientX}; vel = 0; cancelAnimationFrame(raf); clearTimeout(back); hint.style.opacity = 0; });
+addEventListener('pointermove', e => { if (!drag) return; const now = performance.now(), dt = Math.max(1, now - drag.t);
+  vel = (e.clientX - drag.px) / dt; drag.px = e.clientX; drag.t = now; set(drag.v0 + e.clientX - drag.x0); });
+addEventListener('pointerup', () => { if (!drag) return; drag = null;
+  const glide = () => { vel *= .94; set(x + vel*16); if (Math.abs(vel) > .02) raf = requestAnimationFrame(glide); }; glide();
+  back = setTimeout(goHome, 4000); });
+function goHome(){ const from = x, t0 = performance.now();
+  const step = now => { const k = Math.min(1, (now - t0)/900), e = 1 - Math.pow(1-k, 3); set(from + (home - from)*e); if (k < 1) raf = requestAnimationFrame(step); };
+  raf = requestAnimationFrame(step); }
+document.getElementById('tSafe').onclick = () => safe.style.display = safe.style.display === 'none' ? '' : 'none';
+</script>
+</body>
+</html>
