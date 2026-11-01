@@ -68,7 +68,9 @@ const opt = form => { let w = shapeWord(R.L, {[R.ti]: form}, R.d); if (form === 
 /* ── المشهد: صورة/فيديو 768×1364 يملأ الشاشة (cover)، ويُقصّ من الجانبين حول CX (الطفل والأوراق ظاهران) ── */
 const VD = '/prototypes/assets/magiclight/', IW = 768, IH = 1364, CX = 384;
 const STILL = 'station_beach.jpg';                 // آخر لقطة في رحلة الواحة، أُعيد رسمها نظيفة بـGPT Image
-const CLIPS = {look: 'sbeach_look.mp4', sad: 'sbeach_sad.mp4', happy: 'sbeach_happy.mp4'};
+const CLIPS = {look: 'sbeach_look.mp4', sad: 'sbeach_sad.mp4', happy: 'sbeach_happy.mp4', travel: 'travel_beach_savanna.mp4'};
+// الرحلة إلى السافانا وُلّدت من لقطة الفرح عند هذه الثانية (يقفز وظهره للكاميرا)
+const TRAVEL_AT = 1.4;
 /* الطائرات الورقية بإحداثيات الصورة: تطير في سماء الشاطئ فوق رأس الطفل الذي ينظر إليها */
 const LEAVES = [{x: 240, y: 345}, {x: 528, y: 345}, {x: 240, y: 585}, {x: 528, y: 585}], LR = 104;
 const stage = document.getElementById('stage');
@@ -86,6 +88,16 @@ const only = v => [...stage.children].forEach(e => e.classList.toggle('on', e ==
 function play(k){ return new Promise(res => { const v = vids[k]; v.currentTime = 0; v.onended = () => res();
   v.play().then(() => only(v)).catch(() => res()); }); }
 const hold = k => only(vids[k]);                    // العودة إلى آخر لقطة في مقطع منتهٍ
+// الفرح ثم الرحلة: عند TRAVEL_AT يُستبدل مقطع الفرح بمقطع الرحلة في الإطار نفسه، فيستمرّ بلا قطع
+function happyThenTravel(){ return new Promise(res => {
+  const h = vids.happy, t = vids.travel; let done = false;
+  const go = () => { if (done) return; done = true; t.currentTime = 0; t.onended = () => res();
+    t.play().then(() => { only(t); h.pause(); }).catch(() => res()); };
+  const watch = (now, m) => { if (m.mediaTime >= TRAVEL_AT - .02) go(); else h.requestVideoFrameCallback(watch); };
+  if (h.requestVideoFrameCallback) h.requestVideoFrameCallback(watch);
+  h.ontimeupdate = () => { if (h.currentTime >= TRAVEL_AT + .1) go(); };     // احتياط: rVFC لا يعمل في صفحة لا تُرسم
+  h.currentTime = 0; h.onended = go; h.play().then(() => only(h)).catch(go);
+}); }
 const flash = () => document.getElementById('flash').animate([{opacity: 0}, {opacity: 1, offset: .35}, {opacity: 0}], {duration: 650, easing: 'ease-out'});
 
 /* ── أوراق التين والكلمات ── */
@@ -148,13 +160,11 @@ async function choose(n){
   if (n.ok){
     sfx('correct'); n.e.classList.add('ok'); nodes.filter(m => m !== n).forEach(m => m.e.classList.add('gone'));
     // يقفز فرحاً والدلافين تقفز والنوارس تحوم
-    flash(); const happy = play('happy'), r = n.e.getBoundingClientRect();
+    flash(); const journey = happyThenTravel(), r = n.e.getBoundingClientRect();
     await W(400); figToBasket(r.left + r.width/2, r.top + r.height/2);
     await say(R.wordAudio); n.e.classList.add('gone'); sign.classList.remove('show');
-    await say('/audio/praise/praise_m_1.mp3'); await happy;
-    const end = document.createElement('div'); end.className = 'screen'; end.style.background = 'none'; end.style.justifyContent = 'flex-start'; end.style.paddingTop = '120px';
-    end.innerHTML = `<h1>🎉 أحسنت!</h1><p>نهاية المحطات السبع.</p><button>من البداية</button>`; document.body.appendChild(end);
-    end.querySelector('button').onclick = () => location.href = 'fig';
+    await say('/audio/praise/praise_m_1.mp3'); await journey;
+    location.href = 'savanna?cont=1';                // بلا .html: الخادم يعيد التوجيه ويُسقط الاستعلام
   } else {
     n.e.classList.add('bad'); shake(n.e); sadTune(); flash();
     await Promise.all([play('sad'), W(2600).then(() => say('/audio/wrong/wrong_m_1.mp3'))]);

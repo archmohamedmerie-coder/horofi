@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>الكعبة المشرّفة — من نور الأقصى</title>
+<link rel="stylesheet" href="/fonts/fonts.css">
+<style>
+/* محطة واحدة = سؤال واحد («التجميع» كما في الكتابة بالتطبيق). المشهد 9:16 يملأ الشاشة بلا تدوير.
+   الفيديو (Hailuo 02) يحرّك الطفل والطبيعة فقط؛ ألواح الحروف والكلمة مرسومة بالكود فوقه. */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#15130c;font-family:'Tajawal',sans-serif;user-select:none}
+#stage{position:fixed;left:0;top:0;width:768px;height:1364px;transform-origin:0 0}
+#stage img,#stage video{position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .25s}
+#stage .on{opacity:1}
+
+/* لافتة السؤال، وتحتها الكلمة التي يبنيها الطفل في خانات بعدد الحروف */
+#sign{position:fixed;top:max(56px,calc(env(safe-area-inset-top) + 50px));left:50%;transform:translate(-50%,-16px);opacity:0;z-index:4;min-width:250px;
+  padding:8px 22px 12px;border-radius:16px;text-align:center;color:#fff1cf;background:linear-gradient(#8a5a2b,#6b421c);white-space:nowrap;
+  box-shadow:inset 0 2px 0 #a8713a,inset 0 -3px 0 #4a2c10,0 8px 18px rgba(0,0,0,.45);transition:opacity .5s,transform .5s}
+#sign.show{opacity:1;transform:translate(-50%,0)}
+#sign b{display:block;font:800 17px/1.3 Tajawal} #sign b span{color:#ffe08a;letter-spacing:.3em}
+#word{display:flex;flex-direction:row;justify-content:center;gap:0;margin-top:6px;min-height:72px;direction:rtl}
+#word .slot{min-width:46px;height:68px;display:flex;align-items:center;justify-content:center;border:3px dashed #ffe08a99;border-radius:10px;margin:0 3px;
+  font:700 54px/1 'Noto Naskh Arabic','Amiri',serif;color:#fffbe8;text-shadow:0 3px 0 #3d250e;transition:border-color .3s,margin .3s}
+#word .slot.full{border-color:transparent;margin:0}
+#word.ok .slot{color:#ffe36e;text-shadow:0 0 14px rgba(255,220,90,.9),0 3px 0 #3d250e}
+
+/* لوحة الألواح: صف لكل حرف (بترتيب ظهوره)، وأشكاله الأربعة مخلوطة — مثل asm-panel في التطبيق */
+#tray{position:fixed;left:50%;top:24%;transform:translate(-50%,0) scale(.9);opacity:0;z-index:4;display:flex;flex-direction:column;gap:8px;
+  transition:opacity .5s,transform .5s;pointer-events:none}
+#tray.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+/* هنا اللوحة في الأسفل: في مكانها المعتاد تغطّي الكعبة */
+#tray{top:auto;bottom:max(14px,calc(env(safe-area-inset-bottom) + 10px))}
+#tray.gone{opacity:0;transform:translate(-50%,30px) scale(.85);pointer-events:none}
+.row{display:flex;gap:7px;align-items:center;direction:rtl}
+.row .lab{width:34px;text-align:center;font:700 26px/1 'Noto Naskh Arabic',serif;color:#ffe08a;text-shadow:0 2px 4px #000c}
+.plank{width:60px;height:54px;border:0;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font:700 40px/1 'Noto Naskh Arabic','Amiri',serif;color:#3b2408;
+  background:repeating-linear-gradient(90deg,#d8a865 0 9px,#cf9e5a 9px 11px),#d8a865;
+  box-shadow:inset 0 2px 0 #f0c98a,inset 0 -4px 0 #9b6a2f,0 4px 8px rgba(0,0,0,.5);transition:transform .12s}
+.plank:active{transform:translateY(2px)}
+.tools{display:flex;gap:8px;justify-content:center;margin-top:4px}
+.tools button{border:0;border-radius:999px;padding:9px 14px;white-space:nowrap;font:800 .95rem Tajawal;cursor:pointer;background:#000a;color:#fff}
+.tools #check{background:#ffb648;color:#3b2408;box-shadow:0 4px 0 #c27d1c}
+.tools #check:disabled{opacity:.45}
+
+#flash{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 45%,rgba(255,244,190,.9),rgba(255,214,110,.5) 45%,rgba(255,200,90,0) 75%);z-index:3}
+#hud{position:fixed;top:max(10px,env(safe-area-inset-top));left:10px;right:10px;display:flex;justify-content:space-between;z-index:5}
+.pill{background:#0009;color:#fff;border:0;border-radius:999px;padding:7px 14px;font:800 .95rem Tajawal;cursor:pointer}
+#basket{display:flex;align-items:center;gap:6px} #basket.bump{animation:bump .5s} @keyframes bump{40%{transform:scale(1.35)}}
+.fig{position:fixed;left:0;top:0;width:44px;height:52px;pointer-events:none;z-index:8}
+.screen{position:fixed;inset:0;z-index:9;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;background:rgba(20,14,6,.55);color:#fff;text-align:center;padding:20px}
+.screen h1{font:900 1.7rem Tajawal} .screen p{opacity:.9;font-size:1.1rem} .screen h1,.screen p{text-shadow:0 2px 8px rgba(0,0,0,.75)}
+.screen button{font:900 1.25rem Tajawal;border:0;border-radius:18px;padding:14px 34px;background:#ffb648;color:#3b2408;box-shadow:0 5px 0 #c27d1c;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="stage"><img class="on" alt=""></div>
+<div id="sign"><b>اُكْتُبْ كَلِمَةَ <span></span> مَوْصُولَة</b><div id="word"></div></div>
+<div id="tray"></div>
+<div id="flash"></div>
+<div id="hud"><button class="pill" id="replay">🔊 أعِد</button><span class="pill" id="basket"></span></div>
+<div class="screen" id="start"><h1>🕋 الكعبة المشرّفة</h1><p>رتّب ألواح الحروف لتكتب الكلمة موصولة.</p><button>ابدأ</button></div>
+<script type="module">
+import { ARFORMS } from '/prototypes/forest-env/data.js';
+
+/* ── السؤال: «التجميع» — نسخة مطابقة لـ_assembleExpected وbuildAssembleRound في التطبيق ── */
+function naturalForm(L, i){ const f = ARFORMS[L[i]], p = L[i-1], pc = p && ARFORMS[p] && ARFORMS[p].c, hn = L[i+1] !== undefined;
+  return (pc && hn && f.med) ? 'med' : (pc && f.fin) ? 'fin' : (!pc && hn && f.ini) ? 'ini' : 'iso'; }
+// الجسر يأخذ كلمة من المستويات الأخرى، الأقصر أولاً (docs/forest-plan.md)
+const word = 'قلب', L = Array.from(word);
+const expected = L.map((ch, i) => { const f = ARFORMS[ch], form = naturalForm(L, i); return {ch, form, cp: f[form] !== undefined ? f[form] : f.iso}; });
+const shuffle = a => a.map(v => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map(x => x[1]);
+
+/* ── المشهد: صورة/فيديو 768×1364 يملأ الشاشة (cover) ── */
+const VD = '/prototypes/assets/magiclight/', IW = 768, IH = 1364, CX = 384;
+const STILL = 'station_kaaba.jpg';                 // وُلّدت مباشرة بـGPT Image: الطفل نفسه بلباس الإحرام أمام الكعبة (لا رحلة فيديو: تبدّل الثياب يمرّ عبر النور الأبيض)
+const CLIPS = {look: 'skaaba_look.mp4', sad: 'skaaba_sad.mp4', happy: 'skaaba_happy.mp4'};
+const LOOK_END = 1.1;                               // بعدها يلتفت الطفل جانباً ويتطاير الإحرام: الحزن والدعاء وُلّدا من لقطة 1.1ث
+const stage = document.getElementById('stage');
+let S = 1;
+function fit(){ S = Math.max(innerWidth/IW, innerHeight/IH);
+  const cx = Math.min(Math.max(CX, innerWidth/S/2), IW - innerWidth/S/2);
+  stage.style.transform = `translate(${innerWidth/2 - cx*S}px,${(innerHeight - IH*S)/2}px) scale(${S})`; }
+addEventListener('resize', fit); fit();
+stage.querySelector('img').src = VD + STILL;
+
+const vids = {};
+for (const [k, f] of Object.entries(CLIPS)){ const v = document.createElement('video'); Object.assign(v, {src: VD + f, muted: true, playsInline: true, preload: 'auto'});
+  stage.appendChild(v); vids[k] = v; }
+const only = v => [...stage.children].forEach(e => e.classList.toggle('on', e === v));
+function play(k){ return new Promise(res => { const v = vids[k]; v.currentTime = 0; v.onended = () => res();
+  v.ontimeupdate = k === 'look' ? () => { if (v.currentTime >= LOOK_END){ v.pause(); v.ontimeupdate = null; res(); } } : null;
+  v.play().then(() => only(v)).catch(() => res()); }); }
+const hold = k => only(vids[k]);                    // العودة إلى آخر لقطة في مقطع منتهٍ
+const flash = () => document.getElementById('flash').animate([{opacity: 0}, {opacity: 1, offset: .35}, {opacity: 0}], {duration: 650, easing: 'ease-out'});
+
+/* ── الألواح والكلمة ── */
+const sign = document.getElementById('sign'), tray = document.getElementById('tray'), wordEl = document.getElementById('word');
+let sel = [], locked = true;
+function render(){
+  wordEl.innerHTML = L.map((_, i) => sel[i] ? `<span class="slot full">${String.fromCodePoint(sel[i].cp)}</span>` : `<span class="slot"></span>`).join('');
+  document.getElementById('check').disabled = locked || sel.length !== L.length;
+}
+function build(){
+  sign.querySelector('b span').textContent = L.join(' ');
+  const seen = []; L.forEach(ch => { if (!seen.includes(ch)) seen.push(ch); });
+  // صف لكل حرف بترتيب أول ظهوره، وأشكاله مخلوطة كي لا يُخمّن الطفل من ترتيب الألواح
+  tray.innerHTML = seen.map(ch => { const f = ARFORMS[ch];
+    return `<div class="row"><span class="lab">${ch}</span>` + shuffle(['ini', 'med', 'fin', 'iso'].filter(k => f[k] !== undefined))
+      .map(form => `<button class="plank" data-ch="${ch}" data-form="${form}">${String.fromCodePoint(f[form])}</button>`).join('') + `</div>`; }).join('')
+    + `<div class="tools"><button id="undo">↩️ تراجع</button><button id="hear">🔊 اسمع الكلمة</button><button id="check" disabled>تحقّق ✓</button></div>`;
+  tray.querySelectorAll('.plank').forEach(b => b.onclick = () => { if (locked || sel.length >= L.length) return;
+    const f = ARFORMS[b.dataset.ch]; sel.push({ch: b.dataset.ch, form: b.dataset.form, cp: f[b.dataset.form]}); render(); });
+  document.getElementById('undo').onclick = () => { if (locked) return; sel.pop(); render(); };
+  document.getElementById('hear').onclick = () => say(`/audio/words/${word}.mp3`);
+  document.getElementById('check').onclick = check;
+  render();
+}
+
+/* ── الأصوات والسلّة ── */
+const W = ms => new Promise(r => setTimeout(r, ms));
+let cur = null;
+function say(src){ return new Promise(res => { try{ cur && cur.pause(); }catch(e){} const a = new Audio(src); cur = a; a.onended = a.onerror = () => res(); a.play().catch(() => res()); }); }
+const sfx = n => { const a = new Audio(`/prototypes/forest-env/assets/sfx/${n}.ogg`); a.volume = .6; a.play().catch(()=>{}); };
+let actx = null;
+function sadTune(){ try{ actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume();
+  const out = actx.createGain(); out.gain.value = .22; out.connect(actx.destination); const t0 = actx.currentTime + .05;
+  [[659.3, 0, .45], [587.3, .42, .45], [523.3, .84, .45], [493.9, 1.26, .5], [440, 1.8, 1.4], [329.6, 1.8, 1.4]].forEach(([f, s, len]) => {
+    const o = actx.createOscillator(), g = actx.createGain(); o.type = 'triangle'; o.frequency.value = f;
+    g.gain.setValueAtTime(0, t0 + s); g.gain.linearRampToValueAtTime(1, t0 + s + .03); g.gain.exponentialRampToValueAtTime(.001, t0 + s + len);
+    o.connect(g); g.connect(out); o.start(t0 + s); o.stop(t0 + s + len + .05); }); }catch(e){} }
+const basket = document.getElementById('basket');
+let fruits = 0; try{ fruits = +localStorage.getItem('forest.fruits') || 0; }catch(e){}
+const FIG = `<svg viewBox="0 0 44 52" width="100%" height="100%"><path d="M22 6c3 0 4 3 4 6 7 4 14 12 14 22 0 10-8 16-18 16S4 44 4 34c0-10 7-18 14-22 0-3 1-6 4-6z" fill="#6b3a78"/><path d="M14 22c-4 4-5 10-3 15" stroke="#a46bb3" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M22 7c0-3 2-5 5-6" stroke="#4d6b21" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`;
+const showBasket = () => basket.innerHTML = `<span style="width:20px;height:24px;display:inline-block">${FIG}</span> ${fruits}`; showBasket();
+async function figToBasket(x, y){ const b = basket.getBoundingClientRect(), f = document.createElement('div'); f.className = 'fig'; f.innerHTML = FIG; document.body.appendChild(f);
+  await f.animate([{transform: `translate(${x-22}px,${y-26}px) scale(.4)`, opacity: 0}, {transform: `translate(${x-22}px,${y-70}px) scale(1.4)`, opacity: 1, offset: .3},
+                   {transform: `translate(${b.left-12}px,${b.top+b.height/2-26}px) scale(.45)`, opacity: .9}], {duration: 1300, easing: 'ease-in-out', fill: 'forwards'}).finished;
+  f.remove(); fruits++; try{ localStorage.setItem('forest.fruits', fruits); }catch(e){} showBasket(); basket.classList.remove('bump'); void basket.offsetWidth; basket.classList.add('bump'); }
+const shake = e => e.animate([{marginLeft: '0'}, {marginLeft: '-10px'}, {marginLeft: '10px'}, {marginLeft: '-6px'}, {marginLeft: '0'}], 450);
+const question = async () => { await say('/audio/write/assemble_prompt.mp3'); await say(`/audio/words/${word}.mp3`); };
+
+/* ── تسلسل المحطة ── */
+async function run(){
+  build();
+  const looking = play('look');                     // ينظر إلى الجسر، وأثناءها تظهر اللافتة والألواح
+  await W(900); sign.classList.add('show'); await W(500); tray.classList.add('show');
+  await Promise.all([question(), looking]);
+  locked = false; render();
+}
+// الخطأ لا ينهي المحطة: تُفرَّغ الكلمة ويعيد الطفل البناء حتى يصيب
+async function check(){
+  if (locked || sel.length !== L.length) return;
+  locked = true; render();
+  const ok = expected.every((e, i) => sel[i].cp === e.cp);
+  if (ok){
+    sfx('correct'); wordEl.classList.add('ok'); tray.classList.add('gone');
+    // يرفع يديه بالدعاء والحمام الأبيض يطير حوله
+    flash(); const happy = play('happy'), r = wordEl.getBoundingClientRect();
+    await W(400); figToBasket(r.left + r.width/2, r.top + r.height/2);
+    await say(`/audio/words/${word}.mp3`); await say('/audio/praise/praise_m_1.mp3'); sign.classList.remove('show');
+    await happy;
+    const end = document.createElement('div'); end.className = 'screen'; end.style.background = 'none'; end.style.justifyContent = 'flex-start'; end.style.paddingTop = '120px';
+    end.innerHTML = `<h1>🎉 أحسنت!</h1><p>أتممتَ الرحلة كلّها: خمس عشرة محطة 🌟</p><button>من البداية</button>`; document.body.appendChild(end);
+    end.querySelector('button').onclick = () => location.href = 'fig';
+  } else {
+    shake(wordEl); sadTune(); flash();
+    await Promise.all([play('sad'), W(2600).then(() => say('/audio/wrong/wrong_m_1.mp3'))]);
+    flash(); hold('look'); sel = []; locked = false; render();
+  }
+}
+
+Object.values(vids).forEach(v => v.load());
+document.querySelector('#start button').onclick = () => { document.getElementById('start').remove(); run(); };
+// ?cont=1: قادمون من نور الأقصى: الشاشة بيضاء، ثم يصفو النور عن الكعبة، ثم تبدأ المحطة وحدها
+if (new URLSearchParams(location.search).get('cont')){
+  document.getElementById('start').remove();
+  const glow = document.createElement('div'); glow.style.cssText = 'position:fixed;inset:0;background:#fffdf4;z-index:9;transition:opacity 1.4s ease-out'; document.body.appendChild(glow);
+  setTimeout(() => { glow.style.opacity = 0; setTimeout(() => { glow.remove(); run(); }, 1450); }, 400);
+}
+document.getElementById('replay').onclick = question;
+window.__br = () => ({locked, sel: sel.map(s => s.form), expected: expected.map(e => e.form), on: [...stage.children].filter(e => e.classList.contains('on')).map(e => (e.src || '').split('/').pop())});
+</script>
+</body>
+</html>
