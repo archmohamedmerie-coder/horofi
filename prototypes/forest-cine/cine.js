@@ -18,49 +18,76 @@ const SEAMS = {
   bridge:   {cover: 'travel_river_bridge_last.png',   align: [1.002, 0, -50],     fromCX: 425},
   glade:    {cover: 'travel_bridge_glade_last.png',   align: [1.002, -10, -56]},
   meadow:   {cover: 'link_glade_meadow_last.png',     align: [0.91, -4, 60]},     // آخر لقطة في مقطع الوصل
-  oasis:    {cover: 'link_meadow_oasis2_last.png',    align: [0.88, -40, 12]},
+  oasis:    {cover: 'link_meadow_oasis_b_last.png',  align: [0.96, -32, 56]},
   beach:    {cover: 'link_oasis_beach2_last.png',     align: [1.16, -12, -120]},
-  savanna:  {cover: 'link_beach_savanna_last.png',    align: [0.85, 36, -116]},
+  savanna:  {cover: 'approach_savanna3_last.png',    align: [0.93, 20, -156]},   // يركض نحو الزرافة والفيل
   snow:     {cover: 'link_savanna_snow_last.png',     align: [1.1, 4, -28]},
-  damascus: {cover: 'link_snow_damascus_last.png',    align: [1.2, 28, 48]},       // الوصل ينتهي في زقاق: أول ما يظهر من الدار هو الصحيح
+  damascus: {cover: 'approach_damascus_last.png',  align: [1.02, 12, 40]},     // دخل من الباب إلى صحن الدار
   rain:     {cover: 'travel_damascus_rain_last.png',  align: [0.984, -6, -12]},
-  autumn:   {cover: 'link_rain_autumn2_last.png',     align: [1.13, -48, -120]},
+  autumn:   {cover: 'link_rain_autumn_b_last.png',   align: [1.18, 44, -196]},
   olive:    {cover: 'link_autumn_olive_last.png',     align: [1.04, 8, -100]},
-  aqsa:     {cover: 'link_olive_aqsa_last.png',       align: [0.9, 12, 28], intro: 'rev_aqsa.mp4'},
-  kaaba:    {white: true, intro: 'rev_kaaba.mp4'},   // الثياب تتبدّل إلى الإحرام عبر نور أبيض، ثم تهبط الكاميرا على الطفل
+  aqsa:     {cover: 'approach_aqsa_last.png',      align: [0.95, 28, 4]},      // ركض في طريق السرو حتى الساحة
+  kaaba:    {white: true, run: 'run_kaaba.mp4', cover: 'run_kaaba_last.png', align: [0.96, -4, 44]},   // من النور يركض على ممرّ رخامي نحو الكعبة على مستوى كتفه (كالطريق الصحراوي)   // الثياب تتبدّل إلى الإحرام عبر نور أبيض، ثم تهبط الكاميرا على الطفل
 };
-/* مقاطع الوصل: حيث يقفز مقطع الرحلة فجأة (أو يذوب) إلى المكان الجديد، يُقطع قبل القفزة عند cut، ويكمل مقطع وصل
-   مولَّد من تلك اللقطة نفسها (فلا قطع) يركض فيه الطفل وتتبدّل الطبيعة تدريجياً حتى يقف في المكان الجديد،
-   ويكون آخر ما في الرحلة: آخر لقطة فيه هي بداية المحطة التالية (SEAMS). المفتاح: صفحة المغادرة.
-   (جُرّب استئناف بقية مقطع الرحلة بعده بذوبان، فظهر مرجان مختلفان والطفل بحجمين: الوصل لا يتحكّم بآخر لقطته) */
+/* مقاطع الوصل: حيث يقفز مقطع الرحلة فجأة (أو يذوب) إلى المكان الجديد، يُقطع عند cut، وتكمل بعده مقاطع clips بالترتيب:
+   - مقطع وصل مولَّد من لقطة القطع نفسها (فلا قطع) يركض فيه الطفل وتتبدّل الطبيعة تدريجياً؛ وحيث يكون التبدّل كبيراً
+     قُسم على مقطعين (الثاني مولَّد من آخر لقطة في الأول، فلا قطع بينهما) كي لا يذيب المولّد المكانين في ثانية.
+   - مقطع اقتراب: من «صورة أفق» رُسمت من آخر لقطة الوصل نفسها والمكان القادم صغيراً في آخر الطريق، يركض نحوه
+     حتى يقف أمامه؛ join: محاذاة آخر لقطة الوصل على أول لقطة فيه [قياس، س، ص] فيذوب الأول في الثاني منزلقاً.
+   آخر لقطة في آخر مقطع هي بداية المحطة التالية (SEAMS). المفتاح: صفحة المغادرة. سطر لكل محطة: تعليق في وسط
+   السطر يبتلع ما بعده (أوقف سابقاً وصلَي الشاطئ والخريف دون أن يُلاحَظ) */
 const CHAINS = {
-  glade:   {link: 'link_glade_meadow.mp4', cut: 1.3},   meadow: {link: 'link_meadow_oasis2.mp4', cut: 2.6},
-  oasis:   {link: 'link_oasis_beach2.mp4', cut: .4},  // قبل أن يدخل بركة الواحة: الوصل يدور حولها   beach:  {link: 'link_beach_savanna.mp4', cut: 1.4},
-  savanna: {link: 'link_savanna_snow.mp4', cut: 1.5},   snow:   {link: 'link_snow_damascus.mp4', cut: .9},
-  rain:    {link: 'link_rain_autumn2.mp4', cut: 1.4},  // على حافة البركة الصخرية لا فوق الماء    autumn: {link: 'link_autumn_olive.mp4', cut: 1.2},
-  olive:   {link: 'link_olive_aqsa.mp4', cut: .5},      // يُقطع قبل أن تظهر القبة (كانت تُرسم برجاً)
+  glade:   {cut: 1.3, clips: ['link_glade_meadow.mp4']},
+  meadow:  {cut: 2.6, clips: ['link_meadow_oasis_a.mp4', 'link_meadow_oasis_b.mp4']},
+  oasis:   {cut: .4,  clips: ['link_oasis_beach2.mp4']},                       // قبل بركة الواحة: الوصل يدور حولها
+  beach:   {cut: 1.4, clips: ['link_beach_savanna.mp4', {src: 'approach_savanna3.mp4', join: [1.34, 16, -164]}]},
+  savanna: {cut: 1.5, clips: ['link_savanna_snow.mp4']},
+  snow:    {cut: .9,  clips: ['link_snow_damascus.mp4', {src: 'approach_damascus.mp4', join: [0.97, -4, -8]}]},
+  rain:    {cut: 1.4, clips: ['link_rain_autumn_a.mp4', 'link_rain_autumn_b.mp4']},  // على حافة البركة لا فوق الماء
+  autumn:  {cut: 1.2, clips: ['link_autumn_olive.mp4']},
+  olive:   {cut: .5,  clips: ['link_olive_aqsa.mp4', {src: 'approach_aqsa.mp4', join: [1.01, -4, -80]}]},  // قبل أن تُرسم القبة
 };
 const PAGE = location.pathname.split('/').pop().replace('.html', '');
-let run = null;                                      // الرحلة الجارية: {t: مقطع الرحلة, L: مقطع الوصل, words: وعد الكلمات}
+/* مقطع لاحق لصفحة بلا مقطع رحلة: يبدأ من آخر لقطة في مقطع الفرح (فلا قطع) ويُعرض بعده.
+   القدس: يركض يميناً بمحاذاة السرو، يخرج إلى طريق صحراوي، ويدخل نوراً أبيض يملأ الشاشة، ومنه تبدأ مكة */
+const TAILS = {aqsa: 'travel_aqsa_kaaba.mp4'};
+let tailVid = null;                                  // يُحمَّل مع الصفحة كي لا يتأخّر بعد الفرح
+if (TAILS[PAGE]){ tailVid = document.createElement('video'); Object.assign(tailVid, {src: VD + TAILS[PAGE], muted: true, playsInline: true, preload: 'auto'}); tailVid.load(); }
+let run = null;                                      // الرحلة الجارية: {t: مقطع الرحلة, words: وعد الكلمات}
+const tf = (k, x, y) => `translate(${x}px,${y}px) scale(${k})`;
 function setupJourney(){
   const stage = document.getElementById('stage'), t = stage && [...stage.querySelectorAll('video')].find(v => v.src.includes('/travel_'));
   if (!t) return;
-  const c = CHAINS[PAGE]; let L = null, state = 0;
-  if (c){ L = document.createElement('video'); Object.assign(L, {src: VD + c.link, muted: true, playsInline: true, preload: 'auto'}); stage.appendChild(L); L.load(); }
-  const toLink = () => { if (state) return; state = 1;
-    L.currentTime = 0; L.play().then(() => { L.classList.add('on'); t.pause(); }).catch(() => {});
-    L.onended = done; };
-  // نهاية الوصل = نهاية الرحلة: مقطع الرحلة المتوقّف تحته يُقفز إلى آخره كي تكمل الصفحة (onended أو TRAVEL_END)،
-  // ويبقى الوصل ظاهراً فوقه على آخر لقطة
-  const done = () => { if (state !== 1) return; state = 2; t.currentTime = Math.max(0, t.duration - .05); t.play().catch(() => {}); };
+  const c = CHAINS[PAGE], specs = c ? c.clips.map(x => typeof x === 'string' ? {src: x} : x) : [];
+  const vids = specs.map(sp => { const v = document.createElement('video'); Object.assign(v, {src: VD + sp.src, muted: true, playsInline: true, preload: 'auto'});
+    v.style.transition = 'none'; stage.appendChild(v); v.load(); return v; });
+  let state = 0;
+  const end = v => new Promise(r => { v.onended = r; });
+  const chain = async () => {                        // كل مقطع فوق الذي قبله؛ السابق يبقى متجمّداً تحته على آخر لقطة
+    for (let i = 0; i < vids.length; i++){
+      const v = vids[i], sp = specs[i], ended = end(v); v.currentTime = 0;
+      if (sp.join){                                  // اقتراب من صورة أفق: ينزلق آخر الوصل إلى موضعها ويذوب فيها
+        const [s, dx, dy] = sp.join, prev = vids[i - 1], o = {duration: 900, easing: 'ease-in-out', fill: 'forwards'};
+        v.style.opacity = 0; v.classList.add('on'); await v.play().catch(() => {});
+        await Promise.all([prev.animate([{transform: tf(1, 0, 0)}, {transform: tf(s, dx, dy)}], o).finished,
+          v.animate([{transform: tf(1/s, -dx/s, -dy/s), opacity: 0}, {transform: tf(1, 0, 0), opacity: 1}], o).finished]);
+        v.style.opacity = '';
+      } else { await v.play().catch(() => {}); v.classList.add('on'); }
+      if (i === 0) t.pause();
+      await ended;
+    }
+    // نهاية آخر مقطع = نهاية الرحلة: مقطع الرحلة المتوقّف تحتها يُقفز إلى آخره كي تكمل الصفحة (onended أو TRAVEL_END)
+    state = 2; t.currentTime = Math.max(0, t.duration - .05); t.play().catch(() => {});
+  };
+  const go = () => { if (state) return; state = 1; chain(); };
   t.addEventListener('play', () => {
     if (run) return;
-    const runLen = c ? c.cut + (L.duration || 5.9) : t.duration;
-    run = {t, L, words: W(2000).then(() => words(PAGE, Math.max(1, Math.min(3, Math.floor((runLen - 2.4)/2.3)))))};
+    const runLen = c ? c.cut + vids.reduce((a, v) => a + (v.duration || 5.9), 0) : t.duration;
+    run = {t, words: W(2000).then(() => words(PAGE, Math.max(1, Math.min(3, Math.floor((runLen - 2.4)/2.3)))))};
     if (!c) return;
-    const w = (now, m) => { if (state) return; m.mediaTime >= c.cut - .02 ? toLink() : t.requestVideoFrameCallback(w); };
+    const w = (now, m) => { if (state) return; m.mediaTime >= c.cut - .02 ? go() : t.requestVideoFrameCallback(w); };
     t.requestVideoFrameCallback && t.requestVideoFrameCallback(w);
-    t.addEventListener('timeupdate', () => { if (!state && t.currentTime >= c.cut + .1) toLink(); });
+    t.addEventListener('timeupdate', () => { if (!state && t.currentTime >= c.cut + .1) go(); });
   });
 }
 setTimeout(setupJourney, 0);                         // بعد أن تنشئ الصفحة مقاطعها
@@ -148,7 +175,12 @@ async function words(page, n){
 export async function leave(page, before){
   const next = ORDER[ORDER.indexOf(page) + 1], seam = SEAMS[next];
   const ready = Promise.all([seam.cover && preload(seam.cover), preload(STILLS[next])]);
-  if (run) await run.words;                          // الأقصى بلا مقطع رحلة: كلماته تُقرأ أثناء هبوط الكاميرا على الكعبة (arrive)
+  if (run) await run.words;
+  else if (tailVid){                                 // الكلمات تُقرأ أثناء الركض في المقطع اللاحق
+    document.getElementById('stage').appendChild(tailVid);
+    await Promise.all([new Promise(r => { tailVid.onended = r; tailVid.play().then(() => tailVid.classList.add('on')).catch(r); }),
+      W(1200).then(() => words(page, 2))]);
+  }
   if (before) await before();                        // الأقصى: النور الأبيض بعد الكلمات
   await Promise.race([ready, W(2500)]);
   location.href = next + '?cont=1';                  // بلا .html: الخادم يعيد التوجيه ويُسقط الاستعلام
@@ -161,15 +193,30 @@ export async function arrive(page, stage, CX){
   let intro = null;                                  // مقطع الوصول المعكوس: يحلّ محلّ الصورة حتى ينتهي عليها
   if (seam.intro){ intro = document.createElement('video'); Object.assign(intro, {src: VD + seam.intro, muted: true, playsInline: true, preload: 'auto'});
     intro.className = 'on'; intro.style.transition = 'none'; stage.appendChild(intro);
-    await new Promise(r => { if (intro.readyState >= 2) return r(); intro.addEventListener('loadeddata', r, {once: true}); setTimeout(r, 3000); }); }
+    await new Promise(r => { if (intro.readyState >= 2) return r(); intro.addEventListener('loadeddata', r, {once: true}); setTimeout(r, 3000); });
+    if (seam.introFrom){ intro.currentTime = seam.introFrom; await new Promise(r => { intro.addEventListener('seeked', r, {once: true}); setTimeout(r, 1500); }); } }
   const playIntro = async () => { if (!intro) return;
     await new Promise(r => { intro.onended = r; intro.play().catch(r); });
     still.classList.add('on'); intro.remove(); };
+  if (seam.white && seam.run){                       // من النور: يركض الطفل بالإحرام على ممرّ نحو الكعبة، والكاميرا على مستوى كتفه
+    const glow = document.createElement('div'); glow.style.cssText = 'position:fixed;inset:0;background:#fffdf4;z-index:9';
+    document.body.appendChild(glow);
+    const v = document.createElement('video'); Object.assign(v, {src: VD + seam.run, muted: true, playsInline: true, preload: 'auto'});
+    v.className = 'on'; v.style.transition = 'none'; stage.appendChild(v);
+    await new Promise(r => { if (v.readyState >= 2) return r(); v.addEventListener('loadeddata', r, {once: true}); setTimeout(r, 3000); });
+    root.classList.remove('cont'); await W(300);
+    const ran = new Promise(r => { v.onended = r; v.play().catch(r); });
+    await glow.animate([{opacity: 1}, {opacity: 0}], {duration: 1400, easing: 'ease-out', fill: 'forwards'}).finished;
+    glow.remove(); await ran;
+    // آخر لقطة في الركض صورةً ثابتة تحلّ محلّ الفيديو، ثم الانزلاق والذوبان في صورة المحطة كما في باقي المحطات
+    seam.white = false;                              // (بلا إخفاء الصفحة: الفيديو يبقى ظاهراً حتى تُحمَّل اللقطة)
+    const p = arrive(page, stage, CX); await W(60); v.remove(); return p;
+  }
   if (seam.white){
     const glow = document.createElement('div'); glow.style.cssText = 'position:fixed;inset:0;background:#fffdf4;z-index:9';
     document.body.appendChild(glow); await ready(still);
     root.classList.remove('cont'); await W(500);
-    const done = Promise.all([playIntro(), W(900).then(() => words(ORDER[ORDER.indexOf(page) - 1], 2))]);  // الكاميرا تبدأ الهبوط والنور ينقشع عنها
+    const done = playIntro();                        // الكاميرا تبدأ الهبوط والنور ينقشع عنها
     await glow.animate([{opacity: 1}, {opacity: 0}], {duration: 1600, easing: 'ease-out', fill: 'forwards'}).finished;
     glow.remove(); await done; return;
   }

@@ -154,7 +154,8 @@ async function run(){
   const looking = play('look');                     // يرفع رأسه نحو هواء الفسحة، وأثناءها تظهر اللافتة وتضيء الفوانيس واحداً تلو الآخر
   await W(900); sign.classList.add('show');
   nodes.forEach((n, i) => setTimeout(() => n.e.classList.add('show'), 700 + i*450));
-  await Promise.all([say(R.audio), looking, W(700 + nodes.length*450)]);
+  // حدّ أقصى للانتظار: إن توقّف المقطع أو الصوت (نافذة مخفية، تحميل بطيء) لا تبقى الخيارات مقفلة
+  await Promise.all([Promise.race([say(R.audio), W(6000)]), Promise.race([looking, W(6500)]), W(700 + nodes.length*450)]);
   locked = false;
 }
 // الخطأ لا ينهي المحطة: الفانوس الخاطئ يبهت ويُقفل، ويبقى الطفل يختار حتى يصيب

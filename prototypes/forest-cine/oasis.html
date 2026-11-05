@@ -158,7 +158,8 @@ async function run(){
   build(); keepClear(stage);                       // الخيارات لا تقع تحت اللافتة على أي مقاس (cine.js)
   const looking = play('look');                     // ينظر إلى الجسر، وأثناءها تظهر اللافتة والألواح
   await W(900); sign.classList.add('show'); await W(500); tray.classList.add('show');
-  await Promise.all([question(), looking]);
+  // حدّ أقصى للانتظار: إن توقّف المقطع أو الصوت (نافذة مخفية، تحميل بطيء) لا تبقى الخيارات مقفلة
+  await Promise.all([Promise.race([question(), W(6000)]), Promise.race([looking, W(6500)])]);
   locked = false; render();
 }
 // الخطأ لا ينهي المحطة: تُفرَّغ الكلمة ويعيد الطفل البناء حتى يصيب

@@ -1,0 +1,8 @@
+{
+  "headers": [
+    {
+      "source": "prototypes/forest-cine/**",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+    }
+  ]
+}
