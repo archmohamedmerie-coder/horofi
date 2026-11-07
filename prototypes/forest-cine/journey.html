@@ -59,7 +59,7 @@ html,body{height:100%;overflow:hidden;background:#15130c;font-family:'Tajawal',s
 <div class="screen" id="start"><h1>🏺 رحلة التراث</h1><p>رحلة حرف الباء: ثلاثة أجزاء، في كل جزء معلمان، وفي كل معلم سؤالان.</p><button>ابدأ</button></div>
 
 <script type="module">
-import { ARFORMS, LETTER_BA } from '/prototypes/forest-env/data.js';
+import { ARFORMS, LETTER_BA, LETTER_TA } from '/prototypes/forest-env/data.js';
 
 /* محرّك «رحلة لكل حرف»: الصفحة واحدة، وكل ما يخصّ الحرف في /prototypes/assets/journeys/<الحرف>.json
    (الفيلم، أزمنة الوقفات، مقاطع الحزن والفرح، مواضع الخيارات، المعالم، استراحات الفصول). الاستعمال: journey.html?l=ب */
@@ -67,7 +67,7 @@ const QS = new URLSearchParams(location.search), CH = QS.get('l') || 'ب';
 const JD = '/prototypes/assets/journeys/';
 const J = await (await fetch(JD + encodeURIComponent(CH) + '.json')).json();
 // بيانات كلمات الحرف: في التجربة الباء وحدها مستخرجة من التطبيق؛ في التطبيق تأتي من بيانات الحرف مباشرة
-const LETTER = {'ب': LETTER_BA}[J.letter];
+const LETTER = {'ب': LETTER_BA, 'ت': LETTER_TA}[J.letter];
 
 function naturalForm(L, i){ const f = ARFORMS[L[i]], p = L[i-1], pc = p && ARFORMS[p] && ARFORMS[p].c, hn = L[i+1] !== undefined;
   return (pc && hn && f.med) ? 'med' : (pc && f.fin) ? 'fin' : (!pc && hn && f.ini) ? 'ini' : 'iso'; }

@@ -1,0 +1,17 @@
+{
+  "letter": "ت",
+  "title": "🌉 رحلة الشام",
+  "film": "ت/film.mp4",
+  "stage": [768, 1364],
+  "speed": 0.85,
+  "exclude": ["مقت"],
+  "breaks": {"1": "هنا في التطبيق: 5 جولات من الدرس", "3": "هنا في التطبيق: الكتابة"},
+  "stops": [
+    {"at": 10.03, "keys": ["start", "start"], "name": "النَّوَاعِير",             "place": "فِي حَمَاة",         "sad": "ت/sad_1.mp4", "happy": "ت/happy_1.mp4", "voice": "/audio/landmarks/ت_1.mp3", "pads": [[460, 1000], [605, 1120], [460, 1240]]},
+    {"at": 20.15, "keys": ["mid_c", "mid_c"], "name": "جَامِعُ خَالِدِ بْنِ الْوَلِيد", "place": "فِي حِمْص",         "sad": "ت/sad_2.mp4", "happy": "ت/happy_2.mp4", "voice": "/audio/landmarks/ت_2.mp3", "pads": [[470, 1010], [640, 1010], [480, 1250]]},
+    {"at": 30.28, "keys": ["end_c", "end_c"], "name": "الْجِسْرُ الْمُعَلَّق",      "place": "فِي دَيْرِ الزُّور",   "sad": "ت/sad_3.mp4", "happy": "ت/happy_3.mp4", "voice": "/audio/landmarks/ت_3.mp3", "pads": [[440, 980], [630, 880], [440, 1220]]},
+    {"at": 40.40, "keys": ["mid_n", "end_n"], "name": "آثَارُ قَنَوَات",          "place": "فِي السُّوَيْدَاء",   "sad": "ت/sad_4.mp4", "happy": "ت/happy_4.mp4", "voice": "/audio/landmarks/ت_4.mp3", "pads": [[470, 1000], [600, 1130], [470, 1250]]},
+    {"at": 50.53, "keys": ["mid_n", "start"], "name": "مَسْرَحُ بُصْرَى",         "place": "فِي دَرْعَا",        "sad": "ت/sad_5.mp4", "happy": "ت/happy_5.mp4", "voice": "/audio/landmarks/ت_5.mp3", "pads": [[460, 1000], [605, 1120], [460, 1240]]},
+    {"at": 60.66, "keys": ["end_c", "end_n"], "name": "بُحَيْرَةُ طَبَرِيَّا",       "place": "مِنْ مُرْتَفَعَاتِ الْجَوْلَان", "sad": "ت/sad_6.mp4", "happy": "ت/happy_6.mp4", "voice": "/audio/landmarks/ت_6.mp3", "pads": [[470, 1120], [620, 1010], [480, 1290]]}
+  ]
+}
