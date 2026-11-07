@@ -221,9 +221,19 @@ async function run(){
   await film.play().catch(() => {});
   await new Promise(r => { film.onended = r; });
   const end = document.createElement('div'); end.className = 'screen'; end.style.background = 'none'; end.style.justifyContent = 'flex-end'; end.style.paddingBottom = '60px';
-  end.innerHTML = '<button>أعد التجربة</button>'; document.body.appendChild(end);
-  end.querySelector('button').onclick = () => location.reload();
+  // إن كان للرحلة رحلة تالية (next في ملف الحرف) نكمل إليها؛ الفيلم التالي يبدأ من آخر لقطة هنا
+  if (J.next){
+    end.innerHTML = '<button>أكمل الرحلة ←</button>'; document.body.appendChild(end);
+    const p = new URLSearchParams(location.search); p.set('l', J.next); p.set('cont', '1');
+    end.querySelector('button').onclick = () => { location.href = location.pathname + '?' + p; };
+  } else {
+    end.innerHTML = '<button>أعد التجربة</button>'; document.body.appendChild(end);
+    end.querySelector('button').onclick = () => location.reload();
+  }
 }
+// قادم من الرحلة السابقة: زرّ واحد للإكمال (يبقى ضرورياً لأن المتصفح يطلب لمسة لفتح الصوت في كل صفحة)
+if (QS.get('cont')){ const st = document.getElementById('start');
+  st.querySelector('p').textContent = 'الرحلة مستمرة: ' + LETTER.name; st.querySelector('button').textContent = 'أكمل ←'; }
 // الصوت يُفتح بضغطة «ابدأ» لأن المتصفح يمنعه قبل أي لمسة. صوت الفيلم يتوقف مع توقّفه عند كل سؤال،
 // وصوت الحزن والفرح كاملاً (طلب المستخدم 07.11)
 document.querySelector('#start button').onclick = () => { document.getElementById('start').remove();
