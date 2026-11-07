@@ -157,7 +157,7 @@ async function choose(n){
     sfx('correct'); n.e.classList.add('ok'); nodes.filter(m => m !== n).forEach(m => m.e.classList.add('gone'));
     flash(); const happy = play('happy');
     await W(700); figToBasket(n.sx, n.sy);
-    await say(R.wordAudio); await say('/audio/praise/praise_m_1.mp3');
+    await say(R.wordAudio); await say('/audio/praise/praise_m_1_full.mp3');
     await happy; n.e.classList.add('gone'); sign.classList.remove('show');
     const end = document.createElement('div'); end.className = 'screen';
     end.innerHTML = `<h1>🎉 أحسنت!</h1><p>تينة جديدة في سلّتك.</p><button>من جديد</button>`; document.body.appendChild(end);
@@ -165,7 +165,7 @@ async function choose(n){
   } else {
     n.e.classList.add('bad'); n.e.animate([{marginLeft: '0'}, {marginLeft: '-10px'}, {marginLeft: '10px'}, {marginLeft: '-6px'}, {marginLeft: '0'}], 450);
     sadTune(); flash();
-    await Promise.all([play('sad'), W(2600).then(() => say('/audio/wrong/wrong_m_1.mp3'))]);
+    await Promise.all([play('sad'), W(2600).then(() => say('/audio/wrong/wrong_m_1_full.mp3'))]);
     flash(); hold('look');                          // العودة إلى وقفة الانتظار (آخر لقطة في مقطع النظر)
     locked = false;
   }

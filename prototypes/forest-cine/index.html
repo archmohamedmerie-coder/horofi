@@ -230,7 +230,7 @@ async function choose(n){
     if (!missed){ streak++; document.getElementById('streak').textContent = '⭐ ' + streak; }
     await W(1000); await play(R.wordAudio);
     if (streak === 3 && !missed) sfx('streak3');
-    await play(`/audio/praise/praise_m_${1 + ri % 5}.mp3`);
+    await play(`/audio/praise/praise_m_${1 + ri % 5}_full.mp3`);
     if (ri < ROUNDS.length - 1) document.getElementById('next').classList.add('show');
   } else {
     n.done = true; missed = true; streak = 0; document.getElementById('streak').textContent = '⭐ 0';
@@ -247,7 +247,7 @@ async function choose(n){
       }, 650);
     } else dryLeaf(LEAVES[n.k]);
     sadTune(); await W(2600);
-    await play('/audio/wrong/wrong_m_1.mp3');
+    await play('/audio/wrong/wrong_m_1_full.mp3');
   }
 }
 

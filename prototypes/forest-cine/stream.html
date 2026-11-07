@@ -241,7 +241,7 @@ async function choose(n){
     if (ri < ROUNDS.length - 1){
       figToPack(ri + 1); await words;
       if (streak === 3 && !missed) sfx('streak3');
-      await play(`/audio/praise/praise_m_${1 + ri % 5}.mp3`);
+      await play(`/audio/praise/praise_m_${1 + ri % 5}_full.mp3`);
       ri++; buildRound(); ask();
     } else { await words; finale(); }
   } else {
@@ -251,7 +251,7 @@ async function choose(n){
     s.animate(shake, 450); n.opt.animate(shake.map(k => ({transform: k.transform + ' translate(-50%,-50%)'})), 450);
     sadTune();
     // الطفل يطأطئ في موقفه الحالي، والضفدع والبطّة يحزنان معه، ثم يعود إلى وقفة الانتظار
-    await Promise.all([clip(SAD[ri]).then(back), W(2600).then(() => play('/audio/wrong/wrong_m_1.mp3'))]);
+    await Promise.all([clip(SAD[ri]).then(back), W(2600).then(() => play('/audio/wrong/wrong_m_1_full.mp3'))]);
     s.classList.remove('dead');
     locked = false;
   }
@@ -261,7 +261,7 @@ const figCount = n => n === 1 ? 'تينة واحدة' : n === 2 ? 'تينتان'
 async function finale(){
   await clip({...ARRIVE, at: ARRIVE.pick, fn: () => { const r = stage.getBoundingClientRect(), s = r.width/768;
     toBasket(r.left + PACK[5][0]*s, r.top + PACK[5][1]*s); }});
-  await play(`/audio/praise/praise_m_5.mp3`);
+  await play(`/audio/praise/praise_m_5_full.mp3`);
   const end = el('screen', document.body); end.innerHTML = `<h1>🎉 عبرتَ الجدول!</h1><p>في سلّتك الآن ${figCount(fruits)}.</p><button>من جديد</button>`;
   end.querySelector('button').onclick = () => location.reload();
 }

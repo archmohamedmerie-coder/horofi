@@ -159,7 +159,7 @@ async function choose(n){
     flash(); const happy = play('happy'), r = n.e.getBoundingClientRect();
     await W(400); figToBasket(r.left + r.width/2, r.top + r.height/2);
     await say(R.wordAudio); n.e.classList.add('sink'); sign.classList.remove('show');
-    await say('/audio/praise/praise_m_1.mp3'); await happy;
+    await say('/audio/praise/praise_m_1_full.mp3'); await happy;
     // ستارة خضراء داكنة تغطّي الانتقال (بمؤقّت لا بـ.finished: الرسوم تتوقّف في صفحة مخفية)
     document.getElementById('curtain').animate([{opacity: 0}, {opacity: 1}], {duration: 700, fill: 'forwards'}); await W(700);
     const end = document.createElement('div'); end.className = 'screen';
@@ -167,7 +167,7 @@ async function choose(n){
     end.querySelector('button').onclick = () => location.reload();
   } else {
     n.e.classList.add('bad'); shake(n.e); sadTune(); flash();
-    await Promise.all([play('sad'), W(2600).then(() => say('/audio/wrong/wrong_m_1.mp3'))]);
+    await Promise.all([play('sad'), W(2600).then(() => say('/audio/wrong/wrong_m_1_full.mp3'))]);
     flash(); hold('look');                          // العودة إلى وقفة الانتظار (آخر لقطة في مقطع النظر)
     locked = false;
   }

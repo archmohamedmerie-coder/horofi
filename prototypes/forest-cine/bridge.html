@@ -172,12 +172,12 @@ async function check(){
     // يقفز فرحاً ثم يعبر الجسر، والكاميرا تتبعه حتى فسحة الغسق: أول لقطة في المحطة التالية
     flash(); const journey = happyThenTravel(), r = wordEl.getBoundingClientRect();
     await W(400); figToBasket(r.left + r.width/2, r.top + r.height/2);
-    await say(`/audio/words/${word}.mp3`); await say('/audio/praise/praise_m_1.mp3'); sign.classList.remove('show');
+    await say(`/audio/words/${word}.mp3`); await say('/audio/praise/praise_m_1_full.mp3'); sign.classList.remove('show');
     await journey;
     await leave('bridge');                          // فاصل الكلمات ثم المحطة التالية (cine.js)
   } else {
     shake(wordEl); sadTune(); flash();
-    await Promise.all([play('sad'), W(2600).then(() => say('/audio/wrong/wrong_m_1.mp3'))]);
+    await Promise.all([play('sad'), W(2600).then(() => say('/audio/wrong/wrong_m_1_full.mp3'))]);
     flash(); hold('look'); sel = []; locked = false; render();
   }
 }

@@ -175,11 +175,11 @@ async function choose(n){
     flash(); const journey = happyThenTravel(), r = n.e.getBoundingClientRect();
     await W(400); figToBasket(r.left + r.width/2, r.top + r.height/2);
     await say(R.wordAudio); n.e.classList.add('sink'); sign.classList.remove('show');
-    await say('/audio/praise/praise_m_1.mp3'); await journey;
+    await say('/audio/praise/praise_m_1_full.mp3'); await journey;
     await leave('river2');                          // فاصل الكلمات ثم المحطة التالية (cine.js)
   } else {
     n.e.classList.add('bad'); shake(n.e); sadTune(); flash();
-    await Promise.all([play('sad'), W(2600).then(() => say('/audio/wrong/wrong_m_1.mp3'))]);
+    await Promise.all([play('sad'), W(2600).then(() => say('/audio/wrong/wrong_m_1_full.mp3'))]);
     flash(); hold('look');                          // العودة إلى وقفة الانتظار (آخر لقطة في مقطع النظر)
     locked = false;
   }
