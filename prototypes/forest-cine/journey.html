@@ -45,6 +45,11 @@ html,body{height:100%;overflow:hidden;background:#15130c;font-family:'Tajawal',s
 #info span{display:block;white-space:nowrap}
 #info .h,#info .p{font:800 20px/1.3 Tajawal;color:#fff3d6;text-shadow:0 2px 4px rgba(0,0,0,.6)}
 #info .n{font:700 46px/1.3 'Noto Naskh Arabic','Amiri',serif;color:#FFD93D;text-shadow:0 3px 0 #c9a700,0 5px 10px rgba(0,0,0,.55),0 0 22px rgba(255,217,61,.45)}
+/* جملة المثال في أسفل الصفحة، بخلفية داكنة شفافة كمعلومة المَعلم */
+#ex{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translate(-50%,16px);opacity:0;z-index:4;pointer-events:none;
+  width:min(92vw,560px);padding:12px 20px 14px;border-radius:18px;background:rgba(24,14,4,.62);backdrop-filter:blur(4px);text-align:center;direction:rtl;
+  font:700 26px/1.7 'Noto Naskh Arabic','Amiri',serif;color:#fff3d6;text-shadow:0 2px 4px rgba(0,0,0,.6);transition:opacity .5s,transform .5s}
+#ex.show{opacity:1;transform:translate(-50%,0)}
 #replay{position:fixed;top:max(10px,env(safe-area-inset-top));right:8px;z-index:5;background:#0009;color:#fff;border:0;border-radius:999px;padding:6px 10px;font:800 .85rem Tajawal;cursor:pointer}
 .screen{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(10,8,3,.72);color:#fff;text-align:center;padding:24px}
 .screen h1{font:800 2rem Tajawal} .screen p{font:500 1.05rem Tajawal;opacity:.9}
@@ -55,11 +60,13 @@ html,body{height:100%;overflow:hidden;background:#15130c;font-family:'Tajawal',s
 <div id="stage"></div>
 <div id="sign"><i></i><span class="w"></span></div>
 <div id="info"><span class="h">هُنَا</span><span class="n"></span><span class="p"></span></div>
+<div id="ex"></div>
 <button id="replay">🔊</button>
 <div class="screen" id="start"><h1>🏺 رحلة التراث</h1><p>رحلة حرف الباء: ثلاثة أجزاء، في كل جزء معلمان، وفي كل معلم سؤالان.</p><button>ابدأ</button></div>
 
 <script type="module">
 import { ARFORMS, LETTER_BA, LETTER_TA } from '/prototypes/forest-env/data.js';
+import { WORD_SENTENCES } from '/prototypes/forest-env/sentences.js';
 
 /* محرّك «رحلة لكل حرف»: الصفحة واحدة، وكل ما يخصّ الحرف في /prototypes/assets/journeys/<الحرف>.json
    (الفيلم، أزمنة الوقفات، مقاطع الحزن والفرح، مواضع الخيارات، المعالم، استراحات الفصول). الاستعمال: journey.html?l=ب */
@@ -96,7 +103,8 @@ function question(key){
     .filter(x => !lesson.has(x.w) && !used.has(x.w));
   const {w, d} = pool[Math.floor(Math.random() * pool.length)]; used.add(w);
   const L = Array.from(w), ti = L.indexOf(J.letter);
-  return {g: glyphs(L, d), ti, correct: naturalForm(L, ti), pos: POS[key][1], audio: `/audio/questions/${J.letter}_${POS[key][0]}.mp3`, wordAudio: `/audio/words/${w}.mp3`};
+  return {g: glyphs(L, d), ti, correct: naturalForm(L, ti), pos: POS[key][1], audio: `/audio/questions/${J.letter}_${POS[key][0]}.mp3`, wordAudio: `/audio/words/${w}.mp3`,
+    sentence: WORD_SENTENCES[w], sentenceAudio: `/audio/sentences/${w}.mp3`};
 }
 const STOPS = J.stops.map(s => ({...s, pads: s.pads.map(([x, y, r]) => ({x, y, r: r || 88})), qs: s.keys.map(question)}));
 // ما يحلّ محلّه الدرس في التطبيق الحقيقي بعد كل فصل (هنا شاشة تجريبية فقط)
@@ -146,10 +154,13 @@ async function ask(s, q, last){
         sfx('correct'); e.classList.add('ok'); sign.querySelector('.gap').classList.add('fill');
         nodes.filter(m => m !== e).forEach(m => m.classList.add('sink'));
         await Promise.all([say(q.wordAudio), W(500).then(() => { e.classList.add('sink'); })]);
+        // بعد كل إجابة صحيحة: «أحسنت» ثم جملة المثال في أسفل الصفحة (كما في التطبيق) — طلب المستخدم 07.11
+        await say(`/audio/praise/praise_m_${1 + Math.floor(Math.random() * 5)}_full.mp3`);
         sign.classList.remove('show');
-        // الفرح مرة واحدة بعد السؤال الثاني؛ بعد الأول ننتقل مباشرة إلى الكلمة التالية
-        if (last) await Promise.all([react(s.happyV), W(300).then(() => say(`/audio/praise/praise_m_${1 + Math.floor(Math.random() * 5)}_full.mp3`))]);
-        else await W(500);
+        await example(q);
+        // الاحتفال مرة واحدة بعد السؤال الثاني؛ بعد الأول ننتقل مباشرة إلى الكلمة التالية
+        if (last) await react(s.happyV);
+        else await W(300);
         nodes.forEach(m => m.remove()); done();
       } else {
         e.classList.add('bad');
@@ -172,6 +183,15 @@ async function ask(s, q, last){
   await Promise.race([say(q.audio), W(6000)]); await W(300);
   locked = false;
   return finished;
+}
+
+// جملة المثال: تظهر في أسفل الصفحة وتُقرأ بصوتها، ثم تختفي
+async function example(q){
+  if (!q.sentence) return;
+  const el = document.getElementById('ex');
+  el.textContent = q.sentence; el.classList.add('show');
+  await Promise.all([say(q.sentenceAudio), W(2500)]); await W(300);
+  el.classList.remove('show'); await W(400);
 }
 
 // معلومة المَعلم: «هُنَا [الاسم بالذهبي] فِي [البلد]». صوتها في ملف الحرف (voice)، ويُتخطّى إن لم يُسجَّل بعد
