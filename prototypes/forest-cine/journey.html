@@ -157,10 +157,10 @@ async function ask(s, q, last){
         // بعد كل إجابة صحيحة: «أحسنت» ثم جملة المثال في أسفل الصفحة (كما في التطبيق) — طلب المستخدم 07.11
         await say(`/audio/praise/praise_m_${1 + Math.floor(Math.random() * 5)}_full.mp3`);
         sign.classList.remove('show');
-        await example(q);
-        // الاحتفال مرة واحدة بعد السؤال الثاني؛ بعد الأول ننتقل مباشرة إلى الكلمة التالية
+        // الاحتفال مرة واحدة بعد السؤال الثاني، وقبل جملة المثال (طلب المستخدم 07.11)
         if (last) await react(s.happyV);
-        else await W(300);
+        await example(q);
+        if (!last) await W(300);
         nodes.forEach(m => m.remove()); done();
       } else {
         e.classList.add('bad');
