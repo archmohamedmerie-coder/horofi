@@ -1,0 +1,17 @@
+{
+  "letter": "ب",
+  "title": "🏺 رحلة التراث",
+  "film": "ب/film.mp4",
+  "stage": [768, 1364],
+  "speed": 0.85,
+  "exclude": ["مزبلة", "خراب"],
+  "breaks": {"1": "هنا في التطبيق: 5 جولات من الدرس", "3": "هنا في التطبيق: الكتابة"},
+  "stops": [
+    {"at": 5.8,   "keys": ["start", "start"], "name": "الْأَهْرَامَات",      "place": "فِي مِصْر",     "sad": "ب/sad_1.mp4", "happy": "ب/happy_1.mp4", "voice": "/audio/landmarks/ب_1.mp3", "pads": [[172, 860], [598, 780], [598, 1040]]},
+    {"at": 20.0,  "keys": ["mid_c", "mid_c"], "name": "بَابِل",             "place": "فِي الْعِرَاق",  "sad": "ب/sad_3.mp4", "happy": "ب/happy_3.mp4", "voice": "/audio/landmarks/ب_3.mp3", "pads": [[445, 995], [605, 1115], [445, 1235]]},
+    {"at": 30.05, "keys": ["end_c", "end_c"], "name": "الْبَتْرَاء",         "place": "فِي الْأُرْدُنّ", "sad": "ب/sad_4.mp4", "happy": "ب/happy_4.mp4", "voice": "/audio/landmarks/ب_4.mp3", "pads": [[460, 1000], [605, 1120], [460, 1240]]},
+    {"at": 40.17, "keys": ["mid_n", "end_n"], "name": "قَلْعَةُ بَعْلَبَكّ",   "place": "فِي لُبْنَان",   "sad": "ب/sad_5.mp4", "happy": "ب/happy_5.mp4", "voice": "/audio/landmarks/ب_5.mp3", "pads": [[490, 1000], [605, 870], [490, 1235]]},
+    {"at": 50.3,  "keys": ["mid_n", "start"], "name": "الْجَامِعُ الْأُمَوِيّ", "place": "فِي دِمَشْق",   "sad": "ب/sad_6.mp4", "happy": "ب/happy_6.mp4", "voice": "/audio/landmarks/ب_6.mp3", "pads": [[470, 1000], [605, 1120], [470, 1240]]},
+    {"at": 60.42, "keys": ["end_c", "end_n"], "name": "قَلْعَةُ حَلَب",       "place": "فِي سُورِيَا",   "sad": "ب/sad_7.mp4", "happy": "ب/happy_7.mp4", "voice": "/audio/landmarks/ب_7.mp3", "pads": [[475, 985], [605, 860], [500, 1225]]}
+  ]
+}

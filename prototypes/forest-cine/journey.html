@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>رحلة الحرف — تجربة</title>
+<link rel="stylesheet" href="/fonts/fonts.css">
+<style>
+/* تجربة «الفيلم الواحد»: فيديو واحد متصل يتوقّف عند كل وقفة للسؤال ثم يكمل من اللقطة نفسها.
+   الحزن والفرح مقطعان بدايتهما ونهايتهما لقطة الوقوف، فيعود الطفل بعدهما إلى وضعه. */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#15130c;font-family:'Tajawal',sans-serif;user-select:none}
+#stage{position:fixed;left:0;top:0;width:768px;height:1364px;transform-origin:0 0}
+#stage video{position:absolute;inset:0;width:100%;height:100%;opacity:0}
+#stage .on{opacity:1}
+
+.pad{position:absolute;transform:translate(-50%,-50%) scale(.2);opacity:0;cursor:pointer;
+  transition:opacity .5s,transform .7s cubic-bezier(.3,1.5,.5,1),filter .4s}
+.pad.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.pad svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.pad .l{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);white-space:nowrap;direction:rtl;
+  font-family:'Noto Naskh Arabic','Amiri',serif;font-weight:700;line-height:1;color:#3b2408;transition:color .4s}
+.pad.ok{filter:drop-shadow(0 0 18px rgba(255,236,140,.95)) brightness(1.15)}
+.pad.bad{filter:saturate(.25) brightness(.7);cursor:default}
+.pad.sink{opacity:0;transform:translate(-50%,-30%) scale(.7)}
+
+/* اللافتة مدمجة بين زرَّي الأعلى كي لا تغطّي قمة الهرم */
+#sign{position:fixed;top:max(6px,env(safe-area-inset-top));left:50%;transform:translate(-50%,-16px);opacity:0;z-index:4;
+  padding:2px 18px 6px;border-radius:14px;text-align:center;color:#fff1cf;background:linear-gradient(#8a5a2b,#6b421c);
+  box-shadow:inset 0 2px 0 #a8713a,inset 0 -3px 0 #4a2c10,0 8px 18px rgba(0,0,0,.45);transition:opacity .5s,transform .5s;pointer-events:none}
+#sign.show{opacity:1;transform:translate(-50%,0)}
+/* ألوان التطبيق نفسها: --sun #FFD93D (ذهبي)، --green #52C97A / --green-d #2d8653، --red #FF6B6B / --red-d #c73030 */
+#sign i{display:block;white-space:nowrap;font:800 12px/1.3 Tajawal;color:#FFD93D;font-style:normal}
+#sign .w{display:block;margin-top:8px;font:700 44px/1.2 'Noto Naskh Arabic','Amiri',serif;color:#fffbe8;text-shadow:0 3px 0 #3d250e}
+#sign .gap{display:inline-block;min-width:.55em;color:transparent;text-shadow:none;border:3px dashed #FFD93D;border-radius:10px;padding:0 4px;margin:0 3px;transition:color .3s}
+/* الشكل الذي نقره الطفل يظهر داخل الكلمة: أحمر إن كان خطأً ثم يختفي، وأخضر إن كان صحيحاً */
+#sign .gap.bad{color:#FF6B6B;border:0;padding:0;margin:0;min-width:0;text-shadow:0 3px 0 #c73030,0 0 12px rgba(255,107,107,.7);animation:shake .4s}
+#sign .gap.fill{color:#52C97A;border:0;padding:0;margin:0;min-width:0;text-shadow:0 3px 0 #2d8653,0 0 14px rgba(82,201,122,.8)}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+/* معلومة المَعلم: الاسم بذهبي التطبيق (--sun: #FFD93D و--sun-d: #c9a700) */
+#info{position:fixed;top:max(14px,env(safe-area-inset-top));left:50%;transform:translate(-50%,-16px);opacity:0;z-index:4;pointer-events:none;
+  padding:6px 26px 12px;border-radius:18px;text-align:center;background:rgba(24,14,4,.55);backdrop-filter:blur(4px);transition:opacity .6s,transform .6s}
+#info.show{opacity:1;transform:translate(-50%,0)}
+#info span{display:block;white-space:nowrap}
+#info .h,#info .p{font:800 20px/1.3 Tajawal;color:#fff3d6;text-shadow:0 2px 4px rgba(0,0,0,.6)}
+#info .n{font:700 46px/1.3 'Noto Naskh Arabic','Amiri',serif;color:#FFD93D;text-shadow:0 3px 0 #c9a700,0 5px 10px rgba(0,0,0,.55),0 0 22px rgba(255,217,61,.45)}
+#replay{position:fixed;top:max(10px,env(safe-area-inset-top));right:8px;z-index:5;background:#0009;color:#fff;border:0;border-radius:999px;padding:6px 10px;font:800 .85rem Tajawal;cursor:pointer}
+.screen{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(10,8,3,.72);color:#fff;text-align:center;padding:24px}
+.screen h1{font:800 2rem Tajawal} .screen p{font:500 1.05rem Tajawal;opacity:.9}
+.screen button{border:0;border-radius:999px;padding:14px 38px;font:800 1.2rem Tajawal;background:#ffb648;color:#3b2408;box-shadow:0 4px 0 #c27d1c;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="sign"><i></i><span class="w"></span></div>
+<div id="info"><span class="h">هُنَا</span><span class="n"></span><span class="p"></span></div>
+<button id="replay">🔊</button>
+<div class="screen" id="start"><h1>🏺 رحلة التراث</h1><p>رحلة حرف الباء: ثلاثة أجزاء، في كل جزء معلمان، وفي كل معلم سؤالان.</p><button>ابدأ</button></div>
+
+<script type="module">
+import { ARFORMS, LETTER_BA } from '/prototypes/forest-env/data.js';
+
+/* محرّك «رحلة لكل حرف»: الصفحة واحدة، وكل ما يخصّ الحرف في /prototypes/assets/journeys/<الحرف>.json
+   (الفيلم، أزمنة الوقفات، مقاطع الحزن والفرح، مواضع الخيارات، المعالم، استراحات الفصول). الاستعمال: journey.html?l=ب */
+const QS = new URLSearchParams(location.search), CH = QS.get('l') || 'ب';
+const JD = '/prototypes/assets/journeys/';
+const J = await (await fetch(JD + encodeURIComponent(CH) + '.json')).json();
+// بيانات كلمات الحرف: في التجربة الباء وحدها مستخرجة من التطبيق؛ في التطبيق تأتي من بيانات الحرف مباشرة
+const LETTER = {'ب': LETTER_BA}[J.letter];
+
+function naturalForm(L, i){ const f = ARFORMS[L[i]], p = L[i-1], pc = p && ARFORMS[p] && ARFORMS[p].c, hn = L[i+1] !== undefined;
+  return (pc && hn && f.med) ? 'med' : (pc && f.fin) ? 'fin' : (!pc && hn && f.ini) ? 'ini' : 'iso'; }
+const glyphs = (L, d) => L.map((ch, i) => { const f = ARFORMS[ch], m = (d && d[i]) || ''; return (f ? String.fromCodePoint(f[naturalForm(L, i)] || f.iso) : ch) + m; });
+const FORM_TXT = {ini: J.letter + 'ـ', med: 'ـ' + J.letter + 'ـ', fin: 'ـ' + J.letter, iso: J.letter};
+
+const [IW, IH] = J.stage;
+const SPEED = +QS.get('speed') || J.speed || .85;   // إبطاء الفيلم كله كي يعيش الطفل الطريق
+const FADE = 220;                                    // ذوبان قصير يخفي الفرق الصغير بين لقطة الوقوف وطرفَي مقطع الحزن/الفرح
+document.getElementById('stage').style.cssText = `width:${IW}px;height:${IH}px`;
+document.querySelector('#start h1').textContent = J.title;
+document.querySelector('#start p').textContent = `رحلة حرف ${LETTER.name}: ثلاثة أجزاء، في كل جزء معلمان، وفي كل معلم سؤالان.`;
+
+/* الرحلة ثلاثة فصول (معلمان في كل فصل)، وبينها في التطبيق الحقيقي: 5 جولات، ثم 5 جولات، ثم الكتابة.
+   في كل وقفة سؤالان عن الحرف بكلمتين مختلفتين، ثم الفرح، ثم معلومة المَعلم (اسمه بالذهبي) ثم يكمل الطريق.
+   الكلمات: الثالثة من المبتدئ + كلمات المستويين الآخرين، بلا كلمات الدرس (أول كلمتين) وبلا تكرار — كما في docs/forest-plan.md */
+const LVS = LETTER.levels;
+const POS = {start: ['ini', 'فِي بِدَايَةِ الْكَلِمَة'], mid_c: ['med_c', 'فِي وَسَطِ الْكَلِمَة، بَعْدَ مُتَّصِل'],
+  mid_n: ['med_n', 'فِي وَسَطِ الْكَلِمَة، بَعْدَ غَيْرِ مُتَّصِل'], end_c: ['fin_c', 'فِي نِهَايَةِ الْكَلِمَة، بَعْدَ مُتَّصِل'],
+  end_n: ['fin_n', 'فِي نِهَايَةِ الْكَلِمَة، بَعْدَ غَيْرِ مُتَّصِل']};
+// كلمات لا تليق بمشهد جميل تُستبعد من الرحلة وحدها (تبقى في الدرس كما هي) — في ملف الحرف: exclude
+const lesson = new Set([...Object.keys(POS).flatMap(k => LVS.beginner[k].slice(0, 2)), ...(J.exclude || [])]), used = new Set();
+function question(key){
+  const pool = [{w: LVS.beginner[key][2], d: LVS.beginner[key + 'D'][2]},
+    ...['intermediate', 'advanced'].flatMap(lv => LVS[lv][key].map((w, i) => ({w, d: LVS[lv][key + 'D'][i]})))]
+    .filter(x => !lesson.has(x.w) && !used.has(x.w));
+  const {w, d} = pool[Math.floor(Math.random() * pool.length)]; used.add(w);
+  const L = Array.from(w), ti = L.indexOf(J.letter);
+  return {g: glyphs(L, d), ti, correct: naturalForm(L, ti), pos: POS[key][1], audio: `/audio/questions/${J.letter}_${POS[key][0]}.mp3`, wordAudio: `/audio/words/${w}.mp3`};
+}
+const STOPS = J.stops.map(s => ({...s, pads: s.pads.map(([x, y, r]) => ({x, y, r: r || 88})), qs: s.keys.map(question)}));
+// ما يحلّ محلّه الدرس في التطبيق الحقيقي بعد كل فصل (هنا شاشة تجريبية فقط)
+const BREAKS = J.breaks || {};
+
+const PAD_SVG = `<svg viewBox="-100 -100 200 200"><path d="M0 -94 L92 0 L0 94 L-92 0 Z" fill="#e8c98a" stroke="#fff6dc" stroke-width="5"/>
+  <path d="M0 -76 L74 0 L0 76 L-74 0 Z" fill="none" stroke="#a9772f" stroke-width="3"/></svg>`;
+
+const stage = document.getElementById('stage'), sign = document.getElementById('sign');
+function fit(){ const S = Math.max(innerWidth/IW, innerHeight/IH);
+  stage.style.transform = `translate(${(innerWidth - IW*S)/2}px,${(innerHeight - IH*S)/2}px) scale(${S})`; }
+addEventListener('resize', fit); fit();
+
+const mk = src => { const v = document.createElement('video'); Object.assign(v, {src: JD + src, muted: true, playsInline: true, preload: 'auto'}); stage.appendChild(v); v.load(); return v; };
+const film = mk(J.film); film.classList.add('on');
+STOPS.forEach(s => { s.sadV = mk(s.sad); s.happyV = mk(s.happy); });
+
+const W = ms => new Promise(r => setTimeout(r, ms));
+let cur = null;
+const say = src => new Promise(res => { try{ cur && cur.pause(); }catch(e){} const a = new Audio(src); cur = a; a.onended = a.onerror = () => res(); a.play().catch(() => res()); });
+const sfx = n => { const a = new Audio(`/prototypes/forest-env/assets/sfx/${n}.ogg`); a.volume = .6; a.play().catch(() => {}); };
+
+// مقطع ردّة الفعل فوق الفيلم المتوقّف: يظهر بذوبان، وعند نهايته يذوب عائداً إلى لقطة الوقوف
+async function react(v){
+  v.currentTime = 0; const ended = new Promise(r => { v.onended = r; });
+  await v.play().catch(() => {});
+  await v.animate([{opacity: 0}, {opacity: 1}], {duration: FADE, fill: 'forwards'}).finished;
+  await ended;
+  await v.animate([{opacity: 1}, {opacity: 0}], {duration: FADE, fill: 'forwards'}).finished;
+}
+
+async function ask(s, q, last){
+  sign.querySelector('i').textContent = q.pos;
+  sign.querySelector('.w').innerHTML = q.g.map((g, i) => i === q.ti ? `<span class="gap">${g}</span>` : g).join('');
+  const others = ['ini', 'med', 'fin', 'iso'].filter(f => f !== q.correct).sort(() => Math.random() - .5).slice(0, 2);
+  let locked = true, done;
+  const finished = new Promise(r => done = r);
+  const nodes = [q.correct, ...others].sort(() => Math.random() - .5).map((form, k) => {
+    const p = s.pads[k], e = document.createElement('div'); e.className = 'pad';
+    e.style.cssText = `left:${p.x}px;top:${p.y}px;width:${p.r*2}px;height:${p.r*2}px`;
+    e.innerHTML = PAD_SVG + `<span class="l" style="font-size:${p.r*.78}px">${FORM_TXT[form]}</span>`;
+    stage.appendChild(e);
+    e.onclick = async () => {
+      if (locked || e.classList.contains('bad')) return;
+      locked = true;
+      if (form === q.correct){
+        sfx('correct'); e.classList.add('ok'); sign.querySelector('.gap').classList.add('fill');
+        nodes.filter(m => m !== e).forEach(m => m.classList.add('sink'));
+        await Promise.all([say(q.wordAudio), W(500).then(() => { e.classList.add('sink'); })]);
+        sign.classList.remove('show');
+        // الفرح مرة واحدة بعد السؤال الثاني؛ بعد الأول ننتقل مباشرة إلى الكلمة التالية
+        if (last) await Promise.all([react(s.happyV), W(300).then(() => say(`/audio/praise/praise_m_${1 + Math.floor(Math.random() * 5)}_full.mp3`))]);
+        else await W(500);
+        nodes.forEach(m => m.remove()); done();
+      } else {
+        e.classList.add('bad');
+        // الشكل الخاطئ يظهر أحمر في مكانه من الكلمة طوال الحزن، ثم يعود الفراغ
+        const gap = sign.querySelector('.gap'), right = gap.textContent;
+        gap.textContent = String.fromCodePoint(ARFORMS[J.letter][form]) + right.slice(1); gap.classList.add('bad');
+        // الخيارات تختفي أثناء الحزن كي لا تغطّي الطفل والطائر، وتعود بعده
+        nodes.forEach(m => m.classList.remove('show'));
+        await Promise.all([react(s.sadV), W(1000).then(() => say('/audio/wrong/wrong_m_1_full.mp3'))]);
+        gap.classList.remove('bad'); gap.textContent = right;
+        nodes.forEach(m => m.classList.add('show'));
+        locked = false;
+      }
+    };
+    return e;
+  });
+  document.getElementById('replay').onclick = () => say(q.audio);
+  sign.classList.add('show');
+  nodes.forEach((e, i) => setTimeout(() => e.classList.add('show'), 500 + i*400));
+  await Promise.race([say(q.audio), W(6000)]); await W(300);
+  locked = false;
+  return finished;
+}
+
+// معلومة المَعلم: «هُنَا [الاسم بالذهبي] فِي [البلد]». صوتها في ملف الحرف (voice)، ويُتخطّى إن لم يُسجَّل بعد
+async function info(s){
+  const el = document.getElementById('info');
+  el.querySelector('.n').textContent = s.name; el.querySelector('.p').textContent = s.place;
+  el.classList.add('show');
+  await Promise.all([s.voice ? say(s.voice) : null, W(3500)]);
+  el.classList.remove('show'); await W(500);
+}
+
+// استراحة الفصل: الفيلم واقف على لقطة الوقوف، وفي التطبيق الحقيقي يأتي هنا الدرس
+const pauseFor = text => new Promise(r => { const b = document.createElement('div'); b.className = 'screen';
+  b.innerHTML = `<p>${text}</p><button>أكمل الرحلة</button>`; document.body.appendChild(b);
+  b.querySelector('button').onclick = () => { b.remove(); r(); }; });
+
+async function run(){
+  film.playbackRate = SPEED;
+  for (const [k, s] of STOPS.entries()){
+    await film.play().catch(() => {});
+    await new Promise(res => { const t = () => film.currentTime >= s.at ? res() : requestAnimationFrame(t); t(); });
+    film.pause(); film.currentTime = s.at;
+    for (const [j, q] of s.qs.entries()) await ask(s, q, j === s.qs.length - 1);
+    await info(s);
+    if (BREAKS[k]) await pauseFor(BREAKS[k]);
+  }
+  await film.play().catch(() => {});
+  await new Promise(r => { film.onended = r; });
+  const end = document.createElement('div'); end.className = 'screen'; end.style.background = 'none'; end.style.justifyContent = 'flex-end'; end.style.paddingBottom = '60px';
+  end.innerHTML = '<button>أعد التجربة</button>'; document.body.appendChild(end);
+  end.querySelector('button').onclick = () => location.reload();
+}
+// الصوت يُفتح بضغطة «ابدأ» لأن المتصفح يمنعه قبل أي لمسة. صوت الفيلم يتوقف مع توقّفه عند كل سؤال،
+// وصوت الحزن والفرح كاملاً (طلب المستخدم 07.11)
+document.querySelector('#start button').onclick = () => { document.getElementById('start').remove();
+  film.muted = false; STOPS.forEach(s => { for (const v of [s.sadV, s.happyV]){ v.muted = false; v.volume = 1; } });
+  run(); };
+</script>
+</body>
+</html>
