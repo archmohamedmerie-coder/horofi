@@ -4219,7 +4219,7 @@ function buildLetterGrid(){
     - 6 rounds: target at END  (3 after-connecting-letter + 3 after-nonconnecting-letter)
   Total: 15 identify-type rounds, each with 1 correct + 3 wrong forms.
 */
-function buildRoundsForConnecting(L){
+function buildRoundsForConnecting(L, perPos){
   const rounds = [];
   const char = L.char;
 
@@ -4272,11 +4272,11 @@ function buildRoundsForConnecting(L){
   // (22.10.2026) لأن ربعها بلا صوت ولم يعد يقرؤها أي مسار.
   const src = (L.levels && (L.levels[CURRENT_LEVEL] || L.levels.beginner)) || L;
 
-  (src.start||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي بِدَايَة الْكَلِمَة', src.startD[i], true, 'start')));
-  (src.mid_c||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي وَسَط الْكَلِمَة، بَعْدَ حَرْفٍ مُتَّصِل', src.mid_cD[i], false, 'mid_c')));
-  (src.mid_n||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي وَسَط الْكَلِمَة، بَعْدَ حَرْفٍ مُنْفَصِل', src.mid_nD[i], false, 'mid_n')));
-  (src.end_c||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي آخِر الْكَلِمَة، بَعْدَ حَرْفٍ مُتَّصِل', src.end_cD[i], false, 'end_c')));
-  (src.end_n||[]).forEach((w,i) => rounds.push(makeRound(w, 'فِي آخِر الْكَلِمَة، بَعْدَ حَرْفٍ مُنْفَصِل', src.end_nD[i], false, 'end_n')));
+  (src.start||[]).slice(0, perPos || undefined).forEach((w,i) => rounds.push(makeRound(w, 'فِي بِدَايَة الْكَلِمَة', src.startD[i], true, 'start')));
+  (src.mid_c||[]).slice(0, perPos || undefined).forEach((w,i) => rounds.push(makeRound(w, 'فِي وَسَط الْكَلِمَة، بَعْدَ حَرْفٍ مُتَّصِل', src.mid_cD[i], false, 'mid_c')));
+  (src.mid_n||[]).slice(0, perPos || undefined).forEach((w,i) => rounds.push(makeRound(w, 'فِي وَسَط الْكَلِمَة، بَعْدَ حَرْفٍ مُنْفَصِل', src.mid_nD[i], false, 'mid_n')));
+  (src.end_c||[]).slice(0, perPos || undefined).forEach((w,i) => rounds.push(makeRound(w, 'فِي آخِر الْكَلِمَة، بَعْدَ حَرْفٍ مُتَّصِل', src.end_cD[i], false, 'end_c')));
+  (src.end_n||[]).slice(0, perPos || undefined).forEach((w,i) => rounds.push(makeRound(w, 'فِي آخِر الْكَلِمَة، بَعْدَ حَرْفٍ مُنْفَصِل', src.end_nD[i], false, 'end_n')));
 
   return rounds; // ترتيب تعليمي ثابت: بداية→وسط→نهاية
 }
@@ -4820,7 +4820,8 @@ function nextWriteRound(){
   WRI++;
   if (WRI>=WROUNDS.length || lives===0){
     // نفحص شارتي الكتابة فقط إن أُنهيت المرحلة فعلاً (لا عند فقدان القلوب في المنتصف)
-    if (WRI>=WROUNDS.length && lives>0) checkWritingBadges(()=>showDone());
+    // رحلة الحرف، الجزء الثالث (الختام): بعد الكتابة وقبل النتيجة النهائية
+    if (WRI>=WROUNDS.length && lives>0) checkWritingBadges(()=> journeyActive() ? playJourney(3).then(showDone) : showDone());
     else showDone();
   }
   else { buildWriteRound(); window.scrollTo(0,0); }
@@ -4900,10 +4901,13 @@ function _tryResume(mode, L, level){
   score = st.score; lives = st.lives; streak = st.streak; wrongStreak = st.wrongStreak;
   [_writeGlyphTotal, _writeGlyphCorrect, _writeWordTotal, _writeWordCorrect] = st.wc;
   answered = false;
-  if (st.stage === 'between'){ showRound1Result(); return true; }
-  if (st.stage === 'done'){ showDone(); return true; }
+  // الحفظ يقع بعد الإجابة وقبل الرحلة، فإن أُغلق التطبيق عند جزء من الرحلة يُعاد ذلك الجزء
+  if (st.stage === 'between'){ (journeyActive() ? playJourney(2) : Promise.resolve()).then(showRound1Result); return true; }
+  if (st.stage === 'done'){ (journeyActive() && WROUNDS && WRI >= WROUNDS.length ? playJourney(3) : Promise.resolve()).then(showDone); return true; }
   nav('game');
-  if (st.stage === 'writing') buildWriteRound(); else buildRound();
+  if (st.stage === 'writing') buildWriteRound();
+  else if (RI === 5 && journeyActive()) playJourney(1).then(buildRound);
+  else buildRound();
   window.scrollTo(0,0);
   return true;
 }
@@ -4948,7 +4952,7 @@ function startConnectingLetter(L, fresh){
   recordSession();
   CL=L; CL.kind='connecting'; RI=0; score=0; lives=3; streak=0; wrongStreak=0; specialIdentifyMode=false; WROUNDS=null; WRI=0;
   WRITING_ONLY = false;
-  ROUNDS = buildRoundsForConnecting(L);
+  ROUNDS = buildRoundsForConnecting(L, journeyOn() && JOURNEY_LETTERS.includes(L.char) ? 2 : 0);
   nav('game');
   buildRound();
 }
@@ -5521,9 +5525,58 @@ function renderTwoOptionGrid(correctWord, wrongWord, tip, body, hlLetters, hlTar
   body.appendChild(grid);
 }
 
+/* ── رحلة الحرف (تجريبية، خلف مفتاح) ──
+   فيلم واحد لكل حرف بست وقفات عند معالم، مقسوم ثلاثة أجزاء: بعد الجولة 5، وبعد الجولة 10، وبعد الكتابة.
+   الدرس يصير 10 جولات (كلمتان لكل موضع) والكلمة الثالثة تنتقل إلى الرحلة. الصفحة والوسائط في prototypes/
+   (المحرّك: prototypes/forest-cine/journey.html، وملف كل حرف: prototypes/assets/journeys/<الحرف>.json).
+   التفعيل: ?journeys=1 مرة واحدة (يُحفظ)، والإيقاف: ?journeys=0 — راجع docs/letter-journeys-plan.md */
+const JOURNEY_LETTERS = ['ب','ت'];
+function journeyOn(){
+  try {
+    const q = new URLSearchParams(location.search).get('journeys');
+    if (q === '1') localStorage.setItem('horofi_journeys','1');
+    if (q === '0') localStorage.removeItem('horofi_journeys');
+    return localStorage.getItem('horofi_journeys') === '1';
+  } catch(e){ return false; }
+}
+/* الدرس الحالي درس رحلة: حرف متصل له رحلة، بُنيت جولاته بعشر جولات (دروس الحفظ القديمة بـ15 تبقى كما هي) */
+function journeyActive(){
+  return journeyOn() && !!CL && CL.kind === 'connecting' && !WRITING_ONLY && !specialIdentifyMode
+    && JOURNEY_LETTERS.includes(CL.char) && Array.isArray(ROUNDS) && ROUNDS.length === 10;
+}
+function playJourney(part){
+  return new Promise(resolve => {
+    stopAllAudio();
+    const ov = document.createElement('div');
+    ov.id = 'journeyOverlay';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:#15130c';
+    const fr = document.createElement('iframe');
+    fr.allow = 'autoplay; fullscreen';
+    fr.style.cssText = 'border:0;width:100%;height:100%;display:block';
+    fr.src = 'prototypes/forest-cine/journey.html?l=' + encodeURIComponent(CL.char) + '&ch=' + part
+      + '&lv=' + encodeURIComponent(CURRENT_LEVEL || 'beginner') + '&embed=1';
+    const close = () => { removeEventListener('message', onMsg); ov.remove(); resolve(); };
+    const onMsg = e => { if (e.source === fr.contentWindow && e.data && e.data.type === 'horofi-journey-done') close(); };
+    addEventListener('message', onMsg);
+    // زرّ تخطٍّ صغير — المفتاح تجريبي، ولا يجوز أن يعلق الدرس إن فشل تحميل الفيلم
+    const skip = document.createElement('button');
+    skip.textContent = '✕';
+    skip.setAttribute('aria-label', 'تخطّي الرحلة');
+    skip.style.cssText = 'position:absolute;top:max(10px,env(safe-area-inset-top));left:10px;z-index:2;border:0;border-radius:999px;width:36px;height:36px;background:#0008;color:#fff;font-size:16px;cursor:pointer';
+    skip.onclick = close;
+    ov.append(fr, skip);
+    document.body.appendChild(ov);
+  });
+}
+
 /* ── NEXT ── */
 function nextRound(){
   RI++;
+  // رحلة الحرف، الجزء الأول: بعد الجولة الخامسة
+  if (RI === 5 && RI < ROUNDS.length && lives > 0 && journeyActive()){
+    playJourney(1).then(()=>{ buildRound(); window.scrollTo(0,0); });
+    return;
+  }
   if(RI>=ROUNDS.length||lives===0){
     // الجولة الأخيرة — انتظر انتهاء الصوت ثم أظهر النتيجة
     const nb = document.querySelector('.btn-next');
@@ -5537,7 +5590,8 @@ function nextRound(){
       }
       // بعد إتمام جولات التمييز تظهر نتيجتها أولاً (شاشة منفصلة، بلا أي ادّعاء إتقان)،
       // ثم يضغط الطفل ليبدأ مرحلة الكتابة — لا انتقال تلقائي مباشر بعد الآن
-      if (lives > 0 && WROUNDS === null) showRound1Result();
+      // رحلة الحرف، الجزء الثاني: بعد الجولة العاشرة وقبل نتيجة التمييز
+      if (lives > 0 && WROUNDS === null) (journeyActive() ? playJourney(2) : Promise.resolve()).then(showRound1Result);
       else showDone();
     };
     waitAndShow();

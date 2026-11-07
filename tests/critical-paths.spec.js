@@ -1061,3 +1061,57 @@ test('30) عدّاد النجوم في اللعبة يعرض نقاط الطفل
   await page.evaluate(() => { soundEnabled = false; openLevelSelect(CONNECTING_LETTERS[0]); chooseLevel('beginner'); }); // eslint-disable-line no-undef
   expect(await page.evaluate(() => document.querySelector('#pointsBar .pts-val').textContent)).toBe('37');
 });
+
+/* ─────────────────────────────────────────────────────────────
+   31) رحلة الحرف (تجريبية خلف مفتاح ?journeys=1)
+   الخطأ الذي يمنعه: أن يغيّر المفتاح الدرس العادي، أو أن تتخطّى الرحلة جزءاً، أو أن تكرّر
+   كلمات الدرس، أو أن يعلق الدرس بعد الرحلة. */
+test('31) رحلة الحرف: بلا مفتاح الدرس 15 جولة بلا رحلة؛ بالمفتاح 10 جولات والرحلة بعد 5 وبعد 10 وبعد الكتابة بلا تكرار كلمات الدرس', async ({ page }) => {
+  // (أ) بلا مفتاح: لا شيء يتغيّر
+  await openWithChild(page);
+  await openLevel(page, 'beginner');
+  expect((await gameState(page)).words.length).toBe(15);
+  for (let i = 0; i < 5; i++) { await answerRound(page, true); await nextBtn(page); }
+  expect(await page.evaluate(() => !!document.getElementById('journeyOverlay'))).toBe(false);
+  expect((await gameState(page)).RI).toBe(5);
+
+  // (ب) بالمفتاح: 10 جولات، كلمتان لكل موضع بالترتيب نفسه
+  await page.evaluate(() => localStorage.setItem('horofi_journeys', '1'));
+  await back(page);
+  await openLevel(page, 'beginner', true);
+  const s0 = await gameState(page);
+  expect(s0.words.length).toBe(10);
+  const lessonWords = s0.words;
+  const finishPart = async (part) => {
+    await page.waitForSelector('#journeyOverlay iframe');
+    const src = await page.evaluate(() => document.querySelector('#journeyOverlay iframe').src);
+    expect(decodeURIComponent(src)).toContain(`journey.html?l=ب&ch=${part}&lv=beginner&embed=1`);
+    const fr = page.frames().find((f) => f.url().includes('journey.html'));
+    await fr.waitForFunction(() => !!document.querySelector('#start h1') && document.querySelectorAll('video').length === 5, null, { timeout: 15000 });
+    expect(await fr.evaluate(() => document.querySelector('#start h1').textContent)).toContain(`الجزء ${part}`);
+    const plan = await fr.evaluate(() => JSON.parse(localStorage.getItem('horofi_journey_plan_ب_beginner')));
+    await fr.evaluate(() => parent.postMessage({ type: 'horofi-journey-done' }, '*'));
+    await page.waitForFunction(() => !document.getElementById('journeyOverlay'));
+    return plan;
+  };
+  for (let i = 0; i < 5; i++) { await answerRound(page, true); await nextBtn(page); }
+  const plan1 = await finishPart(1);
+  // 12 كلمة مختلفة، ليس فيها أي كلمة من كلمات الدرس ولا المستبعدة
+  const flat = plan1.flat();
+  expect(flat.length).toBe(12);
+  expect(new Set(flat).size).toBe(12);
+  expect(flat.filter((w) => lessonWords.includes(w) || ['مزبلة', 'خراب'].includes(w))).toEqual([]);
+  let s = await gameState(page);
+  expect([s.screen, s.RI]).toEqual(['game', 5]);
+
+  for (let i = 0; i < 5; i++) { await answerRound(page, true); await nextBtn(page); }
+  const plan2 = await finishPart(2);
+  expect(plan2).toEqual(plan1); // الجزء الثاني يستعمل الخطة نفسها فلا تتكرر كلمة بين الأجزاء
+  await page.waitForFunction(() => document.querySelector('.screen.active').id === 'done');
+
+  // نهاية الكتابة ⇒ الجزء الثالث ثم النتيجة النهائية
+  await page.evaluate(() => { startWritingStage(); WRI = WROUNDS.length - 1; nextWriteRound(); });
+  await page.waitForFunction(() => { if (document.getElementById('badgePopup').classList.contains('show')) closeBadgePopup(); return !!document.getElementById('journeyOverlay'); });
+  expect(await finishPart(3)).toEqual(plan1);
+  await page.waitForFunction(() => document.querySelector('.screen.active').id === 'done' && document.getElementById('doneBtns').textContent.includes('العب مرة أخرى'));
+});

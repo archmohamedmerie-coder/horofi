@@ -2,7 +2,13 @@
   "headers": [
     {
       "source": "prototypes/forest-cine/**",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
     }
-  ]
+  ],
+  "cleanUrls": false
 }

@@ -88,27 +88,58 @@ document.getElementById('stage').style.cssText = `width:${IW}px;height:${IH}px`;
 document.querySelector('#start h1').textContent = J.title;
 document.querySelector('#start p').textContent = `رحلة حرف ${LETTER.name}: ثلاثة أجزاء، في كل جزء معلمان، وفي كل معلم سؤالان.`;
 
-/* الرحلة ثلاثة فصول (معلمان في كل فصل)، وبينها في التطبيق الحقيقي: 5 جولات، ثم 5 جولات، ثم الكتابة.
+/* الرحلة ثلاثة أجزاء (معلمان في كل جزء)، وفي التطبيق: 5 جولات ← الجزء 1 ← 5 جولات ← الجزء 2 ← الكتابة ← الجزء 3.
    في كل وقفة سؤالان عن الحرف بكلمتين مختلفتين، ثم الفرح، ثم معلومة المَعلم (اسمه بالذهبي) ثم يكمل الطريق.
-   الكلمات: الثالثة من المبتدئ + كلمات المستويين الآخرين، بلا كلمات الدرس (أول كلمتين) وبلا تكرار — كما في docs/forest-plan.md */
-const LVS = LETTER.levels;
-const POS = {start: ['ini', 'فِي بِدَايَةِ الْكَلِمَة'], mid_c: ['med_c', 'فِي وَسَطِ الْكَلِمَة، بَعْدَ مُتَّصِل'],
-  mid_n: ['med_n', 'فِي وَسَطِ الْكَلِمَة، بَعْدَ غَيْرِ مُتَّصِل'], end_c: ['fin_c', 'فِي نِهَايَةِ الْكَلِمَة، بَعْدَ مُتَّصِل'],
-  end_n: ['fin_n', 'فِي نِهَايَةِ الْكَلِمَة، بَعْدَ غَيْرِ مُتَّصِل']};
+   الكلمات: كل كلمات الموضع في المستويات الثلاثة، ما عدا كلمتَي الدرس في مستوى الطفل (lv) والمستبعدة وما سبق استعماله.
+   للمبتدئ هذا يساوي «الثالثة من المبتدئ + المستويين الآخرين» — كما في docs/forest-plan.md */
+const LVS = LETTER.levels, LV = LVS[QS.get('lv')] ? QS.get('lv') : 'beginner';
+// الأجزاء: ?ch=1|2|3 يشغّل جزءاً واحداً (من داخل الدرس)؛ بلا ch تُشغَّل الرحلة كاملة (التجربة المستقلة)
+const PART = Math.min(3, Math.max(0, +QS.get('ch') || 0)), EMBED = QS.has('embed');
+// نصوص المواضع كما في التطبيق حرفياً (buildRoundsForConnecting) لأن صوت السؤال يقولها، وملف الصوت كما في playQuestionAudio
+const POS = {start: ['ini', 'فِي بِدَايَة الْكَلِمَة'], mid_c: ['med_c', 'فِي وَسَط الْكَلِمَة، بَعْدَ حَرْفٍ مُتَّصِل'],
+  mid_n: ['med_n', 'فِي وَسَط الْكَلِمَة، بَعْدَ حَرْفٍ مُنْفَصِل'], end_c: ['fin_c', 'فِي آخِر الْكَلِمَة، بَعْدَ حَرْفٍ مُتَّصِل'],
+  end_n: ['fin_n', 'فِي آخِر الْكَلِمَة، بَعْدَ حَرْفٍ مُنْفَصِل']};
+// موضع الحرف المسؤول عنه والفئة الفعلية من حروف الكلمة — نسخة من targetIndexFor/actualCat في التطبيق
+// (بعض الكلمات مُدرجة في الفئة الخطأ، وبعضها فيه الحرف مرتين)
+function targetIndexFor(L, cat){
+  if (cat === 'start') return L.indexOf(J.letter);
+  if (cat.startsWith('end')) return L.lastIndexOf(J.letter);
+  const inner = L.map((c, i) => i).filter(i => i > 0 && i < L.length - 1 && L[i] === J.letter);
+  const want = cat.endsWith('_c'), pc = i => !!(ARFORMS[L[i-1]] && ARFORMS[L[i-1]].c);
+  const m = inner.find(i => pc(i) === want);
+  return m !== undefined ? m : (inner.length ? inner[0] : L.indexOf(J.letter));
+}
+function actualCat(L, i, listed){
+  if (listed === 'start' || i <= 0) return listed;
+  const prev = ARFORMS[L[i-1]];
+  return (i === L.length - 1 ? 'end' : 'mid') + (prev && prev.c ? '_c' : '_n');
+}
 // كلمات لا تليق بمشهد جميل تُستبعد من الرحلة وحدها (تبقى في الدرس كما هي) — في ملف الحرف: exclude
-const lesson = new Set([...Object.keys(POS).flatMap(k => LVS.beginner[k].slice(0, 2)), ...(J.exclude || [])]), used = new Set();
-function question(key){
-  const pool = [{w: LVS.beginner[key][2], d: LVS.beginner[key + 'D'][2]},
-    ...['intermediate', 'advanced'].flatMap(lv => LVS[lv][key].map((w, i) => ({w, d: LVS[lv][key + 'D'][i]})))]
-    .filter(x => !lesson.has(x.w) && !used.has(x.w));
-  const {w, d} = pool[Math.floor(Math.random() * pool.length)]; used.add(w);
-  const L = Array.from(w), ti = L.indexOf(J.letter);
-  return {g: glyphs(L, d), ti, correct: naturalForm(L, ti), pos: POS[key][1], audio: `/audio/questions/${J.letter}_${POS[key][0]}.mp3`, wordAudio: `/audio/words/${w}.mp3`,
+const lesson = new Set([...Object.keys(POS).flatMap(k => LVS[LV][k].slice(0, 2)), ...(J.exclude || [])]);
+const allOf = key => ['beginner', 'intermediate', 'advanced'].flatMap(lv => LVS[lv][key].map((w, i) => ({w, d: LVS[lv][key + 'D'][i]})));
+/* خطة الكلمات للرحلة كلها (6 وقفات × كلمتان) تُختار مرة واحدة في الجزء الأول وتُحفظ، فلا تتكرر كلمة بين الأجزاء
+   ولو أُغلق التطبيق بينها. التجربة المستقلة (بلا ch) تختار من جديد في كل مرة. */
+const PLAN_KEY = `horofi_journey_plan_${J.letter}_${LV}`;
+function makePlan(){ const used = new Set();
+  return J.stops.map(s => s.keys.map(key => {
+    const pool = allOf(key).filter(x => !lesson.has(x.w) && !used.has(x.w));
+    const {w} = pool[Math.floor(Math.random() * pool.length)]; used.add(w); return w; })); }
+let plan = null;
+try { if (PART > 1) plan = JSON.parse(localStorage.getItem(PLAN_KEY) || 'null'); } catch(e){}
+if (!Array.isArray(plan) || plan.length !== J.stops.length) plan = makePlan();
+try { if (PART) localStorage.setItem(PLAN_KEY, JSON.stringify(plan)); } catch(e){}
+function question(w, key){
+  const {d} = allOf(key).find(x => x.w === w) || {};
+  const L = Array.from(w), ti = targetIndexFor(L, key), cat = actualCat(L, ti, key);
+  return {g: glyphs(L, d), ti, correct: naturalForm(L, ti), pos: POS[cat][1], audio: `/audio/questions/${J.letter}_${POS[cat][0]}.mp3`, wordAudio: `/audio/words/${w}.mp3`,
     sentence: WORD_SENTENCES[w], sentenceAudio: `/audio/sentences/${w}.mp3`};
 }
-const STOPS = J.stops.map(s => ({...s, pads: s.pads.map(([x, y, r]) => ({x, y, r: r || 88})), qs: s.keys.map(question)}));
-// ما يحلّ محلّه الدرس في التطبيق الحقيقي بعد كل فصل (هنا شاشة تجريبية فقط)
-const BREAKS = J.breaks || {};
+const ALL = J.stops.map((s, i) => ({...s, pads: s.pads.map(([x, y, r]) => ({x, y, r: r || 88})), qs: s.keys.map((key, j) => question(plan[i][j], key))}));
+// الجزء N = الوقفتان 2N-1 و2N، ويبدأ الفيلم من لقطة الوقوف التي انتهى عندها الجزء السابق
+const STOPS = PART ? ALL.slice(2*PART - 2, 2*PART) : ALL;
+const FROM = PART > 1 ? ALL[2*PART - 3].at : 0;
+// ما يحلّ محلّه الدرس في التطبيق الحقيقي بعد كل فصل (شاشة تجريبية في التجربة المستقلة فقط)
+const BREAKS = PART ? {} : (J.breaks || {});
 
 const PAD_SVG = `<svg viewBox="-100 -100 200 200"><path d="M0 -94 L92 0 L0 94 L-92 0 Z" fill="#e8c98a" stroke="#fff6dc" stroke-width="5"/>
   <path d="M0 -76 L74 0 L0 76 L-74 0 Z" fill="none" stroke="#a9772f" stroke-width="3"/></svg>`;
@@ -208,8 +239,12 @@ const pauseFor = text => new Promise(r => { const b = document.createElement('di
   b.innerHTML = `<p>${text}</p><button>أكمل الرحلة</button>`; document.body.appendChild(b);
   b.querySelector('button').onclick = () => { b.remove(); r(); }; });
 
+// إبلاغ التطبيق (الإطار الأب) بانتهاء الجزء كي يكمل الدرس
+const done = () => { try { parent.postMessage({type: 'horofi-journey-done', letter: J.letter, part: PART}, '*'); } catch(e){} };
+
 async function run(){
   film.playbackRate = SPEED;
+  if (FROM) film.currentTime = FROM;
   for (const [k, s] of STOPS.entries()){
     await film.play().catch(() => {});
     await new Promise(res => { const t = () => film.currentTime >= s.at ? res() : requestAnimationFrame(t); t(); });
@@ -218,19 +253,31 @@ async function run(){
     await info(s);
     if (BREAKS[k]) await pauseFor(BREAKS[k]);
   }
-  await film.play().catch(() => {});
-  await new Promise(r => { film.onended = r; });
-  const end = document.createElement('div'); end.className = 'screen'; end.style.background = 'none'; end.style.justifyContent = 'flex-end'; end.style.paddingBottom = '60px';
-  // إن كان للرحلة رحلة تالية (next في ملف الحرف) نكمل إليها؛ الفيلم التالي يبدأ من آخر لقطة هنا
-  if (J.next){
-    end.innerHTML = '<button>أكمل الرحلة ←</button>'; document.body.appendChild(end);
-    const p = new URLSearchParams(location.search); p.set('l', J.next); p.set('cont', '1');
-    end.querySelector('button').onclick = () => { location.href = location.pathname + '?' + p; };
-  } else {
-    end.innerHTML = '<button>أعد التجربة</button>'; document.body.appendChild(end);
-    end.querySelector('button').onclick = () => location.reload();
+  // الجزءان الأول والثاني ينتهيان والفيلم واقف عند المَعلم الأخير، ويكمل الجزء التالي من هنا
+  if (PART && PART < 3){
+    if (EMBED) return done();
+    return endScreen('أكمل الجزء ' + (PART + 1) + ' ←', () => { const p = new URLSearchParams(location.search); p.set('ch', PART + 1); location.href = location.pathname + '?' + p; });
   }
+  await film.play().catch(() => {});
+  await new Promise(r => { if (film.ended) r(); else film.onended = r; });
+  if (EMBED) return done();
+  // إن كان للرحلة رحلة تالية (next في ملف الحرف) نكمل إليها؛ الفيلم التالي يبدأ من آخر لقطة هنا
+  if (J.next && !PART){
+    const p = new URLSearchParams(location.search); p.set('l', J.next); p.set('cont', '1');
+    endScreen('أكمل الرحلة ←', () => { location.href = location.pathname + '?' + p; });
+  } else endScreen('أعد التجربة', () => location.reload());
 }
+function endScreen(label, go){
+  const end = document.createElement('div'); end.className = 'screen'; end.style.background = 'none'; end.style.justifyContent = 'flex-end'; end.style.paddingBottom = '60px';
+  end.innerHTML = '<button></button>'; end.querySelector('button').textContent = label; document.body.appendChild(end);
+  end.querySelector('button').onclick = go;
+}
+// في الأجزاء 2 و3 تظهر خلف شاشة البداية لقطة الوقوف التي انتهى عندها الجزء السابق
+if (FROM){ const seek = () => { film.currentTime = FROM; }; film.readyState >= 1 ? seek() : film.addEventListener('loadedmetadata', seek, {once: true}); }
+if (PART){ const st = document.getElementById('start');
+  st.querySelector('h1').textContent = `${J.title} — الجزء ${PART}`;
+  st.querySelector('p').textContent = PART === 1 ? 'هيّا نبدأ الرحلة!' : PART === 2 ? 'نكمل الطريق إلى مَعلمين جديدين' : 'الجزء الأخير من الرحلة';
+  st.querySelector('button').textContent = 'انطلق ←'; }
 // قادم من الرحلة السابقة: زرّ واحد للإكمال (يبقى ضرورياً لأن المتصفح يطلب لمسة لفتح الصوت في كل صفحة)
 if (QS.get('cont')){ const st = document.getElementById('start');
   st.querySelector('p').textContent = 'الرحلة مستمرة: ' + LETTER.name; st.querySelector('button').textContent = 'أكمل ←'; }
