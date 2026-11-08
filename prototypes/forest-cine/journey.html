@@ -23,7 +23,6 @@ html,body{height:100%;overflow:hidden;background:#15130c;font-family:'Tajawal',s
 .pad.ok{filter:drop-shadow(0 0 18px rgba(255,236,140,.95)) brightness(1.15)}
 .pad.bad{filter:saturate(.25) brightness(.7);cursor:default}
 .pad.sink{opacity:0;transform:translate(-50%,-30%) scale(.7)}
-.pad .l .tl{color:#2d8653;text-shadow:0 0 10px rgba(82,201,122,.6)}
 
 /* اللافتة مدمجة بين زرَّي الأعلى كي لا تغطّي قمة الهرم */
 #sign{position:fixed;top:max(6px,env(safe-area-inset-top));left:50%;transform:translate(-50%,-16px);opacity:0;z-index:4;
@@ -261,7 +260,7 @@ async function askSpecial(s, q, last){
       if (locked || e.classList.contains('bad')) return;
       locked = true;
       if (o.ok){
-        sfx('correct'); e.classList.add('ok'); e.querySelector('.l').innerHTML = q.highlighted; sign.querySelector('.gap').classList.add('fill');
+        sfx('correct'); e.classList.add('ok'); sign.querySelector('.gap').classList.add('fill');
         nodes.filter(m => m !== e).forEach(m => m.classList.add('sink'));
         await Promise.all([say(q.wordAudio), W(900).then(() => { e.classList.add('sink'); })]);
         await say(`/audio/praise/praise_m_${1 + Math.floor(Math.random() * 5)}_full.mp3`);
