@@ -1,0 +1,17 @@
+{
+  "letter": "ث",
+  "title": "🕌 رحلة فلسطين",
+  "film": "ث/film.mp4",
+  "stage": [768,1364],
+  "speed": 0.65,
+  "exclude": ["خبيث"],
+  "breaks": {"1":"هنا في التطبيق: 5 جولات من الدرس","3":"هنا في التطبيق: الكتابة"},
+  "stops": [
+    {"at":10.03,"keys":["start","start"],"name":"سُورُ عَكَّا الْبَحْرِيّ","place":"فِي فِلَسْطِين","sad":"ث/sad_1.mp4","happy":"ث/happy_1.mp4","voice":"/audio/landmarks/ث_1.mp3","pads":[[460,1000],[605,1120],[460,1240]]},
+    {"at":20.15,"keys":["mid_c","mid_c"],"name":"بُرْجُ السَّاعَة","place":"فِي يَافَا","sad":"ث/sad_2.mp4","happy":"ث/happy_2.mp4","voice":"/audio/landmarks/ث_2.mp3","pads":[[460,1000],[605,1120],[460,1240]]},
+    {"at":30.28,"keys":["end_c","end_c"],"name":"كَنِيسَةُ الْمَهْد","place":"فِي بَيْتِ لَحْم","sad":"ث/sad_3.mp4","happy":"ث/happy_3.mp4","voice":"/audio/landmarks/ث_3.mp3","pads":[[460,1000],[605,1120],[460,1240]]},
+    {"at":40.4,"keys":["mid_n","end_n"],"name":"الْحَرَمُ الْإِبْرَاهِيمِيّ","place":"فِي الْخَلِيل","sad":"ث/sad_4.mp4","happy":"ث/happy_4.mp4","voice":"/audio/landmarks/ث_4.mp3","pads":[[460,1000],[605,1120],[460,1240]]},
+    {"at":50.53,"keys":["mid_n","start"],"name":"الْمَسْجِدُ الْعُمَرِيُّ الْكَبِير","place":"فِي غَزَّة","sad":"ث/sad_5.mp4","happy":"ث/happy_5.mp4","voice":"/audio/landmarks/ث_5.mp3","pads":[[460,1000],[605,1120],[460,1240]]},
+    {"at":60.66,"keys":["end_c","end_n"],"name":"الْمَسْجِدُ الْأَقْصَى\nوَقُبَّةُ الصَّخْرَة","place":"فِي الْقُدْس","sad":"ث/sad_6.mp4","happy":"ث/happy_6.mp4","voice":"/audio/landmarks/ث_6.mp3","pads":[[500,1000],[640,1120],[500,1240]]}
+  ]
+}
