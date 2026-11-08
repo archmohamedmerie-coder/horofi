@@ -1118,4 +1118,22 @@ test('31) رحلة الحرف: بلا مفتاح الدرس 15 جولة بلا �
   await page.waitForFunction(() => { if (document.getElementById('badgePopup').classList.contains('show')) closeBadgePopup(); return !!document.getElementById('journeyOverlay'); });
   expect(await finishPart(3)).toEqual(plan1);
   await page.waitForFunction(() => document.querySelector('.screen.active').id === 'done' && document.getElementById('doneBtns').textContent.includes('العب مرة أخرى'));
+
+  // «أعد الرحلة» في شاشة النهاية: الرحلة كاملة (ch=0) بأسئلتها، بلا شاشات «هنا في التطبيق»
+  await page.click('#journeyReplayBtn');
+  await page.waitForSelector('#journeyOverlay iframe');
+  expect(decodeURIComponent(await page.evaluate(() => document.querySelector('#journeyOverlay iframe').src))).toContain('journey.html?l=ب&ch=0&lv=beginner&embed=1');
+  const fr = page.frames().find((f) => f.url().includes('ch=0'));
+  await fr.waitForFunction(() => !!document.querySelector('#start button') && document.querySelectorAll('video').length === 3, null, { timeout: 15000 });
+  expect(await fr.evaluate(() => [document.querySelector('#start p').textContent, document.querySelector('#start button').textContent])).toEqual(['نعيد الرحلة كاملة!', 'انطلق ←']);
+
+  // زرّ الخروج: لمسة قصيرة لا تُخرج، والضغطة المطوّلة (ثانيتان) تُخرج إلى شاشة النهاية نفسها
+  const box = await page.locator('#journeyOverlay button').boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down(); await page.waitForTimeout(400); await page.mouse.up();
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => !!document.getElementById('journeyOverlay'))).toBe(true);
+  await page.mouse.down(); await page.waitForTimeout(2300); await page.mouse.up();
+  await page.waitForFunction(() => !document.getElementById('journeyOverlay'));
+  expect(await page.evaluate(() => document.querySelector('.screen.active').id)).toBe('done');
 });

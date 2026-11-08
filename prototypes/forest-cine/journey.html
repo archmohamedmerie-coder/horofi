@@ -139,7 +139,8 @@ const ALL = J.stops.map((s, i) => ({...s, pads: s.pads.map(([x, y, r]) => ({x, y
 const STOPS = PART ? ALL.slice(2*PART - 2, 2*PART) : ALL;
 const FROM = PART > 1 ? ALL[2*PART - 3].at : 0;
 // ما يحلّ محلّه الدرس في التطبيق الحقيقي بعد كل فصل (شاشة تجريبية في التجربة المستقلة فقط)
-const BREAKS = PART ? {} : (J.breaks || {});
+// داخل الدرس لا شاشات «هنا في التطبيق…»: هي للعرض التجريبي المستقل فقط
+const BREAKS = (PART || EMBED) ? {} : (J.breaks || {});
 
 const PAD_SVG = `<svg viewBox="-100 -100 200 200"><path d="M0 -94 L92 0 L0 94 L-92 0 Z" fill="#e8c98a" stroke="#fff6dc" stroke-width="5"/>
   <path d="M0 -76 L74 0 L0 76 L-74 0 Z" fill="none" stroke="#a9772f" stroke-width="3"/></svg>`;
@@ -299,6 +300,9 @@ if (PART){ const st = document.getElementById('start');
   st.querySelector('h1').textContent = `${J.title} — الجزء ${PART}`;
   st.querySelector('p').textContent = PART === 1 ? 'هيّا نبدأ الرحلة!' : PART === 2 ? 'نكمل الطريق إلى مَعلمين جديدين' : 'الجزء الأخير من الرحلة';
   st.querySelector('button').textContent = 'انطلق ←'; }
+// إعادة الرحلة كاملة من شاشة نهاية الدرس
+if (EMBED && !PART){ const st = document.getElementById('start');
+  st.querySelector('p').textContent = 'نعيد الرحلة كاملة!'; st.querySelector('button').textContent = 'انطلق ←'; }
 // قادم من الرحلة السابقة: زرّ واحد للإكمال (يبقى ضرورياً لأن المتصفح يطلب لمسة لفتح الصوت في كل صفحة)
 if (QS.get('cont')){ const st = document.getElementById('start');
   st.querySelector('p').textContent = 'الرحلة مستمرة: ' + LETTER.name; st.querySelector('button').textContent = 'أكمل ←'; }

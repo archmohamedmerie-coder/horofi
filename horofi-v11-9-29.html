@@ -5559,12 +5559,21 @@ function playJourney(part){
     const close = () => { removeEventListener('message', onMsg); ov.remove(); resolve(); };
     const onMsg = e => { if (e.source === fr.contentWindow && e.data && e.data.type === 'horofi-journey-done') close(); };
     addEventListener('message', onMsg);
-    // زرّ تخطٍّ صغير — المفتاح تجريبي، ولا يجوز أن يعلق الدرس إن فشل تحميل الفيلم
+    /* زرّ خروج للوالد — لا يجوز أن يعلق الدرس إن فشل تحميل الفيلم. يعمل بضغطة مطوّلة (ثانيتان)
+       تملأ حلقة حوله، كي لا يُخرج الطفلُ نفسه من الرحلة بلمسة عابرة (08.11) */
     const skip = document.createElement('button');
     skip.textContent = '✕';
-    skip.setAttribute('aria-label', 'تخطّي الرحلة');
-    skip.style.cssText = 'position:absolute;top:max(10px,env(safe-area-inset-top));left:10px;z-index:2;border:0;border-radius:999px;width:36px;height:36px;background:#0008;color:#fff;font-size:16px;cursor:pointer';
-    skip.onclick = close;
+    skip.setAttribute('aria-label', 'تخطّي الرحلة: اضغط مطوّلاً');
+    skip.style.cssText = 'position:absolute;top:max(10px,env(safe-area-inset-top));left:10px;z-index:2;border:0;border-radius:999px;width:40px;height:40px;background:#0008;color:#fff;font-size:16px;cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none';
+    const HOLD = 2000; let t0 = 0, raf = 0;
+    const paint = f => { skip.style.background = f > 0
+      ? `radial-gradient(#000a 58%, transparent 60%), conic-gradient(#fff ${f*360}deg, #fff3 0)` : '#0008'; };
+    const stop = () => { cancelAnimationFrame(raf); raf = 0; paint(0); };
+    const tick = () => { const f = (performance.now() - t0) / HOLD;
+      if (f >= 1){ stop(); close(); return; } paint(f); raf = requestAnimationFrame(tick); };
+    skip.addEventListener('pointerdown', e => { e.preventDefault(); if (raf) return; t0 = performance.now(); tick(); });
+    for (const ev of ['pointerup','pointerleave','pointercancel']) skip.addEventListener(ev, stop);
+    skip.addEventListener('contextmenu', e => e.preventDefault());
     ov.append(fr, skip);
     document.body.appendChild(ov);
   });
@@ -5639,6 +5648,13 @@ function showDone(){
     btns.innerHTML = `
       <button class="btn" onclick="playAgain()">🔄 العب مرة أخرى</button>
       <button class="btn2" onclick="stopAllAudio();nav('letters')">اختر حرفاً آخر</button>`;
+    // الطفل الذي أحبّ الرحلة يعيدها كاملة بأسئلتها (تمرين إضافي، لا يغيّر نتيجة الدرس)
+    if (journeyActive()){
+      const rb = document.createElement('button');
+      rb.className = 'btn2'; rb.id = 'journeyReplayBtn'; rb.textContent = '🎬 أعد الرحلة';
+      rb.onclick = () => { if (!document.getElementById('journeyOverlay')) playJourney(0); };
+      btns.insertBefore(rb, btns.children[1]);
+    }
   }
   // جولات الاختيار من متعدد بـ10 نقاط، وجولات الكتابة بـ15 (أصعب) — راجع evaluateTraceAnswer.
   // في المسار المباشر لم يلعب الطفل جولات التمييز أصلاً (وُلِّدت كمصدر كلمات فقط)،
