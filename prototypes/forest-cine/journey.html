@@ -23,7 +23,7 @@ html,body{height:100%;overflow:hidden;background:#15130c;font-family:'Tajawal',s
 .pad.ok{filter:drop-shadow(0 0 18px rgba(255,236,140,.95)) brightness(1.15)}
 .pad.bad{filter:saturate(.25) brightness(.7);cursor:default}
 .pad.sink{opacity:0;transform:translate(-50%,-30%) scale(.7)}
-.pad.wide .l .tl{color:#2d8653;text-shadow:0 0 10px rgba(82,201,122,.6)}
+.pad .l .tl{color:#2d8653;text-shadow:0 0 10px rgba(82,201,122,.6)}
 
 /* اللافتة مدمجة بين زرَّي الأعلى كي لا تغطّي قمة الهرم */
 #sign{position:fixed;top:max(6px,env(safe-area-inset-top));left:50%;transform:translate(-50%,-16px);opacity:0;z-index:4;
@@ -139,7 +139,7 @@ if (!Array.isArray(plan) || plan.length !== J.stops.length) plan = makePlan();
 try { if (PART) localStorage.setItem(PLAN_KEY, JSON.stringify(plan)); } catch(e){}
 function question(w, key){
   if (SPECIAL){ const iw = LETTER.idWords[w], word = iw.letters.join('');
-    return {special: true, ...specialPair(iw), pos: 'اِقْرَأْ وَاخْتَرِ الْكَلِمَةَ الصَّحِيحَة', audio: `/audio/questions/${J.letter}_special.mp3`,
+    return {special: true, ...specialPair(iw), g: glyphs(iw.letters, iw.diac), ti: iw.idx, pos: 'اِقْرَأْ وَاخْتَرِ الْكَلِمَةَ الصَّحِيحَة', audio: `/audio/questions/${J.letter}_special.mp3`,
       wordAudio: `/audio/words/${word}.mp3`, sentence: WORD_SENTENCES[word], sentenceAudio: `/audio/sentences/${word}.mp3`}; }
   const {d} = allOf(key).find(x => x.w === w) || {};
   const L = Array.from(w), ti = targetIndexFor(L, key), cat = actualCat(L, ti, key);
@@ -156,8 +156,6 @@ const BREAKS = (PART || EMBED) ? {} : (J.breaks || {});
 
 const PAD_SVG = `<svg viewBox="-100 -100 200 200"><path d="M0 -94 L92 0 L0 94 L-92 0 Z" fill="#e8c98a" stroke="#fff6dc" stroke-width="5"/>
   <path d="M0 -76 L74 0 L0 76 L-74 0 Z" fill="none" stroke="#a9772f" stroke-width="3"/></svg>`;
-const WIDE_SVG = `<svg viewBox="0 0 360 160" preserveAspectRatio="none"><rect x="4" y="4" width="352" height="152" rx="40" fill="#e8c98a" stroke="#fff6dc" stroke-width="6"/>
-  <rect x="18" y="18" width="324" height="124" rx="30" fill="none" stroke="#a9772f" stroke-width="3"/></svg>`;
 
 const stage = document.getElementById('stage'), sign = document.getElementById('sign');
 function fit(){ const S = Math.max(innerWidth/IW, innerHeight/IH);
@@ -246,22 +244,24 @@ async function ask(s, q, last){
   return finished;
 }
 
-/* سؤال الحرف غير المتصل: لوحتان عريضتان، على كل منهما كلمة كاملة (الصحيحة والخاطئة)، كتمرين التمييز في التطبيق.
-   الصحيح: الحرف يتلوّن أخضر في الكلمة ثم كما في ask؛ الخطأ: اللوحة تبهت والحزن، ثم تعود اللوحتان */
+/* سؤال الحرف غير المتصل: لوحتان بشكل الرحلات الأخرى نفسه (المعيّن)، على كل منهما كلمة كاملة (الصحيحة والخاطئة)
+   كتمرين التمييز في التطبيق، واللافتة فيها الكلمة ومكان الحرف فراغ منقّط (طلب المستخدم 08.11: نفس شكل الرحلات).
+   الصحيح: الفراغ يمتلئ أخضر والحرف يتلوّن في اللوحة؛ الخطأ: الفراغ يهتزّ أحمر، اللوحة تبهت والحزن، ثم تعود اللوحتان */
 async function askSpecial(s, q, last){
-  sign.querySelector('i').textContent = q.pos; sign.querySelector('.w').innerHTML = '';
+  sign.querySelector('i').textContent = q.pos;
+  sign.querySelector('.w').innerHTML = q.g.map((g, i) => i === q.ti ? `<span class="gap">${g}</span>` : g).join('');
   let locked = true, done;
   const finished = new Promise(r => done = r);
   const nodes = [{html: q.correct, ok: true}, {html: q.wrong, ok: false}].sort(() => Math.random() - .5).map((o, k) => {
     const p = s.pads[k], e = document.createElement('div'); e.className = 'pad wide';
-    e.style.cssText = `left:${p.x}px;top:${p.y}px;width:${p.r*3.6}px;height:${p.r*1.6}px`;
-    e.innerHTML = WIDE_SVG + `<span class="l" style="font-size:${p.r*.72}px">${o.html}</span>`;
+    e.style.cssText = `left:${p.x}px;top:${p.y}px;width:${p.r*2}px;height:${p.r*2}px`;
+    e.innerHTML = PAD_SVG + `<span class="l" style="font-size:${p.r*.56}px">${o.html}</span>`;
     stage.appendChild(e);
     e.onclick = async () => {
       if (locked || e.classList.contains('bad')) return;
       locked = true;
       if (o.ok){
-        sfx('correct'); e.classList.add('ok'); e.querySelector('.l').innerHTML = q.highlighted;
+        sfx('correct'); e.classList.add('ok'); e.querySelector('.l').innerHTML = q.highlighted; sign.querySelector('.gap').classList.add('fill');
         nodes.filter(m => m !== e).forEach(m => m.classList.add('sink'));
         await Promise.all([say(q.wordAudio), W(900).then(() => { e.classList.add('sink'); })]);
         await say(`/audio/praise/praise_m_${1 + Math.floor(Math.random() * 5)}_full.mp3`);
@@ -272,8 +272,10 @@ async function askSpecial(s, q, last){
         nodes.forEach(m => m.remove()); done();
       } else {
         e.classList.add('bad');
+        const gap = sign.querySelector('.gap'); gap.classList.add('bad');
         nodes.forEach(m => m.classList.remove('show'));
         await Promise.all([react(s.sadV), W(1000).then(() => say('/audio/wrong/wrong_m_1_full.mp3'))]);
+        gap.classList.remove('bad');
         nodes.forEach(m => m.classList.add('show'));
         locked = false;
       }
