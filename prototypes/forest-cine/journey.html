@@ -149,22 +149,37 @@ function fit(){ const S = Math.max(innerWidth/IW, innerHeight/IH);
   stage.style.transform = `translate(${(innerWidth - IW*S)/2}px,${(innerHeight - IH*S)/2}px) scale(${S})`; }
 addEventListener('resize', fit); fit();
 
-const mk = src => { const v = document.createElement('video'); Object.assign(v, {src: JD + src, muted: true, playsInline: true, preload: 'auto'}); stage.appendChild(v); v.load(); return v; };
+/* على الهاتف: ثلاثة مشغّلات فيديو فقط (الفيلم + الحزن + الفرح). تحميل كل المقاطع معاً كان يجعل أندرويد
+   يرفض بعضها (ERR_FAILED على sad_3 في التجربة على الهاتف 08.11) فتعلق الرحلة عند الخطأ.
+   مقطعا الوقفة يُحمَّلان حين ينطلق الفيلم نحوها (الطريق 5–10 ث يكفي لتحميلهما من الجهاز).
+   poster شفاف يخفي أيقونة التشغيل الرمادية التي يرسمها WebView قبل أول إطار. */
+const BLANK = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+const mk = src => { const v = document.createElement('video'); Object.assign(v, {muted: true, playsInline: true, preload: 'auto', poster: BLANK});
+  if (src){ v.src = JD + src; v.load(); } stage.appendChild(v); return v; };
 const film = mk(J.film); film.classList.add('on');
-STOPS.forEach(s => { s.sadV = mk(s.sad); s.happyV = mk(s.happy); });
+const sadV = mk(), happyV = mk();
+function prep(s){ for (const [v, f] of [[sadV, s.sad], [happyV, s.happy]]) if (v.dataset.f !== f){ v.dataset.f = f; v.src = JD + f; v.load(); } }
+STOPS.forEach(s => { s.sadV = sadV; s.happyV = happyV; });
 
 const W = ms => new Promise(r => setTimeout(r, ms));
 let cur = null;
-const say = src => new Promise(res => { try{ cur && cur.pause(); }catch(e){} const a = new Audio(src); cur = a; a.onended = a.onerror = () => res(); a.play().catch(() => res()); });
-const sfx = n => { const a = new Audio(`/prototypes/forest-env/assets/sfx/${n}.ogg`); a.volume = .6; a.play().catch(() => {}); };
+// الصوت لا يُعلِّق الرحلة أيضاً: سقف = مدة الملف + 1.5 ث (أو 20 ث إن لم تُعرف المدة)
+const say = src => new Promise(res => { try{ cur && cur.pause(); }catch(e){} const a = new Audio(src); cur = a;
+  let t = setTimeout(res, 20000); a.onloadedmetadata = () => { clearTimeout(t); t = setTimeout(res, ((a.duration || 18) + 1.5) * 1000); };
+  a.onended = a.onerror = () => { clearTimeout(t); res(); }; a.play().catch(() => { clearTimeout(t); res(); }); });
+const sfx = n => { const a = new Audio(`/prototypes/forest-env/assets/sfx/${n}.mp3`); a.volume = .6; a.play().catch(() => {}); };
 
 // مقطع ردّة الفعل فوق الفيلم المتوقّف: يظهر بذوبان، وعند نهايته يذوب عائداً إلى لقطة الوقوف
+// لا تعلق الرحلة أبداً: إن لم يُحمَّل المقطع أو لم يُطلق ended تُكمَل بعد مدته (+ هامش)، وإن فشل التشغيل يُتخطّى
 async function react(v){
-  v.currentTime = 0; const ended = new Promise(r => { v.onended = r; });
-  await v.play().catch(() => {});
+  try { v.currentTime = 0; } catch(e){}
+  const ended = new Promise(r => { v.onended = v.onerror = r; setTimeout(r, ((v.duration || 6) + 2) * 1000); });
+  const ok = await v.play().then(() => true, () => false);
+  if (!ok){ await W(800); return; }
   await v.animate([{opacity: 0}, {opacity: 1}], {duration: FADE, fill: 'forwards'}).finished;
   await ended;
   await v.animate([{opacity: 1}, {opacity: 0}], {duration: FADE, fill: 'forwards'}).finished;
+  v.pause();
 }
 
 async function ask(s, q, last){
@@ -246,8 +261,13 @@ async function run(){
   film.playbackRate = SPEED;
   if (FROM) film.currentTime = FROM;
   for (const [k, s] of STOPS.entries()){
+    prep(s);   // مقطعا الحزن والفرح لهذه الوقفة يُحمَّلان أثناء الطريق
     await film.play().catch(() => {});
-    await new Promise(res => { const t = () => film.currentTime >= s.at ? res() : requestAnimationFrame(t); t(); });
+    // ينتظر الوصول إلى الوقفة؛ إن توقّف الفيلم من تلقاء نفسه (تقطّع في الشبكة/الذاكرة) يُعاد تشغيله، وإن انتهى أو فشل لا تعلق الرحلة
+    await new Promise(res => { const t = () => {
+      if (film.currentTime >= s.at || film.ended || film.error) return res();
+      if (film.paused && !film.seeking) film.play().catch(() => {});
+      requestAnimationFrame(t); }; t(); });
     film.pause(); film.currentTime = s.at;
     for (const [j, q] of s.qs.entries()) await ask(s, q, j === s.qs.length - 1);
     await info(s);
@@ -259,7 +279,8 @@ async function run(){
     return endScreen('أكمل الجزء ' + (PART + 1) + ' ←', () => { const p = new URLSearchParams(location.search); p.set('ch', PART + 1); location.href = location.pathname + '?' + p; });
   }
   await film.play().catch(() => {});
-  await new Promise(r => { if (film.ended) r(); else film.onended = r; });
+  await new Promise(r => { if (film.ended) return r(); film.onended = film.onerror = r;
+    setTimeout(r, (((film.duration || 0) - film.currentTime) / SPEED + 3) * 1000); });
   if (EMBED) return done();
   // إن كان للرحلة رحلة تالية (next في ملف الحرف) نكمل إليها؛ الفيلم التالي يبدأ من آخر لقطة هنا
   if (J.next && !PART){

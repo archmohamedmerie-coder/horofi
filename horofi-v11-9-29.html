@@ -5552,6 +5552,7 @@ function playJourney(part){
     ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:#15130c';
     const fr = document.createElement('iframe');
     fr.allow = 'autoplay; fullscreen';
+    fr.setAttribute('scrolling', 'no');
     fr.style.cssText = 'border:0;width:100%;height:100%;display:block';
     fr.src = 'prototypes/forest-cine/journey.html?l=' + encodeURIComponent(CL.char) + '&ch=' + part
       + '&lv=' + encodeURIComponent(CURRENT_LEVEL || 'beginner') + '&embed=1';
@@ -5571,6 +5572,8 @@ function playJourney(part){
 
 /* ── NEXT ── */
 function nextRound(){
+  // ضغطة ثانية على «التالي» بعد أن فُتحت الرحلة لا تحرّك الدرس تحتها
+  if (document.getElementById('journeyOverlay')) return;
   RI++;
   // رحلة الحرف، الجزء الأول: بعد الجولة الخامسة
   if (RI === 5 && RI < ROUNDS.length && lives > 0 && journeyActive()){
@@ -6934,6 +6937,9 @@ const BACK_TARGETS = {
   done: 'letters', subscription: 'letters'
 };
 function handleHardwareBack(){
+  /* أثناء رحلة الحرف لا يفعل الرجوع شيئاً: كان يُخرج الدرس من تحت الرحلة وهي مستمرة، فتبني الرحلة
+     عند انتهائها جولة على شاشة أخرى (التجربة على الهاتف 08.11). للخروج زرّ ✕ في الرحلة نفسها. */
+  if (document.getElementById('journeyOverlay')) return;
   /* النوافذ فوق الشاشة تُغلَق أولاً: بدونها كان الرجوع يغادر شاشة اللعب وتبقى نافذة
      الشارة ظاهرة، ثم يُكمِل إغلاقها تدفّق اللعبة من شاشة أخرى */
   const pg = document.getElementById('pgOverlay');

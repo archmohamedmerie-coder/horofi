@@ -1087,7 +1087,7 @@ test('31) رحلة الحرف: بلا مفتاح الدرس 15 جولة بلا �
     const src = await page.evaluate(() => document.querySelector('#journeyOverlay iframe').src);
     expect(decodeURIComponent(src)).toContain(`journey.html?l=ب&ch=${part}&lv=beginner&embed=1`);
     const fr = page.frames().find((f) => f.url().includes('journey.html'));
-    await fr.waitForFunction(() => !!document.querySelector('#start h1') && document.querySelectorAll('video').length === 5, null, { timeout: 15000 });
+    await fr.waitForFunction(() => !!document.querySelector('#start h1') && document.querySelectorAll('video').length === 3, null, { timeout: 15000 });
     expect(await fr.evaluate(() => document.querySelector('#start h1').textContent)).toContain(`الجزء ${part}`);
     const plan = await fr.evaluate(() => JSON.parse(localStorage.getItem('horofi_journey_plan_ب_beginner')));
     await fr.evaluate(() => parent.postMessage({ type: 'horofi-journey-done' }, '*'));
@@ -1095,6 +1095,10 @@ test('31) رحلة الحرف: بلا مفتاح الدرس 15 جولة بلا �
     return plan;
   };
   for (let i = 0; i < 5; i++) { await answerRound(page, true); await nextBtn(page); }
+  // أثناء الرحلة: زرّ الرجوع وضغطة ثانية على «التالي» لا يحرّكان الدرس تحتها (خطأ التجربة على الهاتف 08.11)
+  await page.waitForSelector('#journeyOverlay iframe');
+  await page.evaluate(() => { handleHardwareBack(); nextRound(); });
+  expect(await page.evaluate(() => [document.querySelector('.screen.active').id, RI, document.querySelectorAll('#journeyOverlay').length])).toEqual(['game', 5, 1]);
   const plan1 = await finishPart(1);
   // 12 كلمة مختلفة، ليس فيها أي كلمة من كلمات الدرس ولا المستبعدة
   const flat = plan1.flat();
