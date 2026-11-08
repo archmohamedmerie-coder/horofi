@@ -1,0 +1,25 @@
+{
+  "letter": "ح",
+  "title": "🕋 رحلة السعودية",
+  "film": "ح/film.mp4",
+  "stage": [
+    768,
+    1364
+  ],
+  "speed": 0.75,
+  "exclude": [
+    "قبح"
+  ],
+  "breaks": {
+    "1": "هنا في التطبيق: 5 جولات من الدرس",
+    "3": "هنا في التطبيق: الكتابة"
+  },
+  "stops": [
+    {"at": 10.03,"keys": ["start","start"],"name": "الدِّرْعِيَّة","place": "فِي السُّعُودِيَّة","sad": "ح/sad_1.mp4","happy": "ح/happy_1.mp4","voice": "/audio/landmarks/ح_1.mp3","pads": [[460,1000],[605,1120],[460,1240]]},
+    {"at": 20.15,"keys": ["mid_c","mid_c"],"name": "قَصْرُ الْفَرِيد","place": "فِي الْعُلَا","sad": "ح/sad_2.mp4","happy": "ح/happy_2.mp4","voice": "/audio/landmarks/ح_2.mp3","pads": [[460,1000],[605,1120],[460,1240]]},
+    {"at": 30.28,"keys": ["end_c","end_c"],"name": "الْحِجْر","place": "فِي الْعُلَا","sad": "ح/sad_3.mp4","happy": "ح/happy_3.mp4","voice": "/audio/landmarks/ح_3.mp3","pads": [[460,1000],[605,1120],[460,1240]]},
+    {"at": 40.4,"keys": ["mid_n","end_n"],"name": "جُدَّةُ التَّارِيخِيَّة","place": "عَلَى الْبَحْرِ الْأَحْمَر","sad": "ح/sad_4.mp4","happy": "ح/happy_4.mp4","voice": "/audio/landmarks/ح_4.mp3","pads": [[460,1000],[605,1120],[460,1240]]},
+    {"at": 50.53,"keys": ["mid_n","start"],"name": "الْمَسْجِدُ النَّبَوِيّ","place": "فِي الْمَدِينَةِ الْمُنَوَّرَة","sad": "ح/sad_5.mp4","happy": "ح/happy_5.mp4","voice": "/audio/landmarks/ح_5.mp3","pads": [[460,1000],[605,1120],[460,1240]]},
+    {"at": 60.66,"keys": ["end_c","end_n"],"name": "الْكَعْبَةُ الْمُشَرَّفَة","place": "فِي مَكَّةَ الْمُكَرَّمَة","sad": "ح/sad_6.mp4","happy": "ح/happy_6.mp4","voice": "/audio/landmarks/ح_6.mp3","pads": [[460,1000],[605,1120],[460,1240]]}
+  ]
+}
