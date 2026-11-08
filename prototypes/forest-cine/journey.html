@@ -23,6 +23,7 @@ html,body{height:100%;overflow:hidden;background:#15130c;font-family:'Tajawal',s
 .pad.ok{filter:drop-shadow(0 0 18px rgba(255,236,140,.95)) brightness(1.15)}
 .pad.bad{filter:saturate(.25) brightness(.7);cursor:default}
 .pad.sink{opacity:0;transform:translate(-50%,-30%) scale(.7)}
+.pad.wide .l .tl{color:#2d8653;text-shadow:0 0 10px rgba(82,201,122,.6)}
 
 /* اللافتة مدمجة بين زرَّي الأعلى كي لا تغطّي قمة الهرم */
 #sign{position:fixed;top:max(6px,env(safe-area-inset-top));left:50%;transform:translate(-50%,-16px);opacity:0;z-index:4;
@@ -68,8 +69,9 @@ html,body{height:100%;overflow:hidden;background:#15130c;font-family:'Tajawal',s
 <div class="screen" id="start"><h1>🏺 رحلة التراث</h1><p>رحلة حرف الباء: ثلاثة أجزاء، في كل جزء معلمان، وفي كل معلم سؤالان.</p><button>ابدأ</button></div>
 
 <script type="module">
-import { ARFORMS, LETTER_BA, LETTER_TA, LETTER_THA } from '/prototypes/forest-env/data.js';
+import { ARFORMS, LETTER_BA, LETTER_TA, LETTER_THA, LETTER_ALIF } from '/prototypes/forest-env/data.js';
 import { WORD_SENTENCES } from '/prototypes/forest-env/sentences.js';
+import { specialPair } from '/prototypes/forest-env/special.js';
 
 /* محرّك «رحلة لكل حرف»: الصفحة واحدة، وكل ما يخصّ الحرف في /prototypes/assets/journeys/<الحرف>.json
    (الفيلم، أزمنة الوقفات، مقاطع الحزن والفرح، مواضع الخيارات، المعالم، استراحات الفصول). الاستعمال: journey.html?l=ب */
@@ -77,7 +79,10 @@ const QS = new URLSearchParams(location.search), CH = QS.get('l') || 'ب';
 const JD = '/prototypes/assets/journeys/';
 const J = await (await fetch(JD + encodeURIComponent(CH) + '.json')).json();
 // بيانات كلمات الحرف: في التجربة الباء وحدها مستخرجة من التطبيق؛ في التطبيق تأتي من بيانات الحرف مباشرة
-const LETTER = {'ب': LETTER_BA, 'ت': LETTER_TA, 'ث': LETTER_THA}[J.letter];
+const LETTER = {'ب': LETTER_BA, 'ت': LETTER_TA, 'ث': LETTER_THA, 'ا': LETTER_ALIF}[J.letter];
+/* الحروف الستة غير المتصلة (الألف أولاً، 08.11): سؤال واحد في كل وقفة بكلمتين كتمرين التمييز في التطبيق.
+   كلمات الرحلة أرقام ثابتة من idWords في ملف الحرف (keys)، والدرس في التطبيق يأخذ الباقي (SPECIAL_JOURNEY_IDX). */
+const SPECIAL = J.mode === 'special';
 
 function naturalForm(L, i){ const f = ARFORMS[L[i]], p = L[i-1], pc = p && ARFORMS[p] && ARFORMS[p].c, hn = L[i+1] !== undefined;
   return (pc && hn && f.med) ? 'med' : (pc && f.fin) ? 'fin' : (!pc && hn && f.ini) ? 'ini' : 'iso'; }
@@ -89,13 +94,13 @@ const SPEED = +QS.get('speed') || J.speed || .85;   // إبطاء الفيلم �
 const FADE = 220;                                    // ذوبان قصير يخفي الفرق الصغير بين لقطة الوقوف وطرفَي مقطع الحزن/الفرح
 document.getElementById('stage').style.cssText = `width:${IW}px;height:${IH}px`;
 document.querySelector('#start h1').textContent = J.title;
-document.querySelector('#start p').textContent = `رحلة حرف ${LETTER.name}: ثلاثة أجزاء، في كل جزء معلمان، وفي كل معلم سؤالان.`;
+document.querySelector('#start p').textContent = `رحلة حرف ${LETTER.name}: ثلاثة أجزاء، في كل جزء معلمان، وفي كل معلم ${SPECIAL ? 'سؤال' : 'سؤالان'}.`;
 
 /* الرحلة ثلاثة أجزاء (معلمان في كل جزء)، وفي التطبيق: 5 جولات ← الجزء 1 ← 5 جولات ← الجزء 2 ← الكتابة ← الجزء 3.
    في كل وقفة سؤالان عن الحرف بكلمتين مختلفتين، ثم الفرح، ثم معلومة المَعلم (اسمه بالذهبي) ثم يكمل الطريق.
    الكلمات: كل كلمات الموضع في المستويات الثلاثة، ما عدا كلمتَي الدرس في مستوى الطفل (lv) والمستبعدة وما سبق استعماله.
    للمبتدئ هذا يساوي «الثالثة من المبتدئ + المستويين الآخرين» — كما في docs/forest-plan.md */
-const LVS = LETTER.levels, LV = LVS[QS.get('lv')] ? QS.get('lv') : 'beginner';
+const LVS = LETTER.levels || {}, LV = LVS[QS.get('lv')] ? QS.get('lv') : 'beginner';
 // الأجزاء: ?ch=1|2|3 يشغّل جزءاً واحداً (من داخل الدرس)؛ بلا ch تُشغَّل الرحلة كاملة (التجربة المستقلة)
 const PART = Math.min(3, Math.max(0, +QS.get('ch') || 0)), EMBED = QS.has('embed');
 // نصوص المواضع كما في التطبيق حرفياً (buildRoundsForConnecting) لأن صوت السؤال يقولها، وملف الصوت كما في playQuestionAudio
@@ -118,12 +123,13 @@ function actualCat(L, i, listed){
   return (i === L.length - 1 ? 'end' : 'mid') + (prev && prev.c ? '_c' : '_n');
 }
 // كلمات لا تليق بمشهد جميل تُستبعد من الرحلة وحدها (تبقى في الدرس كما هي) — في ملف الحرف: exclude
-const lesson = new Set([...Object.keys(POS).flatMap(k => LVS[LV][k].slice(0, 2)), ...(J.exclude || [])]);
+const lesson = SPECIAL ? new Set() : new Set([...Object.keys(POS).flatMap(k => LVS[LV][k].slice(0, 2)), ...(J.exclude || [])]);
 const allOf = key => ['beginner', 'intermediate', 'advanced'].flatMap(lv => LVS[lv][key].map((w, i) => ({w, d: LVS[lv][key + 'D'][i]})));
 /* خطة الكلمات للرحلة كلها (6 وقفات × كلمتان) تُختار مرة واحدة في الجزء الأول وتُحفظ، فلا تتكرر كلمة بين الأجزاء
    ولو أُغلق التطبيق بينها. التجربة المستقلة (بلا ch) تختار من جديد في كل مرة. */
 const PLAN_KEY = `horofi_journey_plan_${J.letter}_${LV}`;
-function makePlan(){ const used = new Set();
+function makePlan(){ if (SPECIAL) return J.stops.map(s => s.keys.slice());
+  const used = new Set();
   return J.stops.map(s => s.keys.map(key => {
     const pool = allOf(key).filter(x => !lesson.has(x.w) && !used.has(x.w));
     const {w} = pool[Math.floor(Math.random() * pool.length)]; used.add(w); return w; })); }
@@ -132,6 +138,9 @@ try { if (PART > 1) plan = JSON.parse(localStorage.getItem(PLAN_KEY) || 'null');
 if (!Array.isArray(plan) || plan.length !== J.stops.length) plan = makePlan();
 try { if (PART) localStorage.setItem(PLAN_KEY, JSON.stringify(plan)); } catch(e){}
 function question(w, key){
+  if (SPECIAL){ const iw = LETTER.idWords[w], word = iw.letters.join('');
+    return {special: true, ...specialPair(iw), pos: 'اِقْرَأْ وَاخْتَرِ الْكَلِمَةَ الصَّحِيحَة', audio: `/audio/questions/${J.letter}_special.mp3`,
+      wordAudio: `/audio/words/${word}.mp3`, sentence: WORD_SENTENCES[word], sentenceAudio: `/audio/sentences/${word}.mp3`}; }
   const {d} = allOf(key).find(x => x.w === w) || {};
   const L = Array.from(w), ti = targetIndexFor(L, key), cat = actualCat(L, ti, key);
   return {g: glyphs(L, d), ti, correct: naturalForm(L, ti), pos: POS[cat][1], audio: `/audio/questions/${J.letter}_${POS[cat][0]}.mp3`, wordAudio: `/audio/words/${w}.mp3`,
@@ -147,6 +156,8 @@ const BREAKS = (PART || EMBED) ? {} : (J.breaks || {});
 
 const PAD_SVG = `<svg viewBox="-100 -100 200 200"><path d="M0 -94 L92 0 L0 94 L-92 0 Z" fill="#e8c98a" stroke="#fff6dc" stroke-width="5"/>
   <path d="M0 -76 L74 0 L0 76 L-74 0 Z" fill="none" stroke="#a9772f" stroke-width="3"/></svg>`;
+const WIDE_SVG = `<svg viewBox="0 0 360 160" preserveAspectRatio="none"><rect x="4" y="4" width="352" height="152" rx="40" fill="#e8c98a" stroke="#fff6dc" stroke-width="6"/>
+  <rect x="18" y="18" width="324" height="124" rx="30" fill="none" stroke="#a9772f" stroke-width="3"/></svg>`;
 
 const stage = document.getElementById('stage'), sign = document.getElementById('sign');
 function fit(){ const S = Math.max(innerWidth/IW, innerHeight/IH);
@@ -235,6 +246,48 @@ async function ask(s, q, last){
   return finished;
 }
 
+/* سؤال الحرف غير المتصل: لوحتان عريضتان، على كل منهما كلمة كاملة (الصحيحة والخاطئة)، كتمرين التمييز في التطبيق.
+   الصحيح: الحرف يتلوّن أخضر في الكلمة ثم كما في ask؛ الخطأ: اللوحة تبهت والحزن، ثم تعود اللوحتان */
+async function askSpecial(s, q, last){
+  sign.querySelector('i').textContent = q.pos; sign.querySelector('.w').innerHTML = '';
+  let locked = true, done;
+  const finished = new Promise(r => done = r);
+  const nodes = [{html: q.correct, ok: true}, {html: q.wrong, ok: false}].sort(() => Math.random() - .5).map((o, k) => {
+    const p = s.pads[k], e = document.createElement('div'); e.className = 'pad wide';
+    e.style.cssText = `left:${p.x}px;top:${p.y}px;width:${p.r*3.6}px;height:${p.r*1.6}px`;
+    e.innerHTML = WIDE_SVG + `<span class="l" style="font-size:${p.r*.72}px">${o.html}</span>`;
+    stage.appendChild(e);
+    e.onclick = async () => {
+      if (locked || e.classList.contains('bad')) return;
+      locked = true;
+      if (o.ok){
+        sfx('correct'); e.classList.add('ok'); e.querySelector('.l').innerHTML = q.highlighted;
+        nodes.filter(m => m !== e).forEach(m => m.classList.add('sink'));
+        await Promise.all([say(q.wordAudio), W(900).then(() => { e.classList.add('sink'); })]);
+        await say(`/audio/praise/praise_m_${1 + Math.floor(Math.random() * 5)}_full.mp3`);
+        sign.classList.remove('show');
+        if (last) await react(s.happyV);
+        await example(q);
+        if (!last) await W(300);
+        nodes.forEach(m => m.remove()); done();
+      } else {
+        e.classList.add('bad');
+        nodes.forEach(m => m.classList.remove('show'));
+        await Promise.all([react(s.sadV), W(1000).then(() => say('/audio/wrong/wrong_m_1_full.mp3'))]);
+        nodes.forEach(m => m.classList.add('show'));
+        locked = false;
+      }
+    };
+    return e;
+  });
+  document.getElementById('replay').onclick = () => say(q.audio);
+  sign.classList.add('show');
+  nodes.forEach((e, i) => setTimeout(() => e.classList.add('show'), 500 + i*400));
+  await Promise.race([say(q.audio), W(6000)]); await W(300);
+  locked = false;
+  await finished;
+}
+
 // جملة المثال: تظهر في أسفل الصفحة وتُقرأ بصوتها، ثم تختفي
 async function example(q){
   if (!q.sentence) return;
@@ -273,7 +326,7 @@ async function run(){
       if (film.paused && !film.seeking) film.play().catch(() => {});
       requestAnimationFrame(t); }; t(); });
     film.pause(); film.currentTime = s.at;
-    for (const [j, q] of s.qs.entries()) await ask(s, q, j === s.qs.length - 1);
+    for (const [j, q] of s.qs.entries()) await (q.special ? askSpecial : ask)(s, q, j === s.qs.length - 1);
     await info(s);
     if (BREAKS[k]) await pauseFor(BREAKS[k]);
   }

@@ -4304,7 +4304,9 @@ function buildRoundsForNonConnecting(L){
 
 /* Separate 4-option exercise for special letters, used only via their entry in the connecting-letters grid */
 function buildRoundsForSpecialIdentify(L){
-  const rounds = L.idWords.map(w => ({
+  // بمفتاح الرحلات وللحرف رحلة: كلمات الرحلة تخرج من الدرس فيصير 10 جولات (journeyActive يشترطها)
+  const skip = (journeyOn() && JOURNEY_LETTERS.includes(L.char) && SPECIAL_JOURNEY_IDX[L.char]) || [];
+  const rounds = L.idWords.filter((w, i) => !skip.includes(i)).map(w => ({
     kind:'specialIdentify', pos:'الشكل الصحيح',
     tip:`${L.name} حَرْفٌ خَاصّ — لَا تَتَّصِلُ أَبَداً بِالْحَرْفِ الَّذِي يَأْتِي بَعْدَهَا`,
     letters: w.letters, targetIdx: w.idx, diac: w.diac,
@@ -5530,7 +5532,10 @@ function renderTwoOptionGrid(correctWord, wrongWord, tip, body, hlLetters, hlTar
    الدرس يصير 10 جولات (كلمتان لكل موضع) والكلمة الثالثة تنتقل إلى الرحلة. الصفحة والوسائط في prototypes/
    (المحرّك: prototypes/forest-cine/journey.html، وملف كل حرف: prototypes/assets/journeys/<الحرف>.json).
    التفعيل: ?journeys=1 مرة واحدة (يُحفظ)، والإيقاف: ?journeys=0 — راجع docs/letter-journeys-plan.md */
-const JOURNEY_LETTERS = ['ب','ت','ث'];
+const JOURNEY_LETTERS = ['ا','ب','ت','ث'];
+/* الحروف غير المتصلة (الألف أولاً، 08.11): كلماتها 15 فقط، فكلمات الرحلة أرقام ثابتة من idWords تُستبعد من الدرس
+   (يبقى 10 جولات)، والرحلة تأخذها ومعها كلمة واحدة من الدرس — المطابق في prototypes/assets/journeys/ا.json (keys) */
+const SPECIAL_JOURNEY_IDX = {'ا': [3, 4, 8, 9, 14]};
 function journeyOn(){
   try {
     const q = new URLSearchParams(location.search).get('journeys');
@@ -5541,8 +5546,9 @@ function journeyOn(){
 }
 /* الدرس الحالي درس رحلة: حرف متصل له رحلة، بُنيت جولاته بعشر جولات (دروس الحفظ القديمة بـ15 تبقى كما هي) */
 function journeyActive(){
-  return journeyOn() && !!CL && CL.kind === 'connecting' && !WRITING_ONLY && !specialIdentifyMode
-    && JOURNEY_LETTERS.includes(CL.char) && Array.isArray(ROUNDS) && ROUNDS.length === 10;
+  if (!journeyOn() || !CL || WRITING_ONLY || !JOURNEY_LETTERS.includes(CL.char) || !Array.isArray(ROUNDS) || ROUNDS.length !== 10) return false;
+  // الحرف غير المتصل: درس التمييز من الحروف الرئيسية فقط (القسم الخاص بلا رحلة)
+  return specialIdentifyMode ? CL.kind === 'nonconnecting' : CL.kind === 'connecting';
 }
 function playJourney(part){
   return new Promise(resolve => {

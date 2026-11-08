@@ -1137,3 +1137,42 @@ test('31) رحلة الحرف: بلا مفتاح الدرس 15 جولة بلا �
   await page.waitForFunction(() => !document.getElementById('journeyOverlay'));
   expect(await page.evaluate(() => document.querySelector('.screen.active').id)).toBe('done');
 });
+
+test('32) رحلة الألف (غير متصل): بلا مفتاح 15 جولة؛ بالمفتاح 10 جولات بلا كلمات الرحلة، والرحلة بعد 5 وبعد 10 بسؤال الكلمتين، والقسم الخاص بلا رحلة', async ({ page }) => {
+  await openWithChild(page);
+  const openAlif = (fresh) => page.evaluate((fr) => startSpecialIdentifyLetter(NONCONNECTING_LETTERS.find((l) => l.char === 'ا'), fr), !!fresh);
+  await openAlif();
+  expect((await gameState(page)).words.length).toBe(15);
+  await back(page);
+
+  await page.evaluate(() => localStorage.setItem('horofi_journeys', '1'));
+  await openAlif(true);
+  const s0 = await gameState(page);
+  expect(s0.words.length).toBe(10);
+  // كلمات الرحلة (idWords 3، 4، 8، 9، 14) ليست في الدرس، و«هنا» (13) فيه — الكلمة الوحيدة المكرّرة
+  expect(s0.words.filter((w) => ['أنف', 'إوزة', 'دواء', 'نجاح', 'صحا'].includes(w))).toEqual([]);
+  expect(s0.words).toContain('هنا');
+  for (let i = 0; i < 5; i++) { await answerRound(page, true); await nextBtn(page); }
+  await page.waitForSelector('#journeyOverlay iframe');
+  expect(decodeURIComponent(await page.evaluate(() => document.querySelector('#journeyOverlay iframe').src))).toContain('journey.html?l=ا&ch=1');
+  const fr = page.frames().find((f) => f.url().includes('journey.html'));
+  await fr.waitForFunction(() => !!document.querySelector('#start button') && document.querySelectorAll('video').length === 3, null, { timeout: 15000 });
+  expect(await fr.evaluate(() => document.querySelector('#start h1').textContent)).toContain('الجزء 1');
+  // الجزء الأول: محطتان، في كل منهما سؤال واحد بلوحتين عليهما كلمتان مختلفتان
+  await fr.evaluate(() => document.querySelector('#start button').click());
+  await fr.waitForFunction(() => document.querySelectorAll('.pad.wide').length === 2, null, { timeout: 30000 });
+  const pads = await fr.evaluate(() => [...document.querySelectorAll('.pad.wide .l')].map((e) => e.textContent));
+  expect(pads.length).toBe(2);
+  expect(pads[0]).not.toBe(pads[1]);
+  await fr.evaluate(() => parent.postMessage({ type: 'horofi-journey-done' }, '*'));
+  await page.waitForFunction(() => !document.getElementById('journeyOverlay'));
+  expect((await gameState(page)).RI).toBe(5);
+  for (let i = 0; i < 5; i++) { await answerRound(page, true); await nextBtn(page); }
+  await page.waitForSelector('#journeyOverlay iframe');
+  expect(decodeURIComponent(await page.evaluate(() => document.querySelector('#journeyOverlay iframe').src))).toContain('l=ا&ch=2');
+  await page.evaluate(() => document.getElementById('journeyOverlay').remove());
+
+  // القسم الخاص (متصل أم منفصل) يبقى بلا رحلة ولا تغيير
+  await page.evaluate(() => startNonConnectingLetter(NONCONNECTING_LETTERS.find((l) => l.char === 'ا'), true));
+  expect(await page.evaluate(() => journeyActive())).toBe(false);
+});

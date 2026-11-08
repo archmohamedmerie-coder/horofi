@@ -1,0 +1,18 @@
+{
+  "letter": "ا",
+  "title": "🌿 رحلة الطبيعة",
+  "mode": "special",
+  "film": "ا/film.mp4",
+  "stage": [768,1364],
+  "speed": 0.75,
+  "next": "ب",
+  "breaks": {"1":"هنا في التطبيق: 5 جولات من الدرس","3":"هنا في التطبيق: الكتابة"},
+  "stops": [
+    {"at":10.03,"keys":[3],"name":"بِرْكَةُ الْحِجَارَة","place":"فِي الْحَدِيقَة","sad":"ا/sad_1.mp4","happy":"ا/happy_1.mp4","voice":"/audio/landmarks/ا_1.mp3","pads":[[384,430],[384,600]]},
+    {"at":20.15,"keys":[4],"name":"مَرْجُ الشَّلَّال","place":"فِي الْغَابَة","sad":"ا/sad_2.mp4","happy":"ا/happy_2.mp4","voice":"/audio/landmarks/ا_2.mp3","pads":[[384,430],[384,600]]},
+    {"at":30.28,"keys":[8],"name":"الْغَابَةُ الْمَطِيرَة","place":"حَيْثُ الْمَطَرُ كَثِير","sad":"ا/sad_3.mp4","happy":"ا/happy_3.mp4","voice":"/audio/landmarks/ا_3.mp3","pads":[[384,430],[384,600]]},
+    {"at":40.4,"keys":[9],"name":"السَّافَانَا","place":"فِي إِفْرِيقْيَا","sad":"ا/sad_4.mp4","happy":"ا/happy_4.mp4","voice":"/audio/landmarks/ا_4.mp3","pads":[[384,430],[384,600]]},
+    {"at":50.53,"keys":[13],"name":"شَاطِئُ الْبَحْر","place":"عَلَى الرِّمَال","sad":"ا/sad_5.mp4","happy":"ا/happy_5.mp4","voice":"/audio/landmarks/ا_5.mp3","pads":[[384,430],[384,600]]},
+    {"at":60.66,"keys":[14],"name":"الْوَاحَة","place":"فِي الصَّحْرَاء","sad":"ا/sad_6.mp4","happy":"ا/happy_6.mp4","voice":"/audio/landmarks/ا_6.mp3","pads":[[384,430],[384,600]]}
+  ]
+}
