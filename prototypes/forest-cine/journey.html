@@ -68,7 +68,7 @@ html,body{height:100%;overflow:hidden;background:#15130c;font-family:'Tajawal',s
 <div class="screen" id="start"><h1>🏺 رحلة التراث</h1><p>رحلة حرف الباء: ثلاثة أجزاء، في كل جزء معلمان، وفي كل معلم سؤالان.</p><button>ابدأ</button></div>
 
 <script type="module">
-import { ARFORMS, LETTER_BA, LETTER_TA, LETTER_THA, LETTER_ALIF, LETTER_HAA } from '/prototypes/forest-env/data.js';
+import { ARFORMS, LETTER_BA, LETTER_TA, LETTER_THA, LETTER_ALIF, LETTER_HAA, LETTER_JEEM } from '/prototypes/forest-env/data.js';
 import { WORD_SENTENCES } from '/prototypes/forest-env/sentences.js';
 import { specialPair } from '/prototypes/forest-env/special.js';
 
@@ -78,7 +78,7 @@ const QS = new URLSearchParams(location.search), CH = QS.get('l') || 'ب';
 const JD = '/prototypes/assets/journeys/';
 const J = await (await fetch(JD + encodeURIComponent(CH) + '.json')).json();
 // بيانات كلمات الحرف: في التجربة الباء وحدها مستخرجة من التطبيق؛ في التطبيق تأتي من بيانات الحرف مباشرة
-const LETTER = {'ب': LETTER_BA, 'ت': LETTER_TA, 'ث': LETTER_THA, 'ح': LETTER_HAA, 'ا': LETTER_ALIF}[J.letter];
+const LETTER = {'ب': LETTER_BA, 'ت': LETTER_TA, 'ث': LETTER_THA, 'ج': LETTER_JEEM, 'ح': LETTER_HAA, 'ا': LETTER_ALIF}[J.letter];
 /* الحروف الستة غير المتصلة (الألف أولاً، 08.11): سؤال واحد في كل وقفة بكلمتين كتمرين التمييز في التطبيق.
    كلمات الرحلة أرقام ثابتة من idWords في ملف الحرف (keys)، والدرس في التطبيق يأخذ الباقي (SPECIAL_JOURNEY_IDX). */
 const SPECIAL = J.mode === 'special';
