@@ -79,3 +79,6 @@ img/* - Kopie.png
 # Playwright
 test-results/
 playwright-report/
+
+# مقاطع الرحلات للنشر (تُبنى بـ scripts/build-journey-hosting.cjs)
+hosting/journeys/

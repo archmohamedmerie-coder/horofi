@@ -56,6 +56,7 @@ html,body{height:100%;overflow:hidden;background:#15130c;font-family:'Tajawal',s
 #replay{position:fixed;top:max(10px,env(safe-area-inset-top));right:8px;z-index:5;background:#0009;color:#fff;border:0;border-radius:999px;padding:6px 10px;font:800 .85rem Tajawal;cursor:pointer}
 .screen{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(10,8,3,.72);color:#fff;text-align:center;padding:24px}
 .screen h1{font:800 2rem Tajawal} .screen p{font:500 1.05rem Tajawal;opacity:.9}
+.screen .dl{font:700 1.1rem Tajawal;color:#ffd93d} .dlbtns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
 .screen button{border:0;border-radius:999px;padding:14px 38px;font:800 1.2rem Tajawal;background:#ffb648;color:#3b2408;box-shadow:0 4px 0 #c27d1c;cursor:pointer}
 </style>
 </head>
@@ -71,11 +72,11 @@ html,body{height:100%;overflow:hidden;background:#15130c;font-family:'Tajawal',s
 import { ARFORMS, LETTER_BA, LETTER_TA, LETTER_THA, LETTER_ALIF, LETTER_HAA, LETTER_JEEM } from '/prototypes/forest-env/data.js';
 import { WORD_SENTENCES } from '/prototypes/forest-env/sentences.js';
 import { specialPair } from '/prototypes/forest-env/special.js';
+import { JD, ensure } from '/prototypes/forest-cine/journey-cache.js';
 
 /* محرّك «رحلة لكل حرف»: الصفحة واحدة، وكل ما يخصّ الحرف في /prototypes/assets/journeys/<الحرف>.json
    (الفيلم، أزمنة الوقفات، مقاطع الحزن والفرح، مواضع الخيارات، المعالم، استراحات الفصول). الاستعمال: journey.html?l=ب */
 const QS = new URLSearchParams(location.search), CH = QS.get('l') || 'ب';
-const JD = '/prototypes/assets/journeys/';
 const J = await (await fetch(JD + encodeURIComponent(CH) + '.json')).json();
 // بيانات كلمات الحرف: في التجربة الباء وحدها مستخرجة من التطبيق؛ في التطبيق تأتي من بيانات الحرف مباشرة
 const LETTER = {'ب': LETTER_BA, 'ت': LETTER_TA, 'ث': LETTER_THA, 'ج': LETTER_JEEM, 'ح': LETTER_HAA, 'ا': LETTER_ALIF}[J.letter];
@@ -166,11 +167,36 @@ addEventListener('resize', fit); fit();
    مقطعا الوقفة يُحمَّلان حين ينطلق الفيلم نحوها (الطريق 5–10 ث يكفي لتحميلهما من الجهاز).
    poster شفاف يخفي أيقونة التشغيل الرمادية التي يرسمها WebView قبل أول إطار. */
 const BLANK = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
+/* المقاطع تُنزَّل مرة واحدة من الخادم وتُحفظ في الجهاز (journey-cache.js). أثناء التنزيل تعرض شاشة البداية
+   النسبة ويختفي الزر؛ إن لم يتوفّر إنترنت في أول مرة: «أعد المحاولة»، وداخل الدرس أيضاً «تابع الدرس» */
+const stEl = document.getElementById('start'), stBtn = stEl.querySelector('button');
+const dl = document.createElement('p'); dl.className = 'dl';
+let MEDIA;
+for (;;){
+  try {
+    stBtn.style.visibility = 'hidden';
+    MEDIA = await ensure(J, f => { if (f >= 1) return; dl.textContent = `نجهّز الرحلة… ${Math.round(f * 100)}%`; if (!dl.isConnected) stEl.insertBefore(dl, stBtn); });
+    dl.remove(); stBtn.style.visibility = ''; break;
+  } catch (e){
+    if (!dl.isConnected) stEl.insertBefore(dl, stBtn);
+    dl.textContent = 'الرحلة تحتاج الإنترنت في أول مرة فقط';
+    await new Promise(res => {
+      const box = document.createElement('div'); box.className = 'dlbtns';
+      const again = document.createElement('button'); again.textContent = 'أعد المحاولة';
+      again.onclick = () => { box.remove(); res(); }; box.appendChild(again);
+      if (QS.has('embed')){ const skip = document.createElement('button'); skip.textContent = 'تابع الدرس';
+        skip.onclick = () => { try { parent.postMessage({type: 'horofi-journey-done', letter: J.letter, part: +QS.get('ch') || 0}, '*'); } catch (e){} };
+        box.appendChild(skip); }
+      stEl.appendChild(box);
+    });
+  }
+}
 const mk = src => { const v = document.createElement('video'); Object.assign(v, {muted: true, playsInline: true, preload: 'auto', poster: BLANK});
-  if (src){ v.src = JD + src; v.load(); } stage.appendChild(v); return v; };
+  if (src){ v.src = MEDIA(src); v.load(); } stage.appendChild(v); return v; };
 const film = mk(J.film); film.classList.add('on');
 const sadV = mk(), happyV = mk();
-function prep(s){ for (const [v, f] of [[sadV, s.sad], [happyV, s.happy]]) if (v.dataset.f !== f){ v.dataset.f = f; v.src = JD + f; v.load(); } }
+function prep(s){ for (const [v, f] of [[sadV, s.sad], [happyV, s.happy]]) if (v.dataset.f !== f){ v.dataset.f = f; v.src = MEDIA(f); v.load(); } }
 STOPS.forEach(s => { s.sadV = sadV; s.happyV = happyV; });
 
 const W = ms => new Promise(r => setTimeout(r, ms));

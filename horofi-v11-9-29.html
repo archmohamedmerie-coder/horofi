@@ -5318,6 +5318,7 @@ function recordStat(correct, letterChar, wordText){
 /* ── BUILD ROUND ── */
 function buildRound(){
   answered=false;
+  if (RI === 0 && journeyActive()) prefetchJourney(CL.char);
   _updateRestartLink();
   _syncPointsBar();
   const R=ROUNDS[RI], T=ROUNDS.length;
@@ -5549,6 +5550,13 @@ function journeyActive(){
   if (!journeyOn() || !CL || WRITING_ONLY || !JOURNEY_LETTERS.includes(CL.char) || !Array.isArray(ROUNDS) || ROUNDS.length !== 10) return false;
   // الحرف غير المتصل: درس التمييز من الحروف الرئيسية فقط (القسم الخاص بلا رحلة)
   return specialIdentifyMode ? CL.kind === 'nonconnecting' : CL.kind === 'connecting';
+}
+/* مقاطع الرحلات ليست داخل التطبيق (09.11): تُنزَّل مرة واحدة من الخادم وتُحفظ في الجهاز. نبدأ التنزيل بصمت مع
+   أول جولة من الدرس فتكون جاهزة عند الجولة الخامسة؛ إن تأخّر، تعرض الرحلة نفسها نسبة التنزيل */
+const _journeyPrefetched = new Set();
+function prefetchJourney(ch){
+  if (_journeyPrefetched.has(ch)) return; _journeyPrefetched.add(ch);
+  try { import('./prototypes/forest-cine/journey-cache.js').then(m => m.prefetch(ch)).catch(() => {}); } catch(e){}
 }
 function playJourney(part){
   return new Promise(resolve => {
