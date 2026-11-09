@@ -1,0 +1,24 @@
+{
+  "letter": "ض",
+  "title": "🇪🇬 رحلة مصر",
+  "film": "ض/film.mp4",
+  "stage": [
+    768,
+    1364
+  ],
+  "speed": 0.75,
+  "exclude": ["تضليل", "وضاعة"],
+  "breaks": {
+    "1": "هنا في التطبيق: 5 جولات من الدرس",
+    "3": "هنا في التطبيق: الكتابة"
+  },
+  "stops": [
+    {"at": 10.03,"keys": ["start","start"],"name": "قَلْعَةُ قَايِتْبَاي","place": "فِي الْإِسْكَنْدَرِيَّة","sad": "ض/sad_1.mp4","happy": "ض/happy_1.mp4","voice": "/audio/landmarks/ض_1.mp3","pads": [[460,1000],[605,1120],[460,1240]]},
+    {"at": 20.15,"keys": ["mid_c","mid_c"],"name": "الْأَهْرَامَات","place": "فِي الْجِيزَة","sad": "ض/sad_2.mp4","happy": "ض/happy_2.mp4","voice": "/audio/landmarks/ض_2.mp3","pads": [[460,1000],[605,1120],[460,1240]]},
+    {"at": 30.28,"keys": ["end_c","end_c"],"name": "قَلْعَةُ صَلَاحِ الدِّين","place": "فِي الْقَاهِرَة","sad": "ض/sad_3.mp4","happy": "ض/happy_3.mp4","voice": "/audio/landmarks/ض_3.mp3","pads": [[460,1000],[605,1120],[460,1240]]},
+    {"at": 40.4,"keys": ["mid_n","end_n"],"name": "الْجَامِعُ الْأَزْهَر","place": "فِي الْقَاهِرَة","sad": "ض/sad_4.mp4","happy": "ض/happy_4.mp4","voice": "/audio/landmarks/ض_4.mp3","pads": [[460,1000],[605,1120],[460,1240]]},
+    {"at": 50.53,"keys": ["mid_n","start"],"name": "مَعْبَدُ الْكَرْنَك","place": "فِي الْأُقْصُر","sad": "ض/sad_5.mp4","happy": "ض/happy_5.mp4","voice": "/audio/landmarks/ض_5.mp3","pads": [[460,1000],[605,1120],[460,1240]]},
+    {"at": 60.66,"keys": ["end_c","end_n"],"name": "مَعْبَدُ فِيلَة","place": "فِي أَسْوَان","sad": "ض/sad_6.mp4","happy": "ض/happy_6.mp4","voice": "/audio/landmarks/ض_6.mp3","pads": [[460,1000],[605,1120],[460,1240]]}
+  ],
+  "v": 1
+}
