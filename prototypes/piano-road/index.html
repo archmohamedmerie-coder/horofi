@@ -47,11 +47,12 @@ const MEL = [329.63, 392.00, 440.00, 392.00, 329.63, 293.66, 261.63, 293.66, 329
 const cv = document.getElementById('cv'), cx = cv.getContext('2d');
 let W, H, DPR, F, HZ;
 function resize(){ DPR = Math.min(2, devicePixelRatio || 1); W = innerWidth; H = innerHeight;
-  cv.width = W * DPR; cv.height = H * DPR; cx.setTransform(DPR, 0, 0, DPR, 0, 0); F = H * 0.62; HZ = H * 0.27; }
+  cv.width = W * DPR; cv.height = H * DPR; cx.setTransform(DPR, 0, 0, DPR, 0, 0); F = Math.min(H * 0.58, W * 1.35); HZ = H * 0.17; }
 addEventListener('resize', resize); resize();
-const CAMH = 3;                                        // ارتفاع الكاميرا: الصفوف تظهر فوق رأس الشخصية
-const P = (x, z) => [W / 2 + F * x / z, HZ + F * CAMH / z];
-const LANE = 1.75, TW = 1.6, TD = 1.5, STOP = 7.2, CHARZ = 3.1, ROADW = 2.9;
+const CAMH = 4.5;                                      // كاميرا أعلى قليلاً: البلاطات على الأرض مقروءة وصفّها أمام ليلى
+let camX = 0;                                         // الكاميرا تتبع ليلى يميناً ويساراً
+const P = (x, z) => [W / 2 + F * (x - camX) / z, HZ + F * CAMH / z];
+const LANE = 1.95, TW = 1.82, TD = 2.0, STOP = 7.3, CHARZ = 4.5, ROADW = 3.2, GS = 1.15;   // GS: حجم ليلى
 
 /* ── الصوت (WebAudio): بيانو مركّب، ونشاز ── */
 let AC;
@@ -67,6 +68,7 @@ const say = src => new Promise(r => { const a = new Audio(src); a.onended = a.on
 
 /* ── الحالة ── */
 let wi = 0, li = 0, noteI = 0, rows = [], scroll = 0, walking = false, shake = 0, celebrate = 0, busy = false;
+let gx = 0, gz = CHARZ, jump = null, adv = 0;   // موضع ليلى في العالم، والقفزة الجارية، والمسافة الباقية لتعود إلى مكانها
 const wordEl = document.getElementById('word'), ghostEl = wordEl.querySelector('.ghost'), builtEl = wordEl.querySelector('.built');
 function setWord(){ const w = WORDS[wi]; ghostEl.textContent = w; builtEl.textContent = ''; }
 function builtText(){ const w = WORDS[wi], s = w.slice(0, li); if (!li) return '';
@@ -80,7 +82,8 @@ function makeRow(z){ const w = WORDS[wi], ch = w[li], ok = formOf(w, li);
   return {z, tiles, done: false, li}; }
 
 /* ── الرسم ── */
-function quad(x, z, w, d){ return [P(x - w/2, z), P(x + w/2, z), P(x + w/2, z + d), P(x - w/2, z + d)]; }
+// الحافة القريبة لا تقترب من الكاميرا أكثر من 1.5 كي لا تتضخّم البلاطة المارّة تحتها
+function quad(x, z, w, d){ const z0 = Math.max(z, 2.4), z1 = Math.max(z + d, z0 + .01); return [P(x - w/2, z0), P(x + w/2, z0), P(x + w/2, z1), P(x - w/2, z1)]; }
 function poly(pts){ cx.beginPath(); pts.forEach(([a, b], i) => i ? cx.lineTo(a, b) : cx.moveTo(a, b)); cx.closePath(); }
 function drawSky(){ const g = cx.createLinearGradient(0, 0, 0, HZ + 40); g.addColorStop(0, '#2b2367'); g.addColorStop(.55, '#7b5bbf'); g.addColorStop(1, '#ffb27a');
   cx.fillStyle = g; cx.fillRect(0, 0, W, HZ + 2);
@@ -110,31 +113,33 @@ function drawSide(){ // أشجار ومصابيح كلوحات على الجان
       cx.fillStyle = '#ffffff22'; cx.beginPath(); cx.arc(sx - s * .18, sy - s * 1.6, s * .2, 0, 7); cx.fill(); }
     else { cx.fillStyle = '#c9c2ef'; cx.fillRect(sx - s * .04, sy - s * 1.9, s * .08, s * 1.9);
       cx.fillStyle = '#ffe58a'; cx.shadowColor = '#ffd25a'; cx.shadowBlur = 18; cx.beginPath(); cx.arc(sx, sy - s * 1.95, s * .17, 0, 7); cx.fill(); cx.shadowBlur = 0; } } }
-function drawRow(r){
+// بلاطة على الأرض والحرف مرسوم عليها كأنه مطبوع في البلاط (مضغوط عمودياً بنسبة منظور الأرض)
+function drawRow(r, now){
+  const waiting = !r.done && Math.abs(r.z - STOP) < .02 && !jump && !busy;
+  cx.globalAlpha = Math.max(0, Math.min(1, (r.z + TD - 2.6) / 1.3));   // تذوب بعد أن تمرّ تحت ليلى
+  if (cx.globalAlpha <= 0){ cx.globalAlpha = 1; return; }
   for (const t of r.tiles){ const q = quad(t.x, r.z, TW, TD); t.q = q;
-    const [, ty] = P(0, r.z + TD / 2), s = F / (r.z + TD / 2);
-    // جسم المفتاح (سماكة) ثم سطحه
-    poly([q[0], q[1], [q[1][0], q[1][1] + s * .18], [q[0][0], q[0][1] + s * .18]]); cx.fillStyle = t.st === 2 ? '#7a1f2f' : '#b9b2d9'; cx.fill();
+    const zc = r.z + TD / 2, s = F / zc, [mx, my] = P(t.x, zc);
+    // حافة البلاطة (سماكة)
+    poly([q[0], q[1], [q[1][0], q[1][1] + s * .14], [q[0][0], q[0][1] + s * .14]]); cx.fillStyle = t.st === 2 ? '#7a1f2f' : t.st === 1 ? '#c99a12' : '#9d93cf'; cx.fill();
     poly(q);
-    cx.fillStyle = t.st === 1 ? '#ffd93d' : t.st === 2 ? '#ff6b6b' : '#fbf8ff'; cx.fill();
-    if (t.st === 1){ cx.shadowColor = '#ffd93d'; cx.shadowBlur = 30; cx.fill(); cx.shadowBlur = 0; }
-    cx.strokeStyle = '#1b1540'; cx.lineWidth = 2; cx.stroke();
-    // لوحة قائمة فوق المفتاح عليها شكل الحرف (أوضح للطفل من حرف مسطّح على الأرض)
-    const [bx, by] = P(t.x, r.z + TD * .78), sb = F / (r.z + TD * .78);
-    const cw = TW * sb * .86, ch = sb * 1.05, jx = t.hit > 0 ? Math.sin(t.hit * 60) * 7 * t.hit : 0, X0 = bx - cw / 2 + jx, Y0 = by - ch;
-    t.card = [[X0, Y0], [X0 + cw, Y0], [X0 + cw, by], [X0, by]];
+    const g = cx.createLinearGradient(0, q[3][1], 0, q[0][1]);
+    g.addColorStop(0, t.st === 1 ? '#fff2a8' : t.st === 2 ? '#ff8f8f' : '#ffffff'); g.addColorStop(1, t.st === 1 ? '#ffd93d' : t.st === 2 ? '#ff5a5a' : '#e9e4ff');
+    cx.fillStyle = g; cx.fill();
+    if (t.st === 1){ cx.shadowColor = '#ffd93d'; cx.shadowBlur = 34; cx.fill(); cx.shadowBlur = 0; }
+    cx.lineWidth = waiting ? 3 + Math.sin(now * 5) * 1.2 : 2; cx.strokeStyle = waiting ? '#ffd93d' : '#1b1540'; cx.stroke();
     if (!(t.st === 1 && r.flown)){
-      cx.fillStyle = '#0005'; cx.beginPath(); cx.roundRect(X0 + 3, Y0 + 5, cw, ch, 14); cx.fill();
-      cx.fillStyle = t.st === 2 ? '#ff6b6b' : t.st === 1 ? '#ffd93d' : '#fffaf0'; cx.beginPath(); cx.roundRect(X0, Y0, cw, ch, 14); cx.fill();
-      cx.strokeStyle = t.st === 2 ? '#b8323f' : '#c9925a'; cx.lineWidth = 3; cx.stroke();
-      cx.font = `700 ${ch * .62}px Amiri, 'Noto Naskh Arabic', serif`; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.direction = 'rtl';
-      cx.fillStyle = t.st === 2 ? '#fff' : '#2f2a6b'; cx.fillText(t.t, X0 + cw / 2, Y0 + ch * .5); } } }
-let t0 = performance.now();
-function drawGirl(t){ const [sx, sy] = P(0, CHARZ), s = F / CHARZ;           // ليلى من الخلف
+      const jx = t.hit > 0 ? Math.sin(t.hit * 60) * 7 * t.hit : 0, k = Math.max(.55, Math.min(1, CAMH / zc));
+      cx.save(); cx.translate(mx + jx, my); cx.scale(1, k);
+      cx.font = `700 ${TW * s * .62}px Amiri, 'Noto Naskh Arabic', serif`; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.direction = 'rtl';
+      cx.fillStyle = t.st === 2 ? '#fff' : '#2f2a6b'; cx.fillText(t.t, 0, -TW * s * .04); cx.restore(); } }
+  cx.globalAlpha = 1; }
+function drawGirl(t){ const lift = jump ? Math.sin(Math.PI * Math.min(1, jump.p)) * 1.1 : 0;
+  const [sx, sy] = P(gx, gz), s = F / gz * GS;      // ليلى من الخلف
   const step = walking ? Math.sin(t * 9) : 0, bob = walking ? Math.abs(Math.sin(t * 9)) * s * .04 : 0;
-  const sh = shake > 0 ? Math.sin(shake * 50) * s * .05 * shake : 0, jump = celebrate > 0 ? Math.abs(Math.sin(celebrate * 7)) * s * .25 : 0;
-  const X = sx + sh, Y = sy - bob - jump;
-  cx.fillStyle = '#0006'; cx.beginPath(); cx.ellipse(sx, sy + 2, s * .32, s * .07, 0, 0, 7); cx.fill();
+  const sh = shake > 0 ? Math.sin(shake * 50) * s * .05 * shake : 0, hop = celebrate > 0 ? Math.abs(Math.sin(celebrate * 7)) * s * .25 : 0;
+  const X = sx + sh, Y = sy - bob - hop - lift * s;
+  cx.fillStyle = '#0006'; cx.beginPath(); cx.ellipse(sx, sy + 2, s * .32 * (1 - lift * .3), s * .07 * (1 - lift * .3), 0, 0, 7); cx.fill();
   // الساقان
   for (const k of [-1, 1]){ const lift = walking ? Math.max(0, k * step) * s * .1 : 0;
     cx.fillStyle = '#f1c7a3'; cx.fillRect(X + k * s * .09 - s * .045, Y - s * .5 - lift, s * .09, s * .42);
@@ -161,31 +166,38 @@ function drawGirl(t){ const [sx, sy] = P(0, CHARZ), s = F / CHARZ;           // 
 /* ── الحلقة ── */
 let last = performance.now();
 function frame(now){ const dt = Math.min(.05, (now - last) / 1000); last = now;
-  walking = false;
-  const front = rows.find(r => !r.done);
-  const v = 5.2;
-  if (front && front.z > STOP){ const step = Math.min(v * dt, front.z - STOP); rows.forEach(r => r.z -= step); scroll += step; walking = true; }
-  else if (!front && rows.length){ rows.forEach(r => r.z -= v * dt); scroll += v * dt; walking = true; }
-  rows.filter(r => r.done).forEach(r => { if (r.z <= STOP + .01){ r.z -= v * dt * 1.4; } });
-  rows = rows.filter(r => r.z > -2);
+  walking = false; camX += (gx * .8 - camX) * Math.min(1, dt * 6);
+  const v = 4.6, world = d => { rows.forEach(r => r.z -= d); gz -= d; scroll += d; };
+  // القفزة: ليلى تبقى بحجمها والعالم يتقدّم نحوها، فتنزل البلاطة تحت قدميها
+  if (jump){ jump.p += dt / jump.dur; const p = Math.min(1, jump.p), e = p < .5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2;
+    gx = jump.fx + (jump.tx - jump.fx) * e; const want = jump.dz * e; world(want - jump.moved); gz = CHARZ; jump.moved = want;
+    if (jump.p >= 1){ const j = jump; jump = null; j.then && j.then(); } }
+  else { const front = rows.find(r => !r.done);
+    if (front && front.z > STOP){ const d = Math.min(v * dt, front.z - STOP); rows.forEach(r => r.z -= d); scroll += d; walking = true; } }
+  rows = rows.filter(r => r.z + TD > .6);
   if (shake > 0) shake = Math.max(0, shake - dt * 1.5);
   if (celebrate > 0) celebrate = Math.max(0, celebrate - dt * .6);
   rows.forEach(r => r.tiles.forEach(t => { if (t.hit > 0) t.hit = Math.max(0, t.hit - dt * 2.2); }));
   cx.clearRect(0, 0, W, H); drawSky(); drawGround(); drawSide();
-  [...rows].sort((a, b) => b.z - a.z).filter(r => r.z > CHARZ).forEach(drawRow);
+  const sorted = [...rows].sort((a, b) => b.z - a.z);
+  sorted.forEach(r => drawRow(r, now / 1000));   // البلاطات كلها على الأرض، وليلى فوقها
   drawGirl(now / 1000);
-  [...rows].sort((a, b) => b.z - a.z).filter(r => r.z <= CHARZ).forEach(drawRow);
   requestAnimationFrame(frame); }
+function hopTo(tx, dz, dur, then){ jump = {fx: gx, tx, dz, moved: 0, p: 0, dur, then}; }
 
 /* ── التفاعل ── */
 function inside(q, x, y){ let c = false; for (let i = 0, j = q.length - 1; i < q.length; j = i++){
   const [xi, yi] = q[i], [xj, yj] = q[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; }
 cv.addEventListener('pointerdown', e => {
-  const r = rows.find(r => !r.done); if (!r || busy || r.z > STOP + .05) return;
-  // منطقة اللمس: المفتاح مع هامش للأعلى حيث يقف الحرف
-  const t = r.tiles.find(t => t.q && t.st !== 2 && (inside(t.q, e.clientX, e.clientY) || (t.card && inside(t.card, e.clientX, e.clientY))));
+  const r = rows.find(r => !r.done); if (!r || busy || jump || adv > 0 || r.z > STOP + .05) return;
+  const t = r.tiles.find(t => t.q && t.st !== 2 && inside(t.q, e.clientX, e.clientY));
   if (!t) return;
-  if (t.ok) good(r, t); else { t.st = 2; t.hit = 1; shake = 1; buzz(); navigator.vibrate && navigator.vibrate(60); }
+  busy = true; const fx = gx, dz = r.z + TD * .45 - CHARZ;
+  // ليلى تقفز إلى البلاطة؛ الصحيحة تضيء تحتها، والخاطئة تحمرّ فتقفز عائدة
+  hopTo(t.x, dz, .55, () => {
+    if (t.ok) good(r, t);
+    else { t.st = 2; t.hit = 1; shake = 1; buzz(); navigator.vibrate && navigator.vibrate(60);
+      setTimeout(() => hopTo(fx, -dz, .5, () => { busy = false; }), 380); } });
 });
 function good(r, t){ busy = true; t.st = 1; tone(MEL[noteI % MEL.length]); noteI++;
   const [mx] = P(t.x, r.z + TD / 2), [, my] = P(0, r.z + TD / 2);
@@ -197,8 +209,10 @@ function good(r, t){ busy = true; t.st = 1; tone(MEL[noteI % MEL.length]); noteI
   fl.animate([{left: mx + 'px', top: my + 'px', transform: 'translate(-50%,-50%) scale(1)'}, {left: tx + 'px', top: ty + 'px', transform: 'translate(-50%,-50%) scale(.8)', opacity: .2}],
     {duration: 650, easing: 'cubic-bezier(.3,.7,.3,1)'}).finished.then(() => {
     fl.remove(); li++; builtEl.textContent = builtText(); wordEl.classList.add('glow'); setTimeout(() => wordEl.classList.remove('glow'), 500);
-    r.done = true; busy = false;
-    if (li >= WORDS[wi].length) wordDone(); else rows.push(makeRow(Math.max(...rows.map(x => x.z)) + 9)); });
+    r.done = true;
+    // ليلى واقفة على البلاطة المضيئة، والصف التالي يقترب منها
+    busy = false;
+    if (li >= WORDS[wi].length) wordDone(); else rows.push(makeRow(r.z + 12)); });
 }
 function floatNote(x, y){ for (let i = 0; i < 3; i++){ const n = document.createElement('div'); n.className = 'note'; n.textContent = ['♪', '♫', '♩'][i];
   n.style.left = x + (i - 1) * 22 + 'px'; n.style.top = y + 'px'; document.body.appendChild(n);
