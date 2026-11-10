@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>طريق البيانو — نموذج</title>
+<link rel="stylesheet" href="/fonts/fonts.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#1d1640;font-family:'Tajawal',sans-serif;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+#banner{position:fixed;top:max(14px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);min-width:220px;padding:10px 26px 12px;border-radius:22px;
+  background:linear-gradient(#fffaf0,#ffe9c2);box-shadow:0 6px 0 #c9925a,0 10px 24px rgba(0,0,0,.35);text-align:center;transition:transform .3s}
+#banner .q{font:800 14px/1.2 Tajawal;color:#a0622a}
+#word{position:relative;display:inline-block;font:700 64px/1.35 'Amiri','Noto Naskh Arabic',serif;direction:rtl;white-space:nowrap}
+#word .ghost{color:#e2cfae}
+#word .built{position:absolute;top:0;right:0;color:#2f2a6b;text-shadow:0 0 0 transparent;transition:text-shadow .4s}
+#word.glow .built{text-shadow:0 0 18px #ffd93d,0 0 6px #ffb000}
+#banner.done{transform:translateX(-50%) scale(1.12)}
+.fly{position:fixed;z-index:20;font:700 52px/1 'Amiri',serif;color:#ffd93d;text-shadow:0 0 14px #ff9f00;pointer-events:none;transform:translate(-50%,-50%)}
+.note{position:fixed;z-index:19;font:700 28px/1 sans-serif;color:#fff;pointer-events:none;text-shadow:0 0 10px #8fd3ff}
+.screen{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:rgba(18,12,48,.78);color:#fff;text-align:center;padding:24px}
+.screen h1{font:900 2.1rem Tajawal} .screen p{font:500 1.05rem/1.6 Tajawal;opacity:.92;max-width:330px}
+.screen button{border:0;border-radius:999px;padding:14px 40px;font:800 1.25rem Tajawal;background:#ffd93d;color:#3b2408;box-shadow:0 5px 0 #c99a12;cursor:pointer}
+#hint{position:fixed;bottom:max(16px,env(safe-area-inset-bottom));left:0;right:0;text-align:center;font:700 15px Tajawal;color:#ffffffcc;pointer-events:none}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div id="banner"><div class="q">اِضْغَطْ عَلَى الشَّكْلِ الصَّحِيحِ وَاعْزِفِ الْكَلِمَة</div><div id="word"><span class="ghost"></span><span class="built"></span></div></div>
+<div id="hint"></div>
+<div class="screen" id="start"><h1>🎹 طريق البيانو</h1><p>تمشي ليلى على طريقٍ من مفاتيح البيانو. اضغط شكل الحرف الصحيح لتعزف الكلمة نغمةً نغمة!</p><button>ابدأ</button></div>
+<script>
+/* نموذج تجريبي (10.11): لعبة «طريق البيانو» — كلمة تُجمع بالضغط على شكل الحرف الصحيح (أول/وسط/آخر) من صفوف مفاتيح
+   تأتي على طريق ثلاثي الأبعاد مرسوم بالكود. لا ضغط وقت: الصف يقف أمام الشخصية حتى يختار الطفل.
+   كل حرف صحيح نغمة من لحن واحد يمتد عبر الكلمات، والخطأ نغمة ناشزة. */
+const WORDS = ['بيت', 'جمل', 'نجم'];
+const NC = new Set([...'اأإآدذرزوؤءة']);            // لا تتصل بما بعدها
+const K = 'ـ';
+function formOf(w, i){ const prev = w[i-1], next = w[i+1];
+  const pc = prev && !NC.has(prev), hn = next !== undefined, nc = NC.has(w[i]);
+  if (pc && hn) return nc ? 'fin' : 'med'; if (pc) return 'fin'; if (hn) return nc ? 'iso' : 'ini'; return 'iso'; }
+const show = (ch, f) => ({iso: ch, ini: ch + K, med: K + ch + K, fin: K + ch}[f]);
+// اللحن (أصلي، خماسي): نغمة لكل حرف عبر الكلمات الثلاث
+const MEL = [329.63, 392.00, 440.00, 392.00, 329.63, 293.66, 261.63, 293.66, 329.63];
+
+const cv = document.getElementById('cv'), cx = cv.getContext('2d');
+let W, H, DPR, F, HZ;
+function resize(){ DPR = Math.min(2, devicePixelRatio || 1); W = innerWidth; H = innerHeight;
+  cv.width = W * DPR; cv.height = H * DPR; cx.setTransform(DPR, 0, 0, DPR, 0, 0); F = H * 0.62; HZ = H * 0.27; }
+addEventListener('resize', resize); resize();
+const CAMH = 3;                                        // ارتفاع الكاميرا: الصفوف تظهر فوق رأس الشخصية
+const P = (x, z) => [W / 2 + F * x / z, HZ + F * CAMH / z];
+const LANE = 1.75, TW = 1.6, TD = 1.5, STOP = 7.2, CHARZ = 3.1, ROADW = 2.9;
+
+/* ── الصوت (WebAudio): بيانو مركّب، ونشاز ── */
+let AC;
+function tone(f, t0 = 0, dur = 1.1, vol = .32){ const t = AC.currentTime + t0;
+  for (const [m, g] of [[1, 1], [2, .35], [3, .12]]){ const o = AC.createOscillator(), a = AC.createGain();
+    o.type = m === 1 ? 'triangle' : 'sine'; o.frequency.value = f * m;
+    a.gain.setValueAtTime(0, t); a.gain.linearRampToValueAtTime(vol * g, t + .01); a.gain.exponentialRampToValueAtTime(.0008, t + dur);
+    o.connect(a).connect(AC.destination); o.start(t); o.stop(t + dur + .05); } }
+function buzz(){ const t = AC.currentTime; for (const f of [155, 164.8]){ const o = AC.createOscillator(), a = AC.createGain();
+  o.type = 'sawtooth'; o.frequency.value = f; a.gain.setValueAtTime(.12, t); a.gain.exponentialRampToValueAtTime(.001, t + .45);
+  o.connect(a).connect(AC.destination); o.start(t); o.stop(t + .5); } }
+const say = src => new Promise(r => { const a = new Audio(src); a.onended = a.onerror = r; a.play().catch(r); setTimeout(r, 4000); });
+
+/* ── الحالة ── */
+let wi = 0, li = 0, noteI = 0, rows = [], scroll = 0, walking = false, shake = 0, celebrate = 0, busy = false;
+const wordEl = document.getElementById('word'), ghostEl = wordEl.querySelector('.ghost'), builtEl = wordEl.querySelector('.built');
+function setWord(){ const w = WORDS[wi]; ghostEl.textContent = w; builtEl.textContent = ''; }
+function builtText(){ const w = WORDS[wi], s = w.slice(0, li); if (!li) return '';
+  return li < w.length && !NC.has(w[li-1]) ? s + K : s; }
+function makeRow(z){ const w = WORDS[wi], ch = w[li], ok = formOf(w, li);
+  const pool = (NC.has(ch) ? ['iso', 'fin'] : ['iso', 'ini', 'med', 'fin']).filter(f => f !== ok && show(ch, f) !== show(ch, ok));
+  const wrong = pool.sort(() => Math.random() - .5).slice(0, 2).map(f => ({t: show(ch, f), ok: false}));
+  while (wrong.length < 2) wrong.push({t: show('ت', 'med'), ok: false});
+  const tiles = [{t: show(ch, ok), ok: true}, ...wrong].sort(() => Math.random() - .5)
+    .map((t, i) => ({...t, x: (i - 1) * LANE, st: 0, hit: 0}));
+  return {z, tiles, done: false, li}; }
+
+/* ── الرسم ── */
+function quad(x, z, w, d){ return [P(x - w/2, z), P(x + w/2, z), P(x + w/2, z + d), P(x - w/2, z + d)]; }
+function poly(pts){ cx.beginPath(); pts.forEach(([a, b], i) => i ? cx.lineTo(a, b) : cx.moveTo(a, b)); cx.closePath(); }
+function drawSky(){ const g = cx.createLinearGradient(0, 0, 0, HZ + 40); g.addColorStop(0, '#2b2367'); g.addColorStop(.55, '#7b5bbf'); g.addColorStop(1, '#ffb27a');
+  cx.fillStyle = g; cx.fillRect(0, 0, W, HZ + 2);
+  cx.fillStyle = '#fff5'; for (let i = 0; i < 40; i++){ const sx = (i * 97.3) % W, sy = (i * 53.7) % (HZ * .7); cx.fillRect(sx, sy, 1.5, 1.5); }
+  cx.fillStyle = '#ffe2a8'; cx.beginPath(); cx.arc(W * .72, HZ - 8, 26, 0, 7); cx.fill();
+  // تلال بعيدة
+  for (const [c, a, o] of [['#5b3f9a', 22, .3], ['#43307a', 14, .7]]){ cx.fillStyle = c; cx.beginPath(); cx.moveTo(0, HZ);
+    for (let x = 0; x <= W; x += 8) cx.lineTo(x, HZ - a - a * Math.sin(x / 47 + o + scroll * .002) * .6); cx.lineTo(W, HZ); cx.fill(); } }
+function drawGround(){ const g = cx.createLinearGradient(0, HZ, 0, H); g.addColorStop(0, '#3b2f78'); g.addColorStop(1, '#16123a');
+  cx.fillStyle = g; cx.fillRect(0, HZ, W, H - HZ);
+  // الطريق: شريط بيانو — مفاتيح بيضاء وسوداء على الحافتين تتحرك نحونا
+  poly([P(-ROADW, 1), P(ROADW, 1), P(ROADW, 80), P(-ROADW, 80)]); cx.fillStyle = '#2a2160'; cx.fill();
+  const off = scroll % 2;
+  for (let z = 80 - off; z > 1; z -= 2){ for (const s of [-1, 1]){
+    poly(quad(s * (ROADW - .25), z, .5, 1)); cx.fillStyle = '#f7f2ff'; cx.fill();
+    poly(quad(s * (ROADW - .25), z + 1, .5, 1)); cx.fillStyle = '#120e2c'; cx.fill(); } }
+  // خطوط ضوئية خفيفة على الطريق
+  cx.strokeStyle = '#7f6be055'; cx.lineWidth = 1;
+  for (let z = 80 - (scroll % 4); z > 1; z -= 4){ const [a, b] = P(-ROADW + .5, z), [c] = P(ROADW - .5, z); cx.beginPath(); cx.moveTo(a, b); cx.lineTo(c, b); cx.stroke(); } }
+function drawSide(){ // أشجار ومصابيح كلوحات على الجانبين
+  const items = []; const base = scroll % 6;
+  for (let z = 60 - base; z > 2; z -= 6) items.push([-ROADW - 1.6, z, 0], [ROADW + 1.6, z + 3, 1]);
+  items.sort((a, b) => b[1] - a[1]);
+  for (const [x, z, k] of items){ const [sx, sy] = P(x, z), s = F / z;
+    if (k){ cx.fillStyle = '#3a2a1a'; cx.fillRect(sx - s * .08, sy - s * 1.2, s * .16, s * 1.2);
+      cx.fillStyle = '#2f9e6a'; cx.beginPath(); cx.arc(sx, sy - s * 1.45, s * .55, 0, 7); cx.fill();
+      cx.fillStyle = '#ffffff22'; cx.beginPath(); cx.arc(sx - s * .18, sy - s * 1.6, s * .2, 0, 7); cx.fill(); }
+    else { cx.fillStyle = '#c9c2ef'; cx.fillRect(sx - s * .04, sy - s * 1.9, s * .08, s * 1.9);
+      cx.fillStyle = '#ffe58a'; cx.shadowColor = '#ffd25a'; cx.shadowBlur = 18; cx.beginPath(); cx.arc(sx, sy - s * 1.95, s * .17, 0, 7); cx.fill(); cx.shadowBlur = 0; } } }
+function drawRow(r){
+  for (const t of r.tiles){ const q = quad(t.x, r.z, TW, TD); t.q = q;
+    const [, ty] = P(0, r.z + TD / 2), s = F / (r.z + TD / 2);
+    // جسم المفتاح (سماكة) ثم سطحه
+    poly([q[0], q[1], [q[1][0], q[1][1] + s * .18], [q[0][0], q[0][1] + s * .18]]); cx.fillStyle = t.st === 2 ? '#7a1f2f' : '#b9b2d9'; cx.fill();
+    poly(q);
+    cx.fillStyle = t.st === 1 ? '#ffd93d' : t.st === 2 ? '#ff6b6b' : '#fbf8ff'; cx.fill();
+    if (t.st === 1){ cx.shadowColor = '#ffd93d'; cx.shadowBlur = 30; cx.fill(); cx.shadowBlur = 0; }
+    cx.strokeStyle = '#1b1540'; cx.lineWidth = 2; cx.stroke();
+    // لوحة قائمة فوق المفتاح عليها شكل الحرف (أوضح للطفل من حرف مسطّح على الأرض)
+    const [bx, by] = P(t.x, r.z + TD * .78), sb = F / (r.z + TD * .78);
+    const cw = TW * sb * .86, ch = sb * 1.05, jx = t.hit > 0 ? Math.sin(t.hit * 60) * 7 * t.hit : 0, X0 = bx - cw / 2 + jx, Y0 = by - ch;
+    t.card = [[X0, Y0], [X0 + cw, Y0], [X0 + cw, by], [X0, by]];
+    if (!(t.st === 1 && r.flown)){
+      cx.fillStyle = '#0005'; cx.beginPath(); cx.roundRect(X0 + 3, Y0 + 5, cw, ch, 14); cx.fill();
+      cx.fillStyle = t.st === 2 ? '#ff6b6b' : t.st === 1 ? '#ffd93d' : '#fffaf0'; cx.beginPath(); cx.roundRect(X0, Y0, cw, ch, 14); cx.fill();
+      cx.strokeStyle = t.st === 2 ? '#b8323f' : '#c9925a'; cx.lineWidth = 3; cx.stroke();
+      cx.font = `700 ${ch * .62}px Amiri, 'Noto Naskh Arabic', serif`; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.direction = 'rtl';
+      cx.fillStyle = t.st === 2 ? '#fff' : '#2f2a6b'; cx.fillText(t.t, X0 + cw / 2, Y0 + ch * .5); } } }
+let t0 = performance.now();
+function drawGirl(t){ const [sx, sy] = P(0, CHARZ), s = F / CHARZ;           // ليلى من الخلف
+  const step = walking ? Math.sin(t * 9) : 0, bob = walking ? Math.abs(Math.sin(t * 9)) * s * .04 : 0;
+  const sh = shake > 0 ? Math.sin(shake * 50) * s * .05 * shake : 0, jump = celebrate > 0 ? Math.abs(Math.sin(celebrate * 7)) * s * .25 : 0;
+  const X = sx + sh, Y = sy - bob - jump;
+  cx.fillStyle = '#0006'; cx.beginPath(); cx.ellipse(sx, sy + 2, s * .32, s * .07, 0, 0, 7); cx.fill();
+  // الساقان
+  for (const k of [-1, 1]){ const lift = walking ? Math.max(0, k * step) * s * .1 : 0;
+    cx.fillStyle = '#f1c7a3'; cx.fillRect(X + k * s * .09 - s * .045, Y - s * .5 - lift, s * .09, s * .42);
+    cx.fillStyle = '#5a3fd0'; cx.beginPath(); cx.ellipse(X + k * s * .09, Y - s * .07 - lift, s * .08, s * .045, 0, 0, 7); cx.fill(); }
+  // الفستان
+  cx.fillStyle = '#ff7aa8'; cx.beginPath(); cx.moveTo(X - s * .16, Y - s * 1.0); cx.lineTo(X + s * .16, Y - s * 1.0); cx.lineTo(X + s * .27, Y - s * .46); cx.lineTo(X - s * .27, Y - s * .46); cx.closePath(); cx.fill();
+  cx.fillStyle = '#ffffff55'; cx.fillRect(X - s * .27, Y - s * .52, s * .54, s * .05);
+  // الذراعان على الجانبين (تتأرجحان مع المشي، وترتفعان في الفرح)
+  for (const k of [-1, 1]){ const a = celebrate > 0 ? Math.PI * .85 : (walking ? step * .25 * k : 0) + .12;
+    cx.save(); cx.translate(X + k * s * .2, Y - s * .97); cx.rotate(-k * a);
+    cx.fillStyle = '#ff7aa8'; cx.fillRect(-s * .045, 0, s * .09, s * .12);
+    cx.fillStyle = '#f1c7a3'; cx.fillRect(-s * .035, s * .1, s * .07, s * .3); cx.beginPath(); cx.arc(0, s * .41, s * .045, 0, 7); cx.fill(); cx.restore(); }
+  // حقيبة صغيرة
+  cx.fillStyle = '#ffd93d'; cx.beginPath(); cx.roundRect(X - s * .12, Y - s * .93, s * .24, s * .26, s * .05); cx.fill();
+  cx.fillStyle = '#e0a800'; cx.fillRect(X - s * .1, Y - s * .8, s * .2, s * .03);
+  // الرأس والشعر وضفيرتان
+  cx.fillStyle = '#3a2416'; cx.beginPath(); cx.arc(X, Y - s * 1.2, s * .2, 0, 7); cx.fill();
+  for (const k of [-1, 1]){ const sway = walking ? step * .1 * k : 0;
+    cx.save(); cx.translate(X + k * s * .17, Y - s * 1.16); cx.rotate(k * .35 + sway);
+    for (let i = 0; i < 3; i++){ cx.beginPath(); cx.arc(0, s * (.05 + i * .09), s * .055, 0, 7); cx.fill(); }
+    cx.fillStyle = '#ff7aa8'; cx.beginPath(); cx.arc(0, s * .31, s * .035, 0, 7); cx.fill(); cx.fillStyle = '#3a2416'; cx.restore(); }
+  cx.fillStyle = '#ff7aa8'; cx.beginPath(); cx.ellipse(X, Y - s * 1.37, s * .07, s * .035, 0, 0, 7); cx.fill(); }
+
+/* ── الحلقة ── */
+let last = performance.now();
+function frame(now){ const dt = Math.min(.05, (now - last) / 1000); last = now;
+  walking = false;
+  const front = rows.find(r => !r.done);
+  const v = 5.2;
+  if (front && front.z > STOP){ const step = Math.min(v * dt, front.z - STOP); rows.forEach(r => r.z -= step); scroll += step; walking = true; }
+  else if (!front && rows.length){ rows.forEach(r => r.z -= v * dt); scroll += v * dt; walking = true; }
+  rows.filter(r => r.done).forEach(r => { if (r.z <= STOP + .01){ r.z -= v * dt * 1.4; } });
+  rows = rows.filter(r => r.z > -2);
+  if (shake > 0) shake = Math.max(0, shake - dt * 1.5);
+  if (celebrate > 0) celebrate = Math.max(0, celebrate - dt * .6);
+  rows.forEach(r => r.tiles.forEach(t => { if (t.hit > 0) t.hit = Math.max(0, t.hit - dt * 2.2); }));
+  cx.clearRect(0, 0, W, H); drawSky(); drawGround(); drawSide();
+  [...rows].sort((a, b) => b.z - a.z).filter(r => r.z > CHARZ).forEach(drawRow);
+  drawGirl(now / 1000);
+  [...rows].sort((a, b) => b.z - a.z).filter(r => r.z <= CHARZ).forEach(drawRow);
+  requestAnimationFrame(frame); }
+
+/* ── التفاعل ── */
+function inside(q, x, y){ let c = false; for (let i = 0, j = q.length - 1; i < q.length; j = i++){
+  const [xi, yi] = q[i], [xj, yj] = q[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; }
+cv.addEventListener('pointerdown', e => {
+  const r = rows.find(r => !r.done); if (!r || busy || r.z > STOP + .05) return;
+  // منطقة اللمس: المفتاح مع هامش للأعلى حيث يقف الحرف
+  const t = r.tiles.find(t => t.q && t.st !== 2 && (inside(t.q, e.clientX, e.clientY) || (t.card && inside(t.card, e.clientX, e.clientY))));
+  if (!t) return;
+  if (t.ok) good(r, t); else { t.st = 2; t.hit = 1; shake = 1; buzz(); navigator.vibrate && navigator.vibrate(60); }
+});
+function good(r, t){ busy = true; t.st = 1; tone(MEL[noteI % MEL.length]); noteI++;
+  const [mx] = P(t.x, r.z + TD / 2), [, my] = P(0, r.z + TD / 2);
+  floatNote(mx, my);
+  const fl = document.createElement('div'); fl.className = 'fly'; fl.textContent = t.t; fl.style.left = mx + 'px'; fl.style.top = my + 'px'; document.body.appendChild(fl);
+  const b = builtEl.getBoundingClientRect(), g = ghostEl.getBoundingClientRect();
+  const tx = g.right - (g.width * (li + .5) / WORDS[wi].length), ty = g.top + g.height / 2;
+  r.flown = true;
+  fl.animate([{left: mx + 'px', top: my + 'px', transform: 'translate(-50%,-50%) scale(1)'}, {left: tx + 'px', top: ty + 'px', transform: 'translate(-50%,-50%) scale(.8)', opacity: .2}],
+    {duration: 650, easing: 'cubic-bezier(.3,.7,.3,1)'}).finished.then(() => {
+    fl.remove(); li++; builtEl.textContent = builtText(); wordEl.classList.add('glow'); setTimeout(() => wordEl.classList.remove('glow'), 500);
+    r.done = true; busy = false;
+    if (li >= WORDS[wi].length) wordDone(); else rows.push(makeRow(Math.max(...rows.map(x => x.z)) + 9)); });
+}
+function floatNote(x, y){ for (let i = 0; i < 3; i++){ const n = document.createElement('div'); n.className = 'note'; n.textContent = ['♪', '♫', '♩'][i];
+  n.style.left = x + (i - 1) * 22 + 'px'; n.style.top = y + 'px'; document.body.appendChild(n);
+  n.animate([{transform: 'translateY(0)', opacity: 1}, {transform: `translateY(-${90 + i * 30}px) rotate(${(i - 1) * 20}deg)`, opacity: 0}], {duration: 1100 + i * 150, easing: 'ease-out'}).finished.then(() => n.remove()); } }
+async function wordDone(){ busy = true; celebrate = 1.6; const banner = document.getElementById('banner'); banner.classList.add('done');
+  const w = WORDS[wi], start = noteI - w.length;
+  for (let i = 0; i < w.length; i++) tone(MEL[(start + i) % MEL.length], i * .28, 1.4, .28);   // الكلمة تُعزف لحناً
+  tone(MEL[(start) % MEL.length] / 2, w.length * .28, 2.2, .22);
+  await new Promise(r => setTimeout(r, w.length * 280 + 500));
+  await say(`/audio/words/${w}.mp3`);
+  await say(`/audio/praise/praise_f_${1 + Math.floor(Math.random() * 5)}.mp3`);
+  banner.classList.remove('done');
+  wi++; li = 0;
+  if (wi >= WORDS.length) return finish();
+  setWord(); rows.push(makeRow(Math.max(STOP + 9, ...rows.map(x => x.z)) + 4)); busy = false; await say(`/audio/words/${WORDS[wi]}.mp3`); }
+function finish(){ const s = document.createElement('div'); s.className = 'screen';
+  s.innerHTML = '<h1>🎶 أحسنتِ!</h1><p>عزفتِ لحن الكلمات الثلاث كاملاً: بيت، جمل، نجم.</p><button>اسمع لحنك</button><button style="background:#fff">العب مرة أخرى</button>';
+  document.body.appendChild(s); const [a, b] = s.querySelectorAll('button');
+  a.onclick = () => MEL.forEach((f, i) => tone(f, i * .3, 1.4, .28)); b.onclick = () => location.reload(); }
+
+document.querySelector('#start button').onclick = async () => {
+  AC = new (window.AudioContext || window.webkitAudioContext)(); document.getElementById('start').remove();
+  setWord(); rows = [makeRow(26)]; await say(`/audio/words/${WORDS[0]}.mp3`); };
+setWord(); requestAnimationFrame(frame);
+</script>
+</body>
+</html>
